@@ -18,12 +18,15 @@ Claude Desktop/Code
 
 ### 인증 흐름
 
-`/api/v1/*` 엔드포인트는 `authorize_user_token!`을 사용한다.
-
-1. MCP 서버가 `Authorization: Bearer <token>` 헤더로 요청
-2. class-rails가 user-rails `/api/v1/me`로 원격 검증 (로컬 JWT 검증 아님)
-3. user-rails가 Doorkeeper DB에서 opaque 토큰 조회 → 유효하면 사용자 정보 반환
-4. class-rails가 결과를 5분간 캐시
+```
+1. MCP 서버 시작 (토큰 없음)
+2. 첫 API 요청 시 password grant로 토큰 자동 발급
+   POST user-rails/oauth/token (email + password + client_id)
+   → access_token + refresh_token
+3. class-rails에 Bearer 토큰으로 요청
+4. class-rails → user-rails /api/v1/me로 원격 검증 (5분 캐시)
+5. 토큰 만료 시 (401) → refresh_token으로 갱신, 실패 시 재인증
+```
 
 | 엔드포인트 | 인증 방식 | MCP 사용 |
 |---|---|---|
@@ -32,27 +35,19 @@ Claude Desktop/Code
 | `/api/v1/problems` | `authorize_user_token!` | O |
 | `/api/v1/material_bundles` | `authorize_user_token!` | O |
 | `/api/v1/tags` | 인증 없음 (public) | O |
-| 인프라 엔드포인트 | `authorize_api_token!` (rails_super_key) | X |
 
 ### 토큰 특성
 
-- **타입**: Opaque (JWT 아님) — Doorkeeper DB에 저장된 랜덤 문자열
+- **타입**: Opaque (JWT 아님) — Doorkeeper DB 저장
 - **수명**: 교사 120분, 학생 30분
-- **갱신**: refresh_token 지원 (`POST /oauth/token`, `grant_type=refresh_token`)
-- **발급**: `authorization_code`, `implicit`, `password` grant 지원
-- `rails_super_key`는 인프라 엔드포인트 전용이라 콘텐츠 API에는 사용 불가
+- **갱신**: refresh_token (만료 없음, Redis 활동 기록 필요)
+- **발급**: password grant (user-rails Doorkeeper)
 
 ## TODO
 
-### 인증 자동화
+### 인증
 
-현재는 수동으로 Bearer 토큰을 설정해야 하며, 만료 시 재설정 필요.
-
-**향후 자동화 옵션:**
-- **Password Grant 자동 인증**: `config.py`에 username/password/oauth_url 추가, `client.py`에 토큰 발급/갱신 로직 (~80-100줄)
-- **Refresh Token 갱신**: `config.py`에 refresh_token 추가, `client.py`에 401 → refresh 로직 (~40-50줄)
-
-- [ ] 토큰 자동 발급/갱신 (Password Grant 또는 Refresh Token)
+- [x] Password Grant 자동 인증 (email/password → 토큰 발급, 401 시 refresh → 재인증)
 - [ ] 환경별(dev/prod) 설정 분리
 
 ### API 클라이언트
