@@ -36,15 +36,18 @@ async def list_bundles(
         "page[number]": page_number,
     }
     if query:
-        params["filter[compact_title]"] = query
-    if is_published is not None:
-        params["filter[is_published]"] = str(is_published).lower()
+        params["filter[compact_title]"] = query.replace(" ", "")
     if is_official is not None:
         params["filter[is_official]"] = str(is_official).lower()
     if tag_ids:
         params["filter[material_bundle_category_tag_ids]"] = ",".join(tag_ids)
-    # 비공개 번들 조회 시 user_id 필터 필수 (is_published=true가 아닌 경우)
-    if is_published is not True and client.user_id:
+    # is_published 필터: 미지정 시 false(내 시리즈) 기본값
+    effective_published = is_published if is_published is not None else False
+    params["filter[is_published]"] = str(effective_published).lower()
+    # 비공개 번들 조회 시 user_id 필터 필수
+    if not effective_published:
+        if not client.user_id:
+            return "인증된 user_id가 없어 시리즈를 조회할 수 없습니다. 인증 설정을 확인하세요."
         params["filter[user_id]"] = client.user_id
 
     response = await client.list_material_bundles(params)

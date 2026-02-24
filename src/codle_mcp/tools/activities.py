@@ -142,7 +142,7 @@ async def manage_activities(
         activitiable_response = await client._request("POST", endpoint, json=activitiable_payload)
         activitiable_id = activitiable_response["data"]["id"]
 
-        # 2단계: activity 생성
+        # 2단계: activity 생성 (activitiable을 relationship으로 연결)
         attrs: dict = {
             "name": name,
             "material_id": material_id,
@@ -158,6 +158,19 @@ async def manage_activities(
         activity = extract_single(response)
         new_id = activity["id"]
 
+        # 2-1단계: activitiable 연결 검증
+        actual_type = activity.get("activitiable_type", "")
+        actual_aid = activity.get("activitiable_id")
+        type_warning = ""
+        if not actual_type and not actual_aid:
+            # attributes에서 못 찾으면 relationships에서 확인
+            raw_data = response.get("data", {})
+            rel = (raw_data.get("relationships") or {}).get("activitiable", {}).get("data") or {}
+            if rel.get("id"):
+                actual_type = activity_type
+            else:
+                type_warning = " [경고: activitiable 연결 실패 - type이 설정되지 않았을 수 있음]"
+
         # 3단계: transition 생성 (갈림길 활동은 스킵)
         chain_msg = ""
         if branch_from:
@@ -171,7 +184,7 @@ async def manage_activities(
             except CodleAPIError as e:
                 return f"transition 생성 실패: {e.detail} (활동 [{new_id}]은 생성됨)"
 
-        return f"활동 생성 완료: [{new_id}] {activity.get('name')} (type: {activity_type}{chain_msg})"
+        return f"활동 생성 완료: [{new_id}] {activity.get('name')} (type: {activity_type}{chain_msg}){type_warning}"
 
     elif action == "update":
         if not activity_id:

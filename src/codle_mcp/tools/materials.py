@@ -114,13 +114,19 @@ async def get_material_detail(material_id: str) -> str:
             except (ValueError, TypeError):
                 depth_val = int(str(raw_depth).replace("h", "")) - 1 if str(raw_depth).startswith("h") else 0
             depth_prefix = "  " * depth_val
-            act_type = a.get("activitiable_type", "?")
+            act_type = a.get("activitiable_type", "")
+            has_activitiable = bool(a.get("activitiable_id"))
+            if not act_type:
+                act_type = "미연결" if not has_activitiable else "?"
             # problem_collection_ids 개수로 문제 연결 여부 표시
             pc_ids = a.get("problem_collection_ids") or []
             problem_info = f", 문제세트: {len(pc_ids)}개" if pc_ids else ""
+            activitiable_info = ""
+            if has_activitiable:
+                activitiable_info = f", activitiable_id: {a['activitiable_id']}"
             lines.append(
                 f"  {depth_prefix}[{a['id']}] {a.get('name', '(무제)')} "
-                f"(type: {act_type}, depth: {raw_depth}{problem_info})"
+                f"(type: {act_type}, depth: {raw_depth}{activitiable_info}{problem_info})"
             )
     else:
         lines.append("\n활동: 없음")

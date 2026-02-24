@@ -76,12 +76,40 @@ async def upsert_problem(
     problem_id를 지정하면 기존 문제를 수정하고, 생략하면 새 문제를 생성합니다.
     user_id는 인증된 사용자로 자동 설정됩니다.
 
+    ## 제약 사항
+    - title에 `/` 기호 사용 불가 (예: `[O/X]` → `[OX]`로 변경)
+    - blocks는 필수. content는 검색용 평문이며, 렌더링은 blocks 기준
+
+    ## blocks 형식 (quiz 타입)
+    ```json
+    {
+      "root": { "children": [{"type": "paragraph", "children": [{"text": "문제 본문"}]}] },
+      "quiz": {
+        "quizType": "ox | multipleChoice | shortAnswer",
+        "answer": "O 또는 X (ox) | 0부터 시작하는 인덱스 (multipleChoice) | 정답 텍스트 (shortAnswer)",
+        "choices": ["선택지1", "선택지2", ...],
+        "commentary": "해설 텍스트"
+      }
+    }
+    ```
+    - OX: `quizType="ox"`, `answer="O"` 또는 `"X"`
+    - 객관식: `quizType="multipleChoice"`, `answer=0`(첫번째 선택지), `choices=[...]`
+    - 주관식: `quizType="shortAnswer"`, `answer="정답"`
+
+    ## blocks 형식 (sheet 타입)
+    ```json
+    {
+      "root": { "children": [{"type": "paragraph", "children": [{"text": "문제 본문"}]}] }
+    }
+    ```
+    sheet 타입은 quiz 객체 없이 root만 포함합니다.
+
     Args:
-        title: 문제 제목 (필수, 최대 255자)
+        title: 문제 제목 (필수, 최대 255자, `/` 기호 사용 불가)
         problem_type: 문제 유형 (필수, "judge"=코딩, "quiz"=퀴즈, "sheet"=시트, "descriptive"=서술형)
         problem_id: 수정할 문제의 ID (생략 시 새로 생성)
-        content: 문제 본문 텍스트
-        blocks: 문제 본문 (Lexical 에디터 JSON 형식)
+        content: 문제 본문 텍스트 (검색용 평문)
+        blocks: 문제 본문 (Lexical 에디터 JSON 형식, 필수)
         is_public: 공개 여부 (기본 False)
         timeout: 실행 제한 시간(초) - judge 타입에서 사용 (기본 1)
         skeleton_code: 기본 제공 코드 - judge 타입에서 사용
@@ -90,6 +118,10 @@ async def upsert_problem(
     """
     if problem_type not in VALID_PROBLEM_TYPES:
         return f"유효하지 않은 problem_type: {problem_type}. {', '.join(VALID_PROBLEM_TYPES)} 중 하나를 사용하세요."
+    if "/" in title:
+        return f"제목에 `/` 기호를 사용할 수 없습니다. 현재 제목: {title}"
+    if not blocks and not problem_id:
+        return "blocks는 필수입니다. Lexical 에디터 JSON 형식으로 문제 본문을 제공하세요."
 
     attrs: dict = {"title": title}
     if problem_id is None:

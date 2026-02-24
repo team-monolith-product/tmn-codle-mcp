@@ -43,8 +43,18 @@ mcp = FastMCP(
    - 주의: 갈림길 transition은 반드시 2개 이상을 동시에 생성해야 하며,
      이를 위해 manage_activities의 branch_from 대신 set_activity_branch를 사용
 5. **문제 생성**: upsert_problem으로 퀴즈/활동지 문제 생성
+   - 제목에 `/` 기호 사용 불가 (예: `[O/X]` → `[OX]`)
+   - blocks는 필수 (content는 검색용 평문)
+   - quiz 타입: blocks에 `quiz` 객체 포함 (quizType, answer, choices, commentary)
+   - sheet 타입: blocks에 `root`만 포함
 6. **문제 연결**: manage_problem_collections(action="create")로 활동에 문제 연결
    - QuizActivity, SheetActivity 등 문제 기반 활동에 필수
 7. **검증**: get_material_detail로 활동 목록, 유형, 분기, 문제 연결 확인
+   - type이 "미연결"로 표시되면 activitiable 생성이 실패한 것 → 활동 재생성 필요
+
+## 주의사항
+
+- 활동 삭제 시 코스 흐름(transition) 체인이 끊어짐. 중간 활동 삭제 후 복구 불가.
+  문제 발생 시 자료 전체를 새로 생성하는 것이 안전.
 """,
 )
