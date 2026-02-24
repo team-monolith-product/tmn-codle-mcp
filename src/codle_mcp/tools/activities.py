@@ -142,21 +142,18 @@ async def manage_activities(
         activitiable_response = await client._request("POST", endpoint, json=activitiable_payload)
         activitiable_id = activitiable_response["data"]["id"]
 
-        # 2단계: activity 생성 (activitiable을 relationship으로 연결)
+        # 2단계: activity 생성 (activitiable을 attributes로 연결)
         attrs: dict = {
             "name": name,
             "material_id": material_id,
             "depth": depth,
+            "activitiable_type": activity_type,
+            "activitiable_id": activitiable_id,
         }
         if tag_ids:
             attrs["tag_ids"] = tag_ids
 
-        relationships = {
-            "activitiable": {
-                "data": {"type": jsonapi_type, "id": activitiable_id}
-            }
-        }
-        payload = build_jsonapi_payload("activities", attrs, relationships=relationships)
+        payload = build_jsonapi_payload("activities", attrs)
         response = await client.create_activity(payload)
         activity = extract_single(response)
         new_id = activity["id"]

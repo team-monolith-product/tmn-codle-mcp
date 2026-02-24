@@ -36,7 +36,7 @@ async def list_bundles(
         "page[number]": page_number,
     }
     if query:
-        params["filter[query]"] = query
+        params["filter[compact_title]"] = query.replace(" ", "")
     if is_official is not None:
         params["filter[is_official]"] = str(is_official).lower()
     if tag_ids:
@@ -53,13 +53,16 @@ async def list_bundles(
     try:
         response = await client.list_material_bundles(params)
     except CodleAPIError as e:
-        if e.status_code == 400 and query and "filter[query]" in params:
-            # fallback: filter[query]가 지원되지 않으면 filter[compact_title]로 재시도
-            params["filter[compact_title]"] = query.replace(" ", "")
-            del params["filter[query]"]
-            response = await client.list_material_bundles(params)
-        else:
-            raise
+        if e.status_code == 400:
+            # IncompleteFilter: 필터 조합이 잘못된 경우 상세 메시지 반환
+            return (
+                f"시리즈 조회 실패 (400): {e.detail}\n"
+                "유효한 필터 조합:\n"
+                "  1. is_published=true (단독, user_id 불가)\n"
+                "  2. is_published=false + user_id (자동 설정됨)\n"
+                f"전송된 파라미터: {params}"
+            )
+        raise
     bundles = extract_list(response)
 
     if not bundles:
