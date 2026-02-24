@@ -110,7 +110,7 @@ async def manage_activities(
         if not activity_id:
             return "delete 시 activity_id는 필수입니다."
         try:
-            await client._request("DELETE", f"/admin/v1/activities/{activity_id}")
+            await client.delete_activity(activity_id)
         except CodleAPIError as e:
             return f"활동 삭제 실패: {e.detail}"
         return f"활동 삭제 완료: {activity_id}"
@@ -118,7 +118,7 @@ async def manage_activities(
     elif action == "duplicate":
         if not activity_id:
             return "duplicate 시 activity_id는 필수입니다."
-        response = await client._request("POST", f"/admin/v1/activities/{activity_id}/duplicate")
+        response = await client.duplicate_activity(activity_id)
         activity = extract_single(response)
         return f"활동 복제 완료: [{activity['id']}] {activity.get('name')} (원본: {activity_id})"
 
