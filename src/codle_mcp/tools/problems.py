@@ -7,6 +7,8 @@ from codle_mcp.api.models import (
 )
 from codle_mcp.app import mcp
 
+VALID_PROBLEM_TYPES = ["judge", "quiz", "sheet", "descriptive"]
+
 
 @mcp.tool()
 async def search_problems(
@@ -29,20 +31,19 @@ async def search_problems(
         page_size: 페이지당 결과 수 (기본 20, 최대 100)
         page_number: 페이지 번호 (1부터 시작)
     """
-    type_map = {"judge": 0, "quiz": 1, "sheet": 2, "descriptive": 3}
-
     params: dict = {
         "page[size]": min(page_size, 100),
         "page[number]": page_number,
+        "filter[is_exam]": "false",
     }
     if query:
-        params["filter[title_cont]"] = query
-    if problem_type and problem_type in type_map:
-        params["filter[problem_type_eq]"] = type_map[problem_type]
+        params["filter[query]"] = query
+    if problem_type and problem_type in VALID_PROBLEM_TYPES:
+        params["filter[problem_type]"] = problem_type
     if is_public is not None:
-        params["filter[is_public_eq]"] = str(is_public).lower()
+        params["filter[is_public]"] = str(is_public).lower()
     if tag_ids:
-        params["filter[tags_id_in][]"] = tag_ids
+        params["filter[tag_ids]"] = ",".join(tag_ids)
 
     response = await client.list_problems(params)
     problems = extract_list(response)
@@ -72,6 +73,7 @@ async def upsert_problem(
     """문제(Problem)를 생성하거나 수정합니다.
 
     problem_id를 지정하면 기존 문제를 수정하고, 생략하면 새 문제를 생성합니다.
+    user_id는 인증된 사용자로 자동 설정됩니다.
 
     Args:
         title: 문제 제목 (필수, 최대 255자)
@@ -85,13 +87,12 @@ async def upsert_problem(
         tag_ids: 연결할 태그 ID 목록
         commentary: 문제 해설 (Lexical 에디터 JSON 형식)
     """
-    type_map = {"judge": 0, "quiz": 1, "sheet": 2, "descriptive": 3}
-    if problem_type not in type_map:
-        return f"유효하지 않은 problem_type: {problem_type}. judge, quiz, sheet, descriptive 중 하나를 사용하세요."
+    if problem_type not in VALID_PROBLEM_TYPES:
+        return f"유효하지 않은 problem_type: {problem_type}. {', '.join(VALID_PROBLEM_TYPES)} 중 하나를 사용하세요."
 
     attrs: dict = {"title": title}
     if problem_id is None:
-        attrs["problem_type"] = type_map[problem_type]
+        attrs["problem_type"] = problem_type
     if content is not None:
         attrs["content"] = content
     if blocks is not None:

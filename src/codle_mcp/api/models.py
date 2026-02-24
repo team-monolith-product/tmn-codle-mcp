@@ -41,16 +41,13 @@ def build_jsonapi_payload(resource_type: str, attributes: dict, resource_id: str
 
 def format_material_summary(material: dict) -> str:
     """Material을 LLM이 읽기 쉬운 텍스트로 포맷."""
-    tags = material.get("tag_ids", [])
-    tag_str = f" [tags: {', '.join(tags)}]" if tags else ""
     public = "공개" if material.get("is_public") else "비공개"
-    return f"- [{material['id']}] {material.get('name', '(무제)')}{tag_str} ({public})"
+    return f"- [{material['id']}] {material.get('name', '(무제)')} ({public})"
 
 
 def format_problem_summary(problem: dict) -> str:
     """Problem을 LLM이 읽기 쉬운 텍스트로 포맷."""
-    type_names = {0: "judge", 1: "quiz", 2: "sheet", 3: "descriptive"}
-    ptype = type_names.get(problem.get("problem_type"), "unknown")
+    ptype = problem.get("problem_type", "unknown")
     return f"- [{problem['id']}] {problem.get('title', '(무제)')} (type: {ptype})"
 
 

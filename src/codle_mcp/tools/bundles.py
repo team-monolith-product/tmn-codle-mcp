@@ -23,10 +23,10 @@ async def list_bundles(
     시리즈는 여러 자료를 차시 순서로 묶은 커리큘럼입니다.
 
     Args:
-        query: 검색 키워드 (시리즈 제목에서 검색)
+        query: 검색 키워드 (시리즈 제목에서 검색, 공백 무시)
         is_published: 게시 여부 필터
         is_official: 공식 시리즈 여부 필터
-        tag_ids: 필터링할 태그 ID 목록
+        tag_ids: 필터링할 태그 ID 목록 (material_bundle_category 도메인 태그)
         page_size: 페이지당 결과 수 (기본 20, 최대 100)
         page_number: 페이지 번호 (1부터 시작)
     """
@@ -35,13 +35,13 @@ async def list_bundles(
         "page[number]": page_number,
     }
     if query:
-        params["filter[title_cont]"] = query
+        params["filter[compact_title]"] = query
     if is_published is not None:
-        params["filter[is_published_eq]"] = str(is_published).lower()
+        params["filter[is_published]"] = str(is_published).lower()
     if is_official is not None:
-        params["filter[is_official_eq]"] = str(is_official).lower()
+        params["filter[is_official]"] = str(is_official).lower()
     if tag_ids:
-        params["filter[tags_id_in][]"] = tag_ids
+        params["filter[material_bundle_category_tag_ids]"] = ",".join(tag_ids)
 
     response = await client.list_material_bundles(params)
     bundles = extract_list(response)
@@ -70,10 +70,10 @@ async def get_bundle_detail(bundle_id: str) -> str:
 
     included = response.get("included", [])
     materials = [
-        {"id": i["id"], **i.get("attributes", {})} for i in included if i.get("type") == "materials"
+        {"id": i["id"], **i.get("attributes", {})} for i in included if i.get("type") == "material"
     ]
     materials.sort(key=lambda m: m.get("position") or 0)
-    tags = [{"id": i["id"], **i.get("attributes", {})} for i in included if i.get("type") == "tags"]
+    tags = [{"id": i["id"], **i.get("attributes", {})} for i in included if i.get("type") == "tag"]
 
     lines = [
         f"시리즈: {bundle.get('title', '(무제)')}",
@@ -102,40 +102,28 @@ async def manage_bundle(
     bundle_id: str | None = None,
     title: str | None = None,
     description: dict | None = None,
-    is_official: bool | None = None,
-    is_published: bool | None = None,
     tag_ids: list[str] | None = None,
-    user_id: str | None = None,
 ) -> str:
     """시리즈(MaterialBundle)를 생성하거나 수정합니다.
 
     시리즈는 여러 자료를 차시 순서로 묶은 커리큘럼입니다.
     자료를 시리즈에 추가하려면 update_material로 자료의 material_bundle_id와 position을 설정하세요.
+    user_id는 인증된 사용자로 자동 설정됩니다.
 
     Args:
         action: 수행할 작업 ("create", "update", "delete")
         bundle_id: 시리즈 ID (update, delete 시 필수)
         title: 시리즈 제목 (create 시 필수, 최대 64자)
         description: 시리즈 설명 (Lexical 에디터 JSON 형식)
-        is_official: 공식 시리즈 여부
-        is_published: 게시 여부
         tag_ids: 연결할 태그 ID 목록
-        user_id: 시리즈 생성자 ID (create 시 필수)
     """
     if action == "create":
-        if not title or not user_id:
-            return "create 시 title과 user_id는 필수입니다."
+        if not title:
+            return "create 시 title은 필수입니다."
 
-        attrs: dict = {
-            "title": title,
-            "user_id": user_id,
-            "is_official": is_official if is_official is not None else False,
-            "is_published": is_published if is_published is not None else False,
-        }
+        attrs: dict = {"title": title}
         if description is not None:
             attrs["description"] = description
-        if tag_ids:
-            attrs["tag_ids"] = tag_ids
 
         payload = build_jsonapi_payload("material_bundles", attrs)
         response = await client.create_material_bundle(payload)
@@ -151,12 +139,6 @@ async def manage_bundle(
             attrs["title"] = title
         if description is not None:
             attrs["description"] = description
-        if is_official is not None:
-            attrs["is_official"] = is_official
-        if is_published is not None:
-            attrs["is_published"] = is_published
-        if tag_ids is not None:
-            attrs["tag_ids"] = tag_ids
 
         if not attrs:
             return "수정할 항목이 없습니다."

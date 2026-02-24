@@ -18,7 +18,7 @@ MCP 서버는 Codle API 호출 시 사용자의 OAuth2 토큰이 필요하다.
 
 ### 토큰 얻는 법
 
-1. 브라우저에서 [dev-class.codle.io](https://dev-class.codle.io) 로그인
+1. 브라우저에서 [dev-class.codle.io](https://class.dev.codle.io) 로그인
 2. DevTools 열기 (F12)
 3. Network 탭 → 아무 API 요청 클릭 → Request Headers에서 `Authorization` 값 복사
 4. `Bearer eyABC123...` 형태의 전체 문자열을 사용

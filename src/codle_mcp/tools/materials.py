@@ -33,11 +33,11 @@ async def search_materials(
         "page[number]": page_number,
     }
     if query:
-        params["filter[name_cont]"] = query
+        params["filter[query]"] = query
     if is_public is not None:
-        params["filter[is_public_eq]"] = str(is_public).lower()
+        params["filter[is_public]"] = str(is_public).lower()
     if tag_ids:
-        params["filter[tags_id_in][]"] = tag_ids
+        params["filter[tag_ids]"] = ",".join(tag_ids)
 
     response = await client.list_materials(params)
     materials = extract_list(response)
@@ -67,9 +67,9 @@ async def get_material_detail(material_id: str) -> str:
 
     included = response.get("included", [])
     activities = [
-        {"id": i["id"], **i.get("attributes", {})} for i in included if i.get("type") == "activities"
+        {"id": i["id"], **i.get("attributes", {})} for i in included if i.get("type") == "activity"
     ]
-    tags = [{"id": i["id"], **i.get("attributes", {})} for i in included if i.get("type") == "tags"]
+    tags = [{"id": i["id"], **i.get("attributes", {})} for i in included if i.get("type") == "tag"]
 
     lines = [
         f"자료: {material.get('name', '(무제)')}",
@@ -98,8 +98,6 @@ async def get_material_detail(material_id: str) -> str:
 async def create_material(
     name: str,
     is_public: bool = False,
-    is_official: bool = False,
-    level: int = 1,
     tag_ids: list[str] | None = None,
     material_bundle_id: str | None = None,
     position: int | None = None,
@@ -108,21 +106,18 @@ async def create_material(
 
     자료는 여러 활동(Activity)을 담는 컨테이너입니다.
     자료 생성 후 manage_activities로 활동을 추가하세요.
+    user_id는 인증된 사용자로 자동 설정됩니다.
 
     Args:
         name: 자료 이름 (필수, 최대 255자)
-        is_public: 공개 여부 (기본 False)
-        is_official: 공식 자료 여부 (기본 False)
-        level: 접근 레벨 (0=guest, 1=teacher, 2=ai_teacher, 4=master, 5=visang)
+        is_public: 공개 여부 (기본 False). 한번 공개하면 비공개로 되돌릴 수 없음.
         tag_ids: 연결할 태그 ID 목록
         material_bundle_id: 소속 시리즈 ID (시리즈에 포함시킬 경우)
         position: 시리즈 내 순서 (material_bundle_id 설정 시 필수)
     """
-    attrs = {
+    attrs: dict = {
         "name": name,
         "is_public": is_public,
-        "is_official": is_official,
-        "level": level,
     }
     if tag_ids:
         attrs["tag_ids"] = tag_ids
@@ -142,8 +137,6 @@ async def update_material(
     material_id: str,
     name: str | None = None,
     is_public: bool | None = None,
-    is_official: bool | None = None,
-    level: int | None = None,
     tag_ids: list[str] | None = None,
     material_bundle_id: str | None = None,
     position: int | None = None,
@@ -151,13 +144,12 @@ async def update_material(
     """기존 자료(Material)의 정보를 수정합니다.
 
     변경하고 싶은 필드만 전달하면 됩니다. 전달하지 않은 필드는 유지됩니다.
+    본인 소유 자료만 수정 가능합니다.
 
     Args:
         material_id: 수정할 자료의 ID
         name: 자료 이름
-        is_public: 공개 여부
-        is_official: 공식 자료 여부
-        level: 접근 레벨
+        is_public: 공개 여부. 공개(true)로만 변경 가능하며 비공개로 되돌릴 수 없음.
         tag_ids: 연결할 태그 ID 목록 (전체 교체)
         material_bundle_id: 소속 시리즈 ID
         position: 시리즈 내 순서
@@ -167,10 +159,6 @@ async def update_material(
         attrs["name"] = name
     if is_public is not None:
         attrs["is_public"] = is_public
-    if is_official is not None:
-        attrs["is_official"] = is_official
-    if level is not None:
-        attrs["level"] = level
     if tag_ids is not None:
         attrs["tag_ids"] = tag_ids
     if material_bundle_id is not None:

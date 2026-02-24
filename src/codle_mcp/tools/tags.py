@@ -2,19 +2,19 @@ from codle_mcp.api.client import client
 from codle_mcp.api.models import extract_list
 from codle_mcp.app import mcp
 
-TAG_DOMAINS = {
-    0: "problem",
-    1: "material",
-    2: "standard_concept",
-    3: "difficulty",
-    4: "school_level",
-    5: "metadata",
-    6: "major_chapter",
-    7: "category",
-    8: "material_bundle_topic",
-    9: "material_bundle_category",
-    10: "material_bundle_language",
-}
+VALID_DOMAINS = [
+    "problem",
+    "material",
+    "standard_concept",
+    "difficulty",
+    "school_level",
+    "metadata",
+    "major_chapter",
+    "category",
+    "material_bundle_topic",
+    "material_bundle_category",
+    "material_bundle_language",
+]
 
 
 @mcp.tool()
@@ -44,25 +44,27 @@ async def manage_tags(
         page_size: 페이지당 결과 수 (기본 50, 최대 100)
         page_number: 페이지 번호 (1부터 시작)
     """
-    domain_map = {v: k for k, v in TAG_DOMAINS.items()}
-
     params: dict = {
         "page[size]": min(page_size, 100),
         "page[number]": page_number,
     }
-    if domain and domain in domain_map:
-        params["filter[domain_eq]"] = domain_map[domain]
-    if query:
-        params["filter[name_cont]"] = query
+    if domain and domain in VALID_DOMAINS:
+        params["filter[domain]"] = domain
+    # /api/v1/tags 컨트롤러는 ransack name_cont를 허용하지 않음.
+    # 서버 측 필터링 불가하므로 클라이언트에서 필터링.
+    filter_query = query
 
     response = await client.list_tags(params)
     tags = extract_list(response)
+
+    if filter_query:
+        tags = [t for t in tags if filter_query.lower() in t.get("name", "").lower()]
 
     if not tags:
         return "태그가 없습니다."
 
     lines = [f"태그 목록 ({len(tags)}건):"]
     for t in tags:
-        tag_domain = TAG_DOMAINS.get(t.get("domain", 0), "unknown")
+        tag_domain = t.get("domain", "unknown")
         lines.append(f"  [{t['id']}] {t.get('name', '(무제)')} (domain: {tag_domain})")
     return "\n".join(lines)
