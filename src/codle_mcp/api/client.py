@@ -19,6 +19,7 @@ class CodleClient:
         self.base_url = settings.api_url.rstrip("/")
         self._access_token = ""
         self._refresh_token = ""
+        self.user_id: str = ""
         self._auth_url = settings.auth_url.rstrip("/") if settings.auth_url else ""
         self._email = settings.email
         self._password = settings.password
@@ -52,6 +53,20 @@ class CodleClient:
             data = response.json()
             self._access_token = data["access_token"]
             self._refresh_token = data.get("refresh_token", "")
+            await self._fetch_user_id()
+
+    async def _fetch_user_id(self) -> None:
+        """user-rails /api/v1/me로 현재 유저 ID 조회."""
+        if not self._access_token or not self._auth_url:
+            return
+        async with httpx.AsyncClient(timeout=15.0) as c:
+            response = await c.get(
+                f"{self._auth_url}/api/v1/me",
+                headers={"Authorization": f"Bearer {self._access_token}"},
+            )
+            if response.is_success:
+                data = response.json()
+                self.user_id = str(data.get("id", ""))
 
     async def _refresh(self) -> bool:
         """Refresh token으로 토큰 갱신. 성공 시 True."""
@@ -78,10 +93,13 @@ class CodleClient:
             return {"Authorization": f"Bearer {self._access_token}"}
         return {}
 
-    async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
-        # Lazy auth: 토큰 없고 자동 인증 가능하면 첫 요청 시 발급
+    async def ensure_auth(self) -> None:
+        """인증이 안 된 상태면 인증 수행. tool에서 user_id 등 참조 전에 호출."""
         if not self._access_token and self._can_auto_auth():
             await self._authenticate()
+
+    async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
+        await self.ensure_auth()
 
         response = await self._client.request(method, path, headers=self._auth_headers(), **kwargs)
 

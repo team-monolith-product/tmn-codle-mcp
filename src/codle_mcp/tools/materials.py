@@ -28,6 +28,7 @@ async def search_materials(
         page_size: 페이지당 결과 수 (기본 20, 최대 100)
         page_number: 페이지 번호 (1부터 시작)
     """
+    await client.ensure_auth()
     params: dict = {
         "page[size]": min(page_size, 100),
         "page[number]": page_number,
@@ -36,6 +37,9 @@ async def search_materials(
         params["filter[query]"] = query
     if is_public is not None:
         params["filter[is_public]"] = str(is_public).lower()
+    # 비공개 자료 조회 시 user_id 필터 필수
+    if is_public is not True and client.user_id:
+        params["filter[user_id]"] = client.user_id
     if tag_ids:
         params["filter[tag_ids]"] = ",".join(tag_ids)
 
@@ -86,7 +90,7 @@ async def get_material_detail(material_id: str) -> str:
     if activities:
         lines.append(f"\n활동 ({len(activities)}개):")
         for a in activities:
-            depth_prefix = "  " * a.get("depth", 0)
+            depth_prefix = "  " * int(a.get("depth", 0))
             lines.append(f"  {depth_prefix}[{a['id']}] {a.get('name', '(무제)')}")
     else:
         lines.append("\n활동: 없음")
