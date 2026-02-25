@@ -198,10 +198,10 @@ class TestManageProblemCollectionsCreate:
         assert "문제 2개" in result
         assert "pc-1" in result
 
-        # get_activity에 include=problem_collections 파라미터 확인
+        # get_activity에 include=problem_collections.pcps 파라미터 확인
         call_args = mock_client.get_activity.call_args
         assert call_args[0][0] == "100"
-        assert "problem_collections" in str(call_args[0][1].get("include", ""))
+        assert call_args[0][1].get("include") == "problem_collections.pcps"
 
     async def test_missing_activity_id(self, mock_client):
         result = await manage_problem_collections(action="create", problem_ids=["p1"])

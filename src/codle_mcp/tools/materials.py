@@ -118,15 +118,9 @@ async def get_material_detail(material_id: str) -> str:
             has_activitiable = bool(a.get("activitiable_id"))
             if not act_type:
                 act_type = "미연결" if not has_activitiable else "?"
-            # problem_collection_ids 개수로 문제 연결 여부 표시
-            pc_ids = a.get("problem_collection_ids") or []
+            # QuizActivity/SheetActivity는 문제 연결이 필요한 타입임을 표시
             needs_problems = act_type in ("QuizActivity", "SheetActivity")
-            if pc_ids:
-                problem_info = f", 문제세트: {len(pc_ids)}개"
-            elif needs_problems:
-                problem_info = ", ⚠️ 문제 미연결 (manage_problem_collections 필요)"
-            else:
-                problem_info = ""
+            problem_info = ", 문제 연결 필요" if needs_problems else ""
             activitiable_info = ""
             if has_activitiable:
                 activitiable_info = f", activitiable_id: {a['activitiable_id']}"

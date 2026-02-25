@@ -97,13 +97,21 @@ async def upsert_problem(
     - 객관식: `quizType="multipleChoice"`, `answer=0`(첫번째 선택지), `choices=[...]`
     - 주관식: `quizType="shortAnswer"`, `answer="정답"`
 
-    ## blocks 형식 (sheet 타입)
+    ## blocks 형식 (sheet/descriptive 타입)
     ```json
     {
       "root": { "children": [{"type": "paragraph", "children": [{"text": "문제 본문"}]}] }
     }
     ```
-    sheet 타입은 quiz 객체 없이 root만 포함합니다.
+    sheet/descriptive 타입은 quiz 객체 없이 root만 포함합니다.
+
+    ## 문제 타입 선택 가이드
+    - quiz: OX, 객관식, 주관식 — 정답이 있는 퀴즈 (blocks에 quiz 객체 필수)
+    - sheet: 활동지 문항 — 자유 작성형 (SheetActivity용)
+    - descriptive: 서술형 — 자유 작성형, 정답 일치 채점 아님 (QuizActivity에서 서술형 문항)
+    - judge: 코딩 문제
+
+    **주의**: 스크립트에서 [서술형]으로 표기된 문제는 quiz/shortAnswer가 아닌 descriptive를 사용하세요.
 
     Args:
         title: 문제 제목 (필수, 최대 255자, `/` 기호 사용 불가)
@@ -198,7 +206,7 @@ async def manage_problem_collections(
         # 활동에서 자동 생성된 ProblemCollection 찾기
         try:
             act_resp = await client.get_activity(
-                activity_id, {"include": "problem_collections"}
+                activity_id, {"include": "problem_collections.pcps"}
             )
         except CodleAPIError as e:
             return f"활동 조회 실패 (activity_id={activity_id}): {e.detail}"
