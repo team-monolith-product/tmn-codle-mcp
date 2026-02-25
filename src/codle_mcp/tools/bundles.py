@@ -38,25 +38,24 @@ async def list_bundles(
     if query:
         params["filter[compact_title]"] = query.replace(" ", "")
     if is_official is not None:
-        params["filter[is_official]"] = str(is_official).lower()
+        params["filter[is_official_eq]"] = str(is_official).lower()
     if tag_ids:
         params["filter[material_bundle_category_tag_ids]"] = ",".join(tag_ids)
-    # is_published 필터: 미지정 시 false(내 시리즈) 기본값
+    # is_published 필터: 미지정 시 false(내 시리즈) 기본값 (ransack _eq suffix 필수)
     effective_published = is_published if is_published is not None else False
-    params["filter[is_published]"] = str(effective_published).lower()
+    params["filter[is_published_eq]"] = str(effective_published).lower()
     # 비공개 번들 조회 시 user_id 필터 필수
     if not effective_published:
         if not client.user_id:
             return "인증된 user_id가 없어 시리즈를 조회할 수 없습니다. 인증 설정을 확인하세요."
-        params["filter[user_id]"] = client.user_id
+        params["filter[user_id_eq]"] = client.user_id
 
     try:
         response = await client.list_material_bundles(params)
     except CodleAPIError as e:
-        if e.status_code == 400:
-            # IncompleteFilter: 필터 조합이 잘못된 경우 상세 메시지 반환
+        if e.status_code in (400, 403):
             return (
-                f"시리즈 조회 실패 (400): {e.detail}\n"
+                f"시리즈 조회 실패 ({e.status_code}): {e.detail}\n"
                 "유효한 필터 조합:\n"
                 "  1. is_published=true (단독, user_id 불가)\n"
                 "  2. is_published=false + user_id (자동 설정됨)\n"

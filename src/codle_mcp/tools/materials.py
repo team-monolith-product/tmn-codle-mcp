@@ -66,7 +66,7 @@ async def get_material_detail(material_id: str) -> str:
     Args:
         material_id: 조회할 자료의 ID
     """
-    params = {"include": "activities,tags,activity_transitions"}
+    params = {"include": "activities,activities.activitiable,tags,activity_transitions"}
     response = await client.get_material(material_id, params)
     material = extract_single(response)
 

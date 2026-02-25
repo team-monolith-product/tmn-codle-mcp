@@ -191,22 +191,16 @@ async def manage_problem_collections(
         if not problem_ids:
             return "create 시 problem_ids는 필수입니다."
 
-        # 활동 정보 조회하여 activitiable_id 획득
-        activity_resp = await client.get_activity(activity_id)
+        # 활동 정보 조회하여 activitiable_id 획득 (include=activitiable 필수)
+        activity_resp = await client.get_activity(activity_id, {"include": "activitiable"})
         data = activity_resp.get("data", {})
-        attrs = data.get("attributes", {})
-        activitiable_id = attrs.get("activitiable_id")
-        activitiable_type = attrs.get("activitiable_type", "")
-
-        # Fallback: JSONAPI relationships에서 polymorphic 관계 추출
-        if not activitiable_id:
-            rel = (data.get("relationships") or {}).get("activitiable", {}).get("data") or {}
-            activitiable_id = rel.get("id")
-            raw_type = rel.get("type", "")  # snake_case (e.g. "quiz_activity")
-            activitiable_type = snake_to_pascal(raw_type) if raw_type else ""
+        rel = (data.get("relationships") or {}).get("activitiable", {}).get("data") or {}
+        activitiable_id = rel.get("id")
+        raw_type = rel.get("type", "")  # snake_case (e.g. "quiz_activity")
+        activitiable_type = snake_to_pascal(raw_type) if raw_type else ""
 
         if not activitiable_id:
-            return f"활동 [{activity_id}]에서 activitiable_id를 찾을 수 없습니다."
+            return f"활동 [{activity_id}]에서 activitiable_id를 찾을 수 없습니다. 활동이 올바르게 생성되었는지 확인하세요."
 
         # activitiable_type에 따른 owner 필드 결정
         owner_type = _pascal_to_snake(activitiable_type) if activitiable_type else "quiz_activity"
