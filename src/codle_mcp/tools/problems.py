@@ -12,6 +12,28 @@ from codle_mcp.app import mcp
 VALID_PROBLEM_TYPES = ["judge", "quiz", "sheet", "descriptive"]
 
 
+def _build_do_many_create_payload(pc_id: str, problem_ids: list[str]) -> dict:
+    """do_many_problem_collections_problems용 payload 생성.
+
+    Rails DoMany concern은 top-level data_to_create 배열을 기대한다.
+    각 항목은 JSONAPI 형식의 attributes 객체를 포함해야 한다.
+    """
+    return {
+        "data_to_create": [
+            {
+                "attributes": {
+                    "problem_collection_id": pc_id,
+                    "problem_id": pid,
+                    "position": idx,
+                    "point": 1,
+                    "is_required": True,
+                }
+            }
+            for idx, pid in enumerate(problem_ids)
+        ]
+    }
+
+
 @mcp.tool()
 async def search_problems(
     query: str | None = None,
@@ -227,20 +249,7 @@ async def manage_problem_collections(
         pc_id = pc_rel[0]["id"] if isinstance(pc_rel, list) else pc_rel["id"]
 
         # 문제 연결 (do_many)
-        link_items = [
-            {
-                "problem_collection_id": pc_id,
-                "problem_id": pid,
-                "position": idx,
-            }
-            for idx, pid in enumerate(problem_ids)
-        ]
-        do_many_payload = {
-            "data": {
-                "type": "problem_collections_problem",
-                "attributes": {"do_many": {"create": link_items}},
-            }
-        }
+        do_many_payload = _build_do_many_create_payload(pc_id, problem_ids)
         try:
             await client.do_many_problem_collections_problems(do_many_payload)
         except CodleAPIError as e:
@@ -260,20 +269,7 @@ async def manage_problem_collections(
         if not problem_ids:
             return "add_problems 시 problem_ids는 필수입니다."
 
-        link_items = [
-            {
-                "problem_collection_id": problem_collection_id,
-                "problem_id": pid,
-                "position": idx,
-            }
-            for idx, pid in enumerate(problem_ids)
-        ]
-        do_many_payload = {
-            "data": {
-                "type": "problem_collections_problem",
-                "attributes": {"do_many": {"create": link_items}},
-            }
-        }
+        do_many_payload = _build_do_many_create_payload(problem_collection_id, problem_ids)
         try:
             await client.do_many_problem_collections_problems(do_many_payload)
         except CodleAPIError as e:

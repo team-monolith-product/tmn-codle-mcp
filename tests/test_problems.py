@@ -203,6 +203,19 @@ class TestManageProblemCollectionsCreate:
         assert call_args[0][0] == "100"
         assert call_args[0][1].get("include") == "problem_collections.pcps"
 
+        # do_many payload 형식 확인 (Rails DoMany concern 형식)
+        do_many_payload = mock_client.do_many_problem_collections_problems.call_args[0][0]
+        assert "data_to_create" in do_many_payload
+        items = do_many_payload["data_to_create"]
+        assert len(items) == 2
+        assert items[0]["attributes"]["problem_collection_id"] == "pc-1"
+        assert items[0]["attributes"]["problem_id"] == "p1"
+        assert items[0]["attributes"]["position"] == 0
+        assert items[0]["attributes"]["point"] == 1
+        assert items[0]["attributes"]["is_required"] is True
+        assert items[1]["attributes"]["problem_id"] == "p2"
+        assert items[1]["attributes"]["position"] == 1
+
     async def test_missing_activity_id(self, mock_client):
         result = await manage_problem_collections(action="create", problem_ids=["p1"])
         assert "activity_id는 필수" in result
