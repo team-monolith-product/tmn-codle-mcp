@@ -1,10 +1,11 @@
+import json as _json
+
 from codle_mcp.api.client import CodleAPIError, client
 from codle_mcp.api.models import (
     build_jsonapi_payload,
     extract_list,
     extract_single,
     format_problem_summary,
-    snake_to_pascal,
 )
 from codle_mcp.app import mcp
 
@@ -137,6 +138,11 @@ async def upsert_problem(
     if tag_ids is not None:
         attrs["tag_ids"] = tag_ids
     if commentary is not None:
+        if isinstance(commentary, str):
+            try:
+                commentary = _json.loads(commentary)
+            except (ValueError, TypeError):
+                pass
         attrs["commentary"] = commentary
 
     payload = build_jsonapi_payload("problems", attrs, problem_id)
@@ -157,33 +163,31 @@ async def manage_problem_collections(
     activity_id: str | None = None,
     problem_ids: list[str] | None = None,
     problem_collection_id: str | None = None,
-    name: str | None = None,
-    is_random: bool = False,
-    problem_count: int | None = None,
 ) -> str:
-    """활동(Activity)에 문제 세트(ProblemCollection)를 생성하고 문제를 연결합니다.
+    """활동(Activity)의 ProblemCollection에 문제를 연결합니다.
 
     QuizActivity, SheetActivity 등 문제를 포함하는 활동에 사용합니다.
     활동 생성 후 이 도구로 문제를 연결해야 학생에게 문제가 표시됩니다.
 
+    ## 중요: ProblemCollection은 자동 생성됨
+    Rails가 QuizActivity/SheetActivity 타입의 Activity를 생성할 때
+    ProblemCollection을 자동으로 생성합니다. 따라서 별도 생성이 불필요합니다.
+
     ## 워크플로우
-    1. upsert_problem으로 문제 생성 → problem_id 획득
-    2. manage_problem_collections(action="create", activity_id=..., problem_ids=[...])
-       → ProblemCollection 생성 + 문제 연결을 한 번에 수행
+    1. manage_activities(action="create")로 활동 생성 (ProblemCollection 자동 생성됨)
+    2. upsert_problem으로 문제 생성 → problem_id 획득
+    3. manage_problem_collections(action="create", activity_id=..., problem_ids=[...])
+       → 자동 생성된 ProblemCollection을 찾아 문제를 연결
 
     ## 동작 방식
-    - create: ProblemCollection 생성 후, problem_ids로 지정된 문제들을 순서대로 연결
-    - add_problems: 기존 ProblemCollection에 문제 추가
-    - delete: ProblemCollection 삭제
+    - create: activity_id로 자동 생성된 ProblemCollection을 찾아 문제 연결
+    - add_problems: 기존 ProblemCollection에 문제 추가 (problem_collection_id 직접 지정)
 
     Args:
-        action: 수행할 작업 ("create", "add_problems", "delete")
-        activity_id: 활동 ID (create 시 필수). 활동의 activitiable_id가 자동으로 사용됩니다.
+        action: 수행할 작업 ("create", "add_problems")
+        activity_id: 활동 ID (create 시 필수)
         problem_ids: 연결할 문제 ID 목록 (create, add_problems 시 필수)
-        problem_collection_id: ProblemCollection ID (add_problems, delete 시 필수)
-        name: ProblemCollection 이름 (create 시 선택, 기본값: 활동 이름)
-        is_random: 문제 랜덤 출제 여부 (기본 false)
-        problem_count: 랜덤 출제 시 문제 수 (is_random=true일 때만 사용)
+        problem_collection_id: ProblemCollection ID (add_problems 시 필수)
     """
     if action == "create":
         if not activity_id:
@@ -191,37 +195,28 @@ async def manage_problem_collections(
         if not problem_ids:
             return "create 시 problem_ids는 필수입니다."
 
-        # 활동 정보 조회하여 activitiable_id 획득 (include=activitiable 필수)
-        activity_resp = await client.get_activity(activity_id, {"include": "activitiable"})
-        data = activity_resp.get("data", {})
-        rel = (data.get("relationships") or {}).get("activitiable", {}).get("data") or {}
-        activitiable_id = rel.get("id")
-        raw_type = rel.get("type", "")  # snake_case (e.g. "quiz_activity")
-        activitiable_type = snake_to_pascal(raw_type) if raw_type else ""
-
-        if not activitiable_id:
-            return f"활동 [{activity_id}]에서 activitiable_id를 찾을 수 없습니다. 활동이 올바르게 생성되었는지 확인하세요."
-
-        # activitiable_type에 따른 owner 필드 결정
-        owner_type = _pascal_to_snake(activitiable_type) if activitiable_type else "quiz_activity"
-
-        # ProblemCollection 생성
-        pc_attrs: dict = {
-            f"{owner_type}_id": activitiable_id,
-            "is_random": is_random,
-        }
-        if name:
-            pc_attrs["name"] = name
-        if problem_count is not None:
-            pc_attrs["problem_count"] = problem_count
-
-        pc_payload = build_jsonapi_payload("problem_collections", pc_attrs)
+        # 활동에서 자동 생성된 ProblemCollection 찾기
         try:
-            pc_resp = await client.create_problem_collection(pc_payload)
+            act_resp = await client.get_activity(
+                activity_id, {"include": "problem_collections"}
+            )
         except CodleAPIError as e:
-            return f"ProblemCollection 생성 실패: {e.detail}"
-        pc = extract_single(pc_resp)
-        pc_id = pc["id"]
+            return f"활동 조회 실패 (activity_id={activity_id}): {e.detail}"
+
+        pc_rel = (
+            act_resp.get("data", {})
+            .get("relationships", {})
+            .get("problem_collections", {})
+            .get("data")
+        )
+        if not pc_rel:
+            return (
+                f"활동 [{activity_id}]에 ProblemCollection이 없습니다. "
+                f"QuizActivity 또는 SheetActivity 타입의 활동인지 확인하세요."
+            )
+
+        # 첫 번째 ProblemCollection 사용
+        pc_id = pc_rel[0]["id"] if isinstance(pc_rel, list) else pc_rel["id"]
 
         # 문제 연결 (do_many)
         link_items = [
@@ -242,7 +237,7 @@ async def manage_problem_collections(
             await client.do_many_problem_collections_problems(do_many_payload)
         except CodleAPIError as e:
             return (
-                f"ProblemCollection [{pc_id}] 생성됨, 문제 연결 실패: {e.detail}. "
+                f"ProblemCollection [{pc_id}] 발견됨, 문제 연결 실패: {e.detail}. "
                 f"add_problems로 재시도하세요."
             )
 
@@ -281,24 +276,5 @@ async def manage_problem_collections(
             f"문제 {len(problem_ids)}개 추가"
         )
 
-    elif action == "delete":
-        if not problem_collection_id:
-            return "delete 시 problem_collection_id는 필수입니다."
-        try:
-            await client.delete_problem_collection(problem_collection_id)
-        except CodleAPIError as e:
-            return f"ProblemCollection 삭제 실패: {e.detail}"
-        return f"ProblemCollection 삭제 완료: {problem_collection_id}"
-
     else:
-        return f"유효하지 않은 action: {action}. create, add_problems, delete 중 하나를 사용하세요."
-
-
-def _pascal_to_snake(name: str) -> str:
-    """PascalCase를 snake_case로 변환."""
-    result = []
-    for i, c in enumerate(name):
-        if c.isupper() and i > 0:
-            result.append("_")
-        result.append(c.lower())
-    return "".join(result)
+        return f"유효하지 않은 action: {action}. create, add_problems 중 하나를 사용하세요."

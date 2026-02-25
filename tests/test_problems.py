@@ -1,25 +1,15 @@
+import json
+
 import pytest
 
 from codle_mcp.api.client import CodleAPIError
 from codle_mcp.tools.problems import (
-    _pascal_to_snake,
     manage_problem_collections,
     search_problems,
     upsert_problem,
 )
 
 from .conftest import make_jsonapi_list_response, make_jsonapi_response
-
-
-# --- _pascal_to_snake (problems.py duplicate) ---
-
-
-class TestPascalToSnakeProblems:
-    def test_quiz_activity(self):
-        assert _pascal_to_snake("QuizActivity") == "quiz_activity"
-
-    def test_sheet_activity(self):
-        assert _pascal_to_snake("SheetActivity") == "sheet_activity"
 
 
 # --- upsert_problem ---
@@ -95,6 +85,51 @@ class TestUpsertProblemUpdate:
         assert attrs["timeout"] == 1
 
 
+class TestUpsertProblemCommentary:
+    """B5: commentary 파라미터 타입 처리."""
+
+    async def test_commentary_dict(self, mock_client):
+        """dict로 전달 → 그대로 사용."""
+        mock_client.create_problem.return_value = make_jsonapi_response(
+            "problem", "1", {"title": "Q1"}
+        )
+        commentary = {"root": {"children": [{"text": "해설"}]}}
+        await upsert_problem(
+            title="Q1", problem_type="quiz", blocks={"root": {}}, commentary=commentary
+        )
+        call_args = mock_client.create_problem.call_args[0][0]
+        assert call_args["data"]["attributes"]["commentary"] == commentary
+
+    async def test_commentary_json_string(self, mock_client):
+        """JSON string으로 전달 → dict로 파싱."""
+        mock_client.create_problem.return_value = make_jsonapi_response(
+            "problem", "1", {"title": "Q1"}
+        )
+        commentary_dict = {"root": {"children": []}}
+        await upsert_problem(
+            title="Q1",
+            problem_type="quiz",
+            blocks={"root": {}},
+            commentary=json.dumps(commentary_dict),
+        )
+        call_args = mock_client.create_problem.call_args[0][0]
+        assert call_args["data"]["attributes"]["commentary"] == commentary_dict
+
+    async def test_commentary_invalid_string(self, mock_client):
+        """파싱 불가 string → 그대로 전달 (API에서 에러 처리)."""
+        mock_client.create_problem.return_value = make_jsonapi_response(
+            "problem", "1", {"title": "Q1"}
+        )
+        await upsert_problem(
+            title="Q1",
+            problem_type="quiz",
+            blocks={"root": {}},
+            commentary="just a string",
+        )
+        call_args = mock_client.create_problem.call_args[0][0]
+        assert call_args["data"]["attributes"]["commentary"] == "just a string"
+
+
 # --- search_problems ---
 
 
@@ -120,24 +155,40 @@ class TestSearchProblems:
 # --- manage_problem_collections ---
 
 
-class TestManageProblemCollectionsCreate:
-    async def test_successful_create(self, mock_client):
-        """정상: activity에서 activitiable_id 추출 → PC 생성 → 문제 연결."""
-        # get_activity 응답 (include=activitiable)
-        mock_client.get_activity.return_value = {
-            "data": {
-                "id": "100",
-                "type": "activity",
-                "attributes": {"name": "퀴즈"},
-                "relationships": {
-                    "activitiable": {"data": {"type": "quiz_activity", "id": "99"}},
-                },
+def _activity_with_pc(activity_id="100", pc_id="pc-1"):
+    """Activity 응답에 problem_collections relationship 포함."""
+    return {
+        "data": {
+            "type": "activity",
+            "id": activity_id,
+            "attributes": {"name": "퀴즈 활동"},
+            "relationships": {
+                "problem_collections": {
+                    "data": [{"type": "problem_collection", "id": pc_id}]
+                }
             },
         }
-        # create_problem_collection 응답
-        mock_client.create_problem_collection.return_value = make_jsonapi_response(
-            "problem_collection", "pc-1", {"name": "퀴즈"}
-        )
+    }
+
+
+def _activity_without_pc(activity_id="100"):
+    """Activity 응답에 problem_collections 없음."""
+    return {
+        "data": {
+            "type": "activity",
+            "id": activity_id,
+            "attributes": {"name": "영상 활동"},
+            "relationships": {
+                "problem_collections": {"data": []}
+            },
+        }
+    }
+
+
+class TestManageProblemCollectionsCreate:
+    async def test_successful_create(self, mock_client):
+        """정상: activity에서 auto-created PC 찾아서 문제 연결."""
+        mock_client.get_activity.return_value = _activity_with_pc("100", "pc-1")
         mock_client.do_many_problem_collections_problems.return_value = {}
 
         result = await manage_problem_collections(
@@ -145,50 +196,12 @@ class TestManageProblemCollectionsCreate:
         )
         assert "생성 및 문제 연결 완료" in result
         assert "문제 2개" in result
+        assert "pc-1" in result
 
-        # PC 생성 payload에 quiz_activity_id 포함 확인
-        pc_payload = mock_client.create_problem_collection.call_args[0][0]
-        pc_attrs = pc_payload["data"]["attributes"]
-        assert pc_attrs["quiz_activity_id"] == "99"
-
-    async def test_sheet_activity_owner(self, mock_client):
-        """SheetActivity → owner는 sheet_activity_id."""
-        mock_client.get_activity.return_value = {
-            "data": {
-                "id": "100",
-                "type": "activity",
-                "attributes": {},
-                "relationships": {
-                    "activitiable": {"data": {"type": "sheet_activity", "id": "88"}},
-                },
-            },
-        }
-        mock_client.create_problem_collection.return_value = make_jsonapi_response(
-            "problem_collection", "pc-2", {}
-        )
-        mock_client.do_many_problem_collections_problems.return_value = {}
-
-        await manage_problem_collections(
-            action="create", activity_id="100", problem_ids=["p1"]
-        )
-        pc_payload = mock_client.create_problem_collection.call_args[0][0]
-        assert "sheet_activity_id" in pc_payload["data"]["attributes"]
-
-    async def test_missing_activitiable(self, mock_client):
-        """activitiable 관계 없음 → 에러."""
-        mock_client.get_activity.return_value = {
-            "data": {
-                "id": "100",
-                "type": "activity",
-                "attributes": {},
-                "relationships": {},
-            },
-        }
-
-        result = await manage_problem_collections(
-            action="create", activity_id="100", problem_ids=["p1"]
-        )
-        assert "activitiable_id를 찾을 수 없습니다" in result
+        # get_activity에 include=problem_collections 파라미터 확인
+        call_args = mock_client.get_activity.call_args
+        assert call_args[0][0] == "100"
+        assert "problem_collections" in str(call_args[0][1].get("include", ""))
 
     async def test_missing_activity_id(self, mock_client):
         result = await manage_problem_collections(action="create", problem_ids=["p1"])
@@ -198,21 +211,27 @@ class TestManageProblemCollectionsCreate:
         result = await manage_problem_collections(action="create", activity_id="1")
         assert "problem_ids는 필수" in result
 
-    async def test_link_failure_partial_success(self, mock_client):
-        """PC 생성 성공, 문제 연결 실패 → 부분 성공 메시지."""
-        mock_client.get_activity.return_value = {
-            "data": {
-                "id": "100",
-                "type": "activity",
-                "attributes": {},
-                "relationships": {
-                    "activitiable": {"data": {"type": "quiz_activity", "id": "99"}},
-                },
-            },
-        }
-        mock_client.create_problem_collection.return_value = make_jsonapi_response(
-            "problem_collection", "pc-1", {}
+    async def test_no_problem_collection(self, mock_client):
+        """활동에 ProblemCollection이 없으면 에러."""
+        mock_client.get_activity.return_value = _activity_without_pc("100")
+
+        result = await manage_problem_collections(
+            action="create", activity_id="100", problem_ids=["p1"]
         )
+        assert "ProblemCollection이 없습니다" in result
+
+    async def test_activity_fetch_failure(self, mock_client):
+        """활동 조회 실패."""
+        mock_client.get_activity.side_effect = CodleAPIError(404, "Not found")
+
+        result = await manage_problem_collections(
+            action="create", activity_id="999", problem_ids=["p1"]
+        )
+        assert "활동 조회 실패" in result
+
+    async def test_link_failure_partial_success(self, mock_client):
+        """PC 발견, 문제 연결 실패 → 부분 성공 메시지."""
+        mock_client.get_activity.return_value = _activity_with_pc("100", "pc-1")
         mock_client.do_many_problem_collections_problems.side_effect = CodleAPIError(422, "Link failed")
 
         result = await manage_problem_collections(
@@ -222,24 +241,28 @@ class TestManageProblemCollectionsCreate:
         assert "문제 연결 실패" in result
         assert "add_problems" in result
 
-    async def test_pc_creation_failure(self, mock_client):
-        """PC 생성 실패."""
-        mock_client.get_activity.return_value = {
+    async def test_single_pc_object(self, mock_client):
+        """PC relationship이 단일 객체(list가 아닌)인 경우."""
+        resp = {
             "data": {
-                "id": "100",
                 "type": "activity",
+                "id": "100",
                 "attributes": {},
                 "relationships": {
-                    "activitiable": {"data": {"type": "quiz_activity", "id": "99"}},
+                    "problem_collections": {
+                        "data": {"type": "problem_collection", "id": "pc-single"}
+                    }
                 },
-            },
+            }
         }
-        mock_client.create_problem_collection.side_effect = CodleAPIError(422, "Invalid")
+        mock_client.get_activity.return_value = resp
+        mock_client.do_many_problem_collections_problems.return_value = {}
 
         result = await manage_problem_collections(
             action="create", activity_id="100", problem_ids=["p1"]
         )
-        assert "ProblemCollection 생성 실패" in result
+        assert "pc-single" in result
+        assert "생성 및 문제 연결 완료" in result
 
 
 class TestManageProblemCollectionsAddProblems:
@@ -263,27 +286,12 @@ class TestManageProblemCollectionsAddProblems:
         assert "problem_ids는 필수" in result
 
 
-class TestManageProblemCollectionsDelete:
-    async def test_successful_delete(self, mock_client):
-        mock_client.delete_problem_collection.return_value = {}
-        result = await manage_problem_collections(
-            action="delete", problem_collection_id="pc-1"
-        )
-        assert "삭제 완료" in result
-
-    async def test_delete_error(self, mock_client):
-        mock_client.delete_problem_collection.side_effect = CodleAPIError(404, "Not found")
-        result = await manage_problem_collections(
-            action="delete", problem_collection_id="pc-1"
-        )
-        assert "삭제 실패" in result
-
-    async def test_missing_pc_id(self, mock_client):
-        result = await manage_problem_collections(action="delete")
-        assert "problem_collection_id는 필수" in result
-
-
 class TestManageProblemCollectionsInvalidAction:
     async def test_invalid_action(self, mock_client):
         result = await manage_problem_collections(action="invalid")
+        assert "유효하지 않은 action" in result
+
+    async def test_delete_is_invalid(self, mock_client):
+        """delete action은 더 이상 지원하지 않음."""
+        result = await manage_problem_collections(action="delete")
         assert "유효하지 않은 action" in result

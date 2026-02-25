@@ -1,4 +1,5 @@
 import json as _json
+import re
 from typing import Any
 
 import httpx
@@ -102,6 +103,19 @@ class CodleClient:
         if not self._access_token and self._can_auto_auth():
             await self._authenticate()
 
+    @staticmethod
+    def _extract_error_detail(response: httpx.Response) -> str:
+        """응답에서 에러 메시지 추출. HTML 응답은 요약하여 컨텍스트 오염 방지."""
+        content_type = response.headers.get("content-type", "")
+        if "text/html" in content_type:
+            match = re.search(r"<h[12]>(.*?)</h[12]>", response.text[:2000])
+            msg = match.group(1) if match else "알 수 없는 에러"
+            return f"HTML 에러 응답 ({response.status_code}): {msg}"
+        text = response.text
+        if len(text) > 1000:
+            text = text[:1000] + "..."
+        return text
+
     def _log_request(self, method: str, path: str, **kwargs) -> None:
         parts = [f"{method} {path}"]
         if kwargs.get("params"):
@@ -128,8 +142,9 @@ class CodleClient:
             response = await self._client.request(method, path, headers=self._auth_headers(), **kwargs)
 
         if not response.is_success:
-            logger.warning("%s %s → %d: %s", method, path, response.status_code, response.text[:300])
-            raise CodleAPIError(response.status_code, response.text)
+            detail = self._extract_error_detail(response)
+            logger.warning("%s %s → %d: %s", method, path, response.status_code, detail[:300])
+            raise CodleAPIError(response.status_code, detail)
 
         logger.debug("%s %s → %d", method, path, response.status_code)
         if response.status_code == 204 or not response.content:
@@ -229,19 +244,10 @@ class CodleClient:
     async def list_tags(self, params: dict | None = None) -> dict:
         return await self._request("GET", "/api/v1/tags", params=params)
 
-    # --- Problem Collections ---
+    # --- Problem Collections (api/v1에는 index만 존재, CRUD 없음) ---
 
     async def list_problem_collections(self, params: dict | None = None) -> dict:
         return await self._request("GET", "/api/v1/problem_collections", params=params)
-
-    async def create_problem_collection(self, data: dict) -> dict:
-        return await self._request("POST", "/api/v1/problem_collections", json=data)
-
-    async def update_problem_collection(self, collection_id: str, data: dict) -> dict:
-        return await self._request("PUT", f"/api/v1/problem_collections/{collection_id}", json=data)
-
-    async def delete_problem_collection(self, collection_id: str) -> dict:
-        return await self._request("DELETE", f"/api/v1/problem_collections/{collection_id}")
 
     # --- Problem Collections Problems ---
 
