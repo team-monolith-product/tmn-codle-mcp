@@ -6,7 +6,6 @@ import {
   extractList,
   extractSingle,
   formatMaterialSummary,
-  formatProblemSummary,
   snakeToPascal,
 } from "../src/api/models.js";
 
@@ -205,15 +204,6 @@ describe("formatSummaries", () => {
   it("material no name", () => {
     const result = formatMaterialSummary({ id: "1" });
     expect(result).toContain("(무제)");
-  });
-
-  it("problem", () => {
-    const result = formatProblemSummary({
-      id: "1",
-      title: "Q1",
-      problem_type: "quiz",
-    });
-    expect(result).toBe("- [1] Q1 (type: quiz)");
   });
 
 });

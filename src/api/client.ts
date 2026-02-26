@@ -226,39 +226,6 @@ export class CodleClient {
     return this.request("DELETE", `/api/v1/materials/${materialId}`);
   }
 
-  // --- Problems ---
-  async listProblems(
-    params?: Record<string, string | number | boolean>
-  ): Promise<Record<string, unknown>> {
-    return this.request("GET", "/api/v1/problems", { params });
-  }
-
-  async getProblem(
-    problemId: string,
-    params?: Record<string, string | number | boolean>
-  ): Promise<Record<string, unknown>> {
-    return this.request("GET", `/api/v1/problems/${problemId}`, { params });
-  }
-
-  async createProblem(
-    data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    return this.request("POST", "/api/v1/problems", { json: data });
-  }
-
-  async updateProblem(
-    problemId: string,
-    data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    return this.request("PUT", `/api/v1/problems/${problemId}`, { json: data });
-  }
-
-  async duplicateProblem(
-    problemId: string
-  ): Promise<Record<string, unknown>> {
-    return this.request("POST", `/api/v1/problems/${problemId}/duplicate`);
-  }
-
   // --- Activities ---
   async createActivity(
     data: Record<string, unknown>
@@ -331,7 +298,6 @@ export class CodleClient {
     return this.request("GET", "/api/v1/tags", { params });
   }
 
-  // --- Problem Collections ---
   // --- Quiz Activities ---
   async createQuizActivity(
     data: Record<string, unknown>

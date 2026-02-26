@@ -31,14 +31,12 @@ src/
     ├── register.ts   # 모든 tool 일괄 등록
     ├── activities.ts
     ├── materials.ts
-    ├── problems.ts
     └── tags.ts
 ```
 
 ## API 제약사항
 
 - **api/v1만 사용**: `/api/v1/*` 엔드포인트만 사용. `/admin/v1/*`은 절대 사용 불가.
-- **ProblemCollection**: 직접 생성 불가 (POST 엔드포인트 없음). Activity 생성 시 Rails가 자동 생성.
 
 ## 수정 원칙
 

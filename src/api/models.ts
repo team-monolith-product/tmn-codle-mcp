@@ -66,13 +66,6 @@ export function formatMaterialSummary(
   return `- [${material.id}] ${material.name ?? "(무제)"} (${pub})`;
 }
 
-export function formatProblemSummary(
-  problem: Record<string, unknown>
-): string {
-  const ptype = problem.problem_type ?? "unknown";
-  return `- [${problem.id}] ${problem.title ?? "(무제)"} (type: ${ptype})`;
-}
-
 export function snakeToPascal(name: string): string {
   return name
     .split("_")

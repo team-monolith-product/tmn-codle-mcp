@@ -7,7 +7,7 @@ export const server = new McpServer(
   },
   {
     instructions: `Codle는 인터랙티브 학습 플랫폼입니다.
-이 MCP 서버는 Codle의 자료, 문제, 활동, 태그 데이터를 조회하고 관리할 수 있는 도구를 제공합니다.
+이 MCP 서버는 Codle의 자료, 활동, 태그 데이터를 조회하고 관리할 수 있는 도구를 제공합니다.
 
 ## 용어 매핑 (서비스 용어 = 개발 용어)
 
@@ -24,7 +24,6 @@ export const server = new McpServer(
 | 엔트리 | EntryActivity | entry_activities |
 | 스크래치 | ScratchActivity | scratch_activities |
 | PDF | PdfActivity | pdf_activities |
-| 문제 | Problem | problems |
 | 태그 | Tag | tags |
 | 갈림길 | ActivityTransition (with level) | activity_transitions |
 | 코스 흐름 | ActivityTransition (linear) | activity_transitions |
@@ -43,12 +42,7 @@ export const server = new McpServer(
    - 모든 갈림길 활동 생성 후 set_activity_branch로 분기 설정 (mid 필수, low/high 선택)
    - 주의: 갈림길 transition은 반드시 2개 이상을 동시에 생성해야 하며,
      이를 위해 manage_activities의 branch_from 대신 set_activity_branch를 사용
-5. **문제 생성**: upsert_problem으로 퀴즈/활동지 문제 생성
-   - 제목에 \`/\` 기호 사용 불가 (예: \`[O/X]\` → \`[OX]\`)
-   - blocks는 필수 (content는 검색용 평문)
-   - quiz 타입: blocks에 \`quiz\` 객체 포함 (quizType, answer, choices, commentary)
-   - sheet 타입: blocks에 \`root\`만 포함
-6. **검증**: get_material_detail로 활동 목록, 유형, 분기 확인
+4. **검증**: get_material_detail로 활동 목록, 유형, 분기 확인
    - type이 "미연결"로 표시되면 activitiable 생성이 실패한 것 → 활동 재생성 필요
 
 ## API 제약사항
