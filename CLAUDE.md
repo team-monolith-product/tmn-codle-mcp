@@ -1,4 +1,40 @@
-# Codle MCP Server
+# Codle MCP Server (TypeScript)
+
+## 기술 스택
+
+- Runtime: Node.js 22+
+- MCP SDK: `@modelcontextprotocol/sdk`
+- HTTP: native `fetch`
+- Validation: `zod`
+- Test: `vitest`
+- Build: `tsc` (ESM, Node16 module)
+
+## 명령어
+
+- `npm run build` — TypeScript 빌드 (dist/)
+- `npm test` — 전체 테스트
+- `npm run typecheck` — 타입 체크만
+
+## 구조
+
+```
+src/
+├── index.ts          # Entry point (stdio transport)
+├── server.ts         # McpServer 인스턴스 + instructions
+├── config.ts         # 환경변수 (dotenv)
+├── logger.ts         # stderr 로깅
+├── api/
+│   ├── client.ts     # CodleClient (fetch, OAuth2, retry)
+│   ├── models.ts     # JSON:API 유틸
+│   └── errors.ts     # CodleAPIError
+└── tools/
+    ├── register.ts   # 모든 tool 일괄 등록
+    ├── activities.ts
+    ├── materials.ts
+    ├── problems.ts
+    ├── bundles.ts
+    └── tags.ts
+```
 
 ## API 제약사항
 

@@ -1,0 +1,27 @@
+{
+  "name": "codle-mcp",
+  "version": "1.0.0",
+  "description": "Codle MCP Server - MCP tools for managing Codle learning materials",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.9"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
