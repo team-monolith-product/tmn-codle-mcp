@@ -5,13 +5,60 @@ Claude Desktop/Code에서 자연어로 Codle 자료를 조회/생성/수정할 �
 
 > 설치/설정 가이드: [SETUP.md](SETUP.md)
 
+## 기술 스택
+
+| 항목 | 선택 |
+|------|------|
+| Runtime | Node.js 22+ |
+| MCP SDK | `@modelcontextprotocol/sdk` |
+| HTTP | native `fetch` |
+| Validation | `zod` |
+| Test | `vitest` |
+| Build | `tsc` (ESM, Node16 module) |
+
+## 프로젝트 구조
+
+```
+tmn-codle-mcp/
+├── src/
+│   ├── index.ts          # Entry point (stdio transport)
+│   ├── server.ts         # McpServer 인스턴스 + instructions
+│   ├── config.ts         # 환경변수 (dotenv)
+│   ├── logger.ts         # stderr 로깅
+│   ├── api/
+│   │   ├── client.ts     # CodleClient (fetch, OAuth2, retry)
+│   │   ├── models.ts     # JSON:API 유틸
+│   │   └── errors.ts     # CodleAPIError
+│   └── tools/
+│       ├── register.ts   # 모든 tool 일괄 등록
+│       ├── activities.ts
+│       ├── materials.ts
+│       ├── problems.ts
+│       ├── bundles.ts
+│       └── tags.ts
+├── tests/
+│   ├── helpers.ts
+│   ├── activities.test.ts
+│   ├── materials.test.ts
+│   ├── problems.test.ts
+│   ├── bundles.test.ts
+│   ├── models.test.ts
+│   └── client.test.ts
+├── package.json
+├── tsconfig.json
+├── vitest.config.ts
+├── .env.example
+├── CLAUDE.md
+└── README.md
+```
+
 ## 아키텍처
 
 ```
 Claude Desktop/Code
   └─ MCP Protocol (stdio)
-       └─ codle-mcp (이 서버)
-            └─ HTTP (JSON:API)
+       └─ codle-mcp (이 서버, Node.js)
+            └─ HTTP/fetch (JSON:API)
                  └─ jce-class-rails (/api/v1/*)
                       └─ user-rails (토큰 검증)
 ```
@@ -64,7 +111,8 @@ Claude Desktop/Code
 {
   "mcpServers": {
     "codle": {
-      "command": "codle-mcp",
+      "command": "node",
+      "args": ["path/to/tmn-codle-mcp/dist/index.js"],
       "env": {
         "CODLE_LOG_LEVEL": "DEBUG",
         ...
@@ -92,7 +140,7 @@ Claude Desktop은 `~/Library/Logs/Claude/` 하위에서 확인할 수 있다.
 ```
 22:16:03 [INFO] codle_mcp: codle-mcp 서버 시작
 22:16:05 [INFO] codle_mcp: 인증 성공 (email=teacher@example.com)
-22:16:05 [DEBUG] codle_mcp: GET /api/v1/materials params={'filter[query]': 'AI', 'page[size]': '5'}
+22:16:05 [DEBUG] codle_mcp: GET /api/v1/materials params={"filter[query]":"AI","page[size]":"5"}
 22:16:05 [DEBUG] codle_mcp: GET /api/v1/materials → 200
 22:16:10 [WARNING] codle_mcp: POST /api/v1/activities → 422: {"errors":[...]}
 ```
@@ -117,8 +165,8 @@ Claude Desktop은 `~/Library/Logs/Claude/` 하위에서 확인할 수 있다.
 - [ ] 문제 생성 시 test_case, problem_answer 포함 지원
 
 ### 테스트
+- [x] tool별 단위 테스트 (mock API) — 119개
 - [ ] dev 환경 실제 API 연동 테스트
-- [ ] tool별 단위 테스트 (mock API)
 - [ ] Claude Desktop 연동 E2E 테스트
 
 ### 배포/운영

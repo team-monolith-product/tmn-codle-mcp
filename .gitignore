@@ -17,6 +17,3 @@ dist/
 
 # Test
 coverage/
-
-# Python backup (migration)
-_python_backup/

@@ -2,13 +2,13 @@
 
 ## 요구사항
 
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/) (권장) 또는 pip
+- Node.js 22+
 
 ## 설치
 
 ```bash
-uv pip install -e .
+npm install
+npm run build
 ```
 
 ## 인증 설정
@@ -27,7 +27,8 @@ Codle 계정의 이메일/비밀번호로 자동 인증한다. 토큰 발급과 
 {
   "mcpServers": {
     "codle": {
-      "command": "codle-mcp",
+      "command": "node",
+      "args": ["path/to/tmn-codle-mcp/dist/index.js"],
       "env": {
         "CODLE_API_URL": "https://class.dev.codle.io",
         "CODLE_AUTH_URL": "https://user.dev.codle.io",
@@ -44,8 +45,6 @@ Codle 계정의 이메일/비밀번호로 자동 인증한다. 토큰 발급과 
 
 `~/Library/Application Support/Claude/claude_desktop_config.json`에 동일한 JSON을 추가한다.
 
-> `codle-mcp`가 PATH에 없으면 절대경로를 사용한다. (예: `~/.local/bin/codle-mcp`)
-
 ## 사용 예시
 
 설정 완료 후 Claude에게 자연어로 요청:
@@ -61,4 +60,4 @@ Codle 계정의 이메일/비밀번호로 자동 인증한다. 토큰 발급과 
 |---|---|---|
 | 인증 실패 | 잘못된 이메일/비밀번호/Client ID | 환경변수 확인 |
 | Connection refused | API URL 오류 | `CODLE_API_URL`, `CODLE_AUTH_URL` 확인 |
-| Tool not found | 설치 안 됨 | `which codle-mcp` 확인 |
+| Cannot find module | 빌드 안 됨 | `npm run build` 실행 |
