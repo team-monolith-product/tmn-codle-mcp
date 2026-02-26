@@ -55,7 +55,6 @@ describe("search_materials", () => {
 
     const callParams = mockClient.listMaterials.mock.calls[0][0];
     expect(callParams["filter[query]"]).toBe("테스트");
-    expect(callParams["filter[user_id]"]).toBe("test-user-123");
   });
 
   it("public search no user_id", async () => {

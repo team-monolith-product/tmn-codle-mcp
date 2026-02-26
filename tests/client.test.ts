@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { extractErrorDetail } from "../src/api/errors.js";
 
 describe("extractErrorDetail", () => {
@@ -50,64 +50,33 @@ describe("CodleClient", () => {
     vi.resetModules();
   });
 
-  it("ensureAuth throws when accessToken is empty", async () => {
-    vi.doMock("../src/config.js", () => ({
-      config: {
-        apiUrl: "https://class.dev.codle.io",
-        authUrl: "",
-        accessToken: "",
-        port: 3000,
-        logLevel: "INFO",
-      },
-    }));
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
+  it("ensureAuth throws when no token in context", async () => {
+    // context에 토큰이 없으면 (AsyncLocalStorage 밖) 에러
     const { CodleClient } = await import("../src/api/client.js");
     const client = new CodleClient();
+
     await expect(client.ensureAuth()).rejects.toThrow(
-      "CODLE_ACCESS_TOKEN이 설정되지 않았습니다"
+      "Authorization 헤더에 Bearer 토큰이 필요합니다."
     );
   });
 
-  it("ensureAuth succeeds with token and calls fetchUserId once", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: "42" }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    vi.doMock("../src/config.js", () => ({
-      config: {
-        apiUrl: "https://class.dev.codle.io",
-        authUrl: "https://user.dev.codle.io",
-        accessToken: "test-pat-token",
-        port: 3000,
-        logLevel: "INFO",
-      },
-    }));
-
+  it("ensureAuth succeeds with token in context", async () => {
+    const { requestContext } = await import("../src/context.js");
     const { CodleClient } = await import("../src/api/client.js");
     const client = new CodleClient();
 
-    await client.ensureAuth();
-    expect(client.userId).toBe("42");
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-
-    // Second call should not fetch again
-    await client.ensureAuth();
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-
-    vi.unstubAllGlobals();
+    await requestContext.run({ accessToken: "test-token" }, async () => {
+      await expect(client.ensureAuth()).resolves.toBeUndefined();
+    });
   });
 
   it("request does not retry on 401", async () => {
     let callCount = 0;
-    const mockFetch = vi.fn().mockImplementation((url: string) => {
-      if (String(url).includes("/api/v1/me")) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ id: "1" }),
-        });
-      }
+    const mockFetch = vi.fn().mockImplementation(() => {
       callCount++;
       return Promise.resolve({
         ok: false,
@@ -118,26 +87,17 @@ describe("CodleClient", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    vi.doMock("../src/config.js", () => ({
-      config: {
-        apiUrl: "https://class.dev.codle.io",
-        authUrl: "https://user.dev.codle.io",
-        accessToken: "expired-token",
-        port: 3000,
-        logLevel: "ERROR",
-      },
-    }));
-
+    const { requestContext } = await import("../src/context.js");
     const { CodleClient } = await import("../src/api/client.js");
     const client = new CodleClient();
 
-    await expect(
-      client.request("GET", "/api/v1/materials")
-    ).rejects.toThrow();
+    await requestContext.run({ accessToken: "expired-token" }, async () => {
+      await expect(
+        client.request("GET", "/api/v1/materials")
+      ).rejects.toThrow();
+    });
 
     // Should only call the materials endpoint once (no retry)
     expect(callCount).toBe(1);
-
-    vi.unstubAllGlobals();
   });
 });
