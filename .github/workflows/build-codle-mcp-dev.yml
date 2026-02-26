@@ -11,6 +11,7 @@ jobs:
     with:
       env: dev
       target: develop
+      dockerTarget: prd
       updateTargets: |
         {
           "aws": {
