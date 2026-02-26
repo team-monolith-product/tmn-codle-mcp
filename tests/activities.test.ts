@@ -216,6 +216,55 @@ describe("manage_activities create", () => {
     expect(callArgs.data.attributes.activitiable_id).toBe("99");
   });
 
+  it("depth 1-indexed to 0-indexed conversion", async () => {
+    mockClient.request.mockResolvedValue({
+      data: { id: "99", type: "html_activity", attributes: {} },
+    });
+    mockClient.createActivity.mockResolvedValue(
+      makeJsonApiResponse("activity", "100", { name: "깊은활동", depth: 1 })
+    );
+    mockClient.getMaterial.mockResolvedValue({
+      data: { id: "1", type: "material", attributes: {} },
+      included: [],
+    });
+
+    await toolHandlers.manage_activities({
+      action: "create",
+      material_id: "1",
+      name: "깊은활동",
+      activity_type: "HtmlActivity",
+      depth: 2,
+    });
+
+    const callArgs = mockClient.createActivity.mock.calls[0][0];
+    // depth 2 (1-indexed) → 1 (0-indexed for Rails API)
+    expect(callArgs.data.attributes.depth).toBe(1);
+  });
+
+  it("depth defaults to 1 when omitted", async () => {
+    mockClient.request.mockResolvedValue({
+      data: { id: "99", type: "html_activity", attributes: {} },
+    });
+    mockClient.createActivity.mockResolvedValue(
+      makeJsonApiResponse("activity", "100", { name: "기본활동", depth: 0 })
+    );
+    mockClient.getMaterial.mockResolvedValue({
+      data: { id: "1", type: "material", attributes: {} },
+      included: [],
+    });
+
+    await toolHandlers.manage_activities({
+      action: "create",
+      material_id: "1",
+      name: "기본활동",
+      activity_type: "HtmlActivity",
+    });
+
+    const callArgs = mockClient.createActivity.mock.calls[0][0];
+    // depth 미지정 → 1 (default) → 0 (0-indexed)
+    expect(callArgs.data.attributes.depth).toBe(0);
+  });
+
   it("activitiable no id in response", async () => {
     mockClient.request.mockResolvedValue({
       data: { type: "quiz_activity", attributes: {} },

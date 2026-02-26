@@ -11,20 +11,17 @@ npm install
 npm run build
 ```
 
-## 인증 설정
-
-PAT(Personal Access Token)을 사용하여 인증한다. Codle 서비스에서 발급받은 access token을 `CODLE_ACCESS_TOKEN` 환경변수에 설정한다.
-
-필요한 정보:
-- Codle PAT (access token)
-
 ## 서버 실행
 
 ```bash
-CODLE_ACCESS_TOKEN=your-pat-token CODLE_AUTH_URL=https://user.dev.codle.io node dist/index.js
+node dist/index.js
 ```
 
 기본 포트는 3000. `CODLE_PORT`로 변경 가능.
+
+## 인증
+
+서버는 환경변수로 토큰을 받지 않는다. MCP 클라이언트가 HTTP 요청 시 `Authorization: Bearer <token>` 헤더로 전달한다.
 
 ## Claude Code 설정
 
@@ -58,7 +55,6 @@ CODLE_ACCESS_TOKEN=your-pat-token CODLE_AUTH_URL=https://user.dev.codle.io node 
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
-| CODLE_ACCESS_TOKEN 에러 | PAT 미설정 | 환경변수에 토큰 설정 |
-| 401 Unauthorized | 토큰 만료 | PAT 재발급 |
-| Connection refused | API URL 오류 | `CODLE_API_URL`, `CODLE_AUTH_URL` 확인 |
+| 401 Unauthorized | 토큰 누락/만료 | MCP 클라이언트의 Authorization 헤더 확인 |
+| Connection refused | API URL 오류 | `CODLE_API_URL` 확인 |
 | Cannot find module | 빌드 안 됨 | `npm run build` 실행 |

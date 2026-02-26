@@ -24,7 +24,7 @@ src/
 ├── config.ts         # 환경변수 (dotenv)
 ├── logger.ts         # stderr 로깅
 ├── api/
-│   ├── client.ts     # CodleClient (fetch, PAT 인증)
+│   ├── client.ts     # CodleClient (fetch, per-request 인증)
 │   ├── models.ts     # JSON:API 유틸
 │   └── errors.ts     # CodleAPIError
 └── tools/
@@ -36,8 +36,8 @@ src/
 
 ## 인증
 
-PAT(Personal Access Token) 방식. `CODLE_ACCESS_TOKEN` 환경변수로 설정.
-토큰 만료 시 자동 갱신 없음 — PAT 재발급 필요.
+Per-request `Authorization: Bearer` 헤더 방식. MCP 클라이언트가 HTTP 요청 시 토큰을 전달한다.
+서버 자체는 토큰을 환경변수로 보관하지 않는다.
 
 ## API 제약사항
 

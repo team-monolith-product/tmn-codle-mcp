@@ -277,6 +277,8 @@ QuizActivity, SheetActivity는 생성 후 Codle 관리자 화면에서 문제를
             if (tail) {
               await createTransition(tail, newId);
               chainMsg = `, ${tail} → ${newId} 연결됨`;
+            } else {
+              chainMsg = ` (주의: tail 활동을 특정할 수 없어 자동 연결 생략됨. 분기가 있다면 branch_from을 사용하세요)`;
             }
           } catch (e) {
             if (e instanceof CodleAPIError) {

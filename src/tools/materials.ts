@@ -36,7 +36,6 @@ export function registerMaterialTools(server: McpServer): void {
         .describe("페이지 번호 (1부터 시작)"),
     },
     async ({ query, tag_ids, is_public, page_size, page_number }) => {
-      await client.ensureAuth();
       const params: Record<string, string | number> = {
         "page[size]": Math.min(page_size, 100),
         "page[number]": page_number,
