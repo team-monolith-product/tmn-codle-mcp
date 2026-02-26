@@ -167,8 +167,9 @@ export function registerMaterialTools(server: McpServer): void {
           const activitiableInfo = hasActivitiable
             ? `, activitiable_id: ${a.activitiable_id}`
             : "";
+          const displayDepth = depthVal + 1; // 0-indexed → 1-indexed
           lines.push(
-            `  ${depthPrefix}[${a.id}] ${a.name ?? "(무제)"} (type: ${actType}, depth: ${rawDepth}${activitiableInfo}${problemInfo})`
+            `  ${depthPrefix}[${a.id}] ${a.name ?? "(무제)"} (type: ${actType}, depth: ${displayDepth}${activitiableInfo}${problemInfo})`
           );
         }
       } else {
