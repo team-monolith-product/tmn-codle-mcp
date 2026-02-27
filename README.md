@@ -70,27 +70,13 @@ Claude Desktop/Code
 
 ### 인증
 
-PAT(Personal Access Token) 방식을 사용한다. `CODLE_ACCESS_TOKEN` 환경변수에 토큰을 설정하면 모든 API 요청에 `Authorization: Bearer <token>` 헤더가 포함된다.
-
-```
-1. CODLE_ACCESS_TOKEN 환경변수로 PAT 설정
-2. 서버 시작 시 /api/v1/me로 userId 조회 (authUrl 설정 시)
-3. class-rails에 Bearer 토큰으로 요청
-4. class-rails → user-rails /api/v1/me로 원격 검증 (5분 캐시)
-5. 토큰 만료 시 → PAT 재발급 필요 (자동 갱신 없음)
-```
+Per-request `Authorization: Bearer` 헤더 방식. MCP 클라이언트가 HTTP 요청 시 토큰을 전달하며, 서버는 `AsyncLocalStorage`로 요청별 토큰을 관리한다. 서버 자체는 토큰을 환경변수로 보관하지 않는다.
 
 | 엔드포인트 | 인증 방식 | MCP 사용 |
 |---|---|---|
 | `/api/v1/materials` | `authorize_user_token!` | O |
 | `/api/v1/activities` | `authorize_user_token!` | O |
 | `/api/v1/tags` | 인증 없음 (public) | O |
-
-### 토큰 특성
-
-- **타입**: Opaque (JWT 아님) — Doorkeeper DB 저장
-- **수명**: 교사 120분, 학생 30분
-- **갱신**: PAT 만료 시 재발급 필요
 
 ## 디버깅
 

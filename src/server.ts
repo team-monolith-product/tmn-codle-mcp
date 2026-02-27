@@ -60,7 +60,7 @@ MCP 도구에 1-indexed 값을 그대로 전달하면, 내부에서 Rails API용
 
 1. **태그 확인**: manage_tags로 필요한 태그 ID 조회
 2. **자료 생성**: create_material
-4. **활동 순차 생성**: manage_activities(action="create")를 코스 흐름 순서대로 호출
+3. **활동 순차 생성**: manage_activities(action="create")를 코스 흐름 순서대로 호출
    - 활동은 반드시 순서대로 생성 (자동 체이닝)
    - 갈림길 활동도 manage_activities로 생성 (branch_from 지정 → auto-chain 없이 활동만 생성)
    - 모든 갈림길 활동 생성 후 set_activity_branch로 분기 설정 (mid 필수, low/high 선택)
