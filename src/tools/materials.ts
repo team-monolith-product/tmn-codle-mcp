@@ -134,19 +134,7 @@ export function registerMaterialTools(server: McpServer): void {
       if (activities.length) {
         lines.push(`\n활동 (${activities.length}개):`);
         for (const a of activities) {
-          const rawDepth = a.depth ?? 0;
-          let depthVal: number;
-          try {
-            depthVal = Number(rawDepth);
-            if (isNaN(depthVal)) {
-              const s = String(rawDepth);
-              depthVal = s.startsWith("h")
-                ? parseInt(s.replace("h", "")) - 1
-                : 0;
-            }
-          } catch {
-            depthVal = 0;
-          }
+          const depthVal = Number(a.depth) || 0;
           const depthPrefix = "  ".repeat(depthVal);
           let actType = String(a.activitiable_type || "");
           const hasActivitiable = !!a.activitiable_id;
