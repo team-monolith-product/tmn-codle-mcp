@@ -39,12 +39,7 @@ export function pascalToSnake(name: string): string {
 export function registerActivityTools(server: McpServer): void {
   server.tool(
     "manage_activities",
-    `자료(Material) 내 활동(Activity)을 추가, 수정, 삭제합니다.
-
-활동 생성 후 set_activity_flow로 코스 흐름(선형 연결)을, set_activity_branch로 갈림길을 설정하세요.
-
-## 참고
-QuizActivity, SheetActivity는 생성 후 Codle 관리자 화면에서 문제를 연결해야 합니다.`,
+    `활동(Activity) CRUD. QuizActivity, SheetActivity는 생성 후 관리자 화면에서 문제 연결 필요.`,
     {
       action: z
         .string()
@@ -67,7 +62,7 @@ QuizActivity, SheetActivity는 생성 후 Codle 관리자 화면에서 문제를
         .string()
         .optional()
         .describe(
-          "활동 유형 (create 시 필수). 주요: HtmlActivity, QuizActivity, BoardActivity, SheetActivity, StudioActivity, VideoActivity. 기타: EntryActivity, ScratchActivity, PdfActivity, GenerativeHtmlActivity, MakecodeActivity, CodapActivity, EmbeddedActivity, SocroomActivity, AiRecommendQuizActivity"
+          "활동 유형 (create 시 필수). HtmlActivity, QuizActivity, BoardActivity, SheetActivity, StudioActivity, VideoActivity 등"
         ),
       depth: z
         .number()
@@ -289,9 +284,7 @@ QuizActivity, SheetActivity는 생성 후 Codle 관리자 화면에서 문제를
 
   server.tool(
     "set_activity_flow",
-    `코스 흐름(선형 연결)을 설정합니다.
-활동 ID 배열을 순서대로 전달하면 연속된 활동 간 transition을 생성합니다.
-기존 선형 transition을 제거하고 새로 설정합니다 (갈림길 transition은 유지).`,
+    "코스 흐름(선형 연결)을 설정합니다. 기존 선형 transition을 교체하며 갈림길은 유지.",
     {
       material_id: z.string().describe("자료 ID"),
       activity_ids: z
@@ -376,11 +369,7 @@ QuizActivity, SheetActivity는 생성 후 Codle 관리자 화면에서 문제를
 
   server.tool(
     "set_activity_branch",
-    `갈림길 transition을 일괄 생성합니다.
-
-manage_activities로 각 갈림길 활동을 생성한 후, 이 도구로 분기를 설정합니다.
-do_many API를 사용하여 모든 branch transition을 한 번에 생성합니다
-(Rails 검증 상 1개씩 생성은 불가능하며, 반드시 2개 이상을 동시 생성해야 합니다).`,
+    "갈림길 transition을 일괄 설정합니다. mid 필수, low/high 선택 (최소 2개).",
     {
       material_id: z.string().describe("자료 ID"),
       branch_from: z

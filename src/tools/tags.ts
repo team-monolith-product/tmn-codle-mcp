@@ -20,24 +20,12 @@ const VALID_DOMAINS = [
 export function registerTagTools(server: McpServer): void {
   server.tool(
     "manage_tags",
-    `태그(Tag) 목록을 조회합니다.
-
-태그는 자료, 문제, 시리즈에 연결하여 분류/검색에 활용합니다.
-자료나 문제에 태그를 연결하려면 해당 리소스의 create/update 시 tag_ids를 사용하세요.
-
-사용 가능한 태그 도메인:
-- problem: 문제용 태그
-- material: 자료용 태그
-- difficulty: 난이도 태그
-- school_level: 학교 수준 태그
-- category: 카테고리 태그
-- material_bundle_topic: 시리즈 주제 태그
-- material_bundle_category: 시리즈 카테고리 태그`,
+    "태그(Tag) 목록을 조회합니다.",
     {
       domain: z
         .string()
         .optional()
-        .describe("태그 도메인 필터 (위 목록 참조)"),
+        .describe("태그 도메인 (material, problem, difficulty, school_level, category 등)"),
       query: z.string().optional().describe("태그 이름 검색 키워드"),
       page_size: z
         .number()

@@ -12,10 +12,7 @@ import {
 export function registerMaterialTools(server: McpServer): void {
   server.tool(
     "search_materials",
-    `자료(Material)를 검색합니다.
-
-키워드, 태그, 공개 여부 등으로 기존 자료를 찾을 수 있습니다.
-새 자료를 만들기 전에 기존 자료를 먼저 검색하여 참고하세요.`,
+    "자료(Material)를 검색합니다.",
     {
       query: z.string().optional().describe("검색 키워드 (자료 이름에서 검색)"),
       tag_ids: z
@@ -65,10 +62,7 @@ export function registerMaterialTools(server: McpServer): void {
 
   server.tool(
     "get_material_detail",
-    `자료(Material)의 상세 정보를 조회합니다.
-
-자료에 포함된 활동(Activity) 목록, 활동 유형, 문제 연결 여부, 분기 정보를 확인할 수 있습니다.
-자료를 수정하거나 복제하기 전에 현재 상태를 확인할 때 사용합니다.`,
+    "자료(Material)의 활동, 태그, 코스 흐름을 조회합니다.",
     {
       material_id: z.string().describe("조회할 자료의 ID"),
     },
@@ -201,31 +195,25 @@ export function registerMaterialTools(server: McpServer): void {
 
   server.tool(
     "create_material",
-    `새 자료(Material)를 생성합니다.
-
-자료는 여러 활동(Activity)을 담는 컨테이너입니다.
-전체 워크플로우: create_material → manage_activities(create)를 순서대로 반복 → 갈림길 추가.
-user_id는 인증된 사용자로 자동 설정됩니다.`,
+    "새 자료(Material)를 생성합니다.",
     {
       name: z.string().describe("자료 이름 (필수, 최대 255자)"),
       is_public: z
         .boolean()
         .default(false)
-        .describe(
-          "공개 여부 (기본 False). 한번 공개하면 비공개로 되돌릴 수 없음."
-        ),
+        .describe("공개 여부 (비가역)"),
       tag_ids: z
         .array(z.string())
         .optional()
-        .describe("연결할 태그 ID 목록"),
+        .describe("태그 ID 목록"),
       material_bundle_id: z
         .string()
         .optional()
-        .describe("소속 시리즈 ID (시리즈에 포함시킬 경우)"),
+        .describe("소속 시리즈 ID"),
       position: z
         .number()
         .optional()
-        .describe("시리즈 내 순서 (material_bundle_id 설정 시 필수)"),
+        .describe("시리즈 내 순서"),
     },
     async ({ name, is_public, tag_ids, material_bundle_id, position }) => {
       const attrs: Record<string, unknown> = {
@@ -254,23 +242,18 @@ user_id는 인증된 사용자로 자동 설정됩니다.`,
 
   server.tool(
     "update_material",
-    `기존 자료(Material)의 정보를 수정합니다.
-
-변경하고 싶은 필드만 전달하면 됩니다. 전달하지 않은 필드는 유지됩니다.
-본인 소유 자료만 수정 가능합니다.`,
+    "자료(Material)를 수정합니다. 전달한 필드만 변경됩니다.",
     {
       material_id: z.string().describe("수정할 자료의 ID"),
       name: z.string().optional().describe("자료 이름"),
       is_public: z
         .boolean()
         .optional()
-        .describe(
-          "공개 여부. 공개(true)로만 변경 가능하며 비공개로 되돌릴 수 없음."
-        ),
+        .describe("공개 여부 (비가역)"),
       tag_ids: z
         .array(z.string())
         .optional()
-        .describe("연결할 태그 ID 목록 (전체 교체)"),
+        .describe("태그 ID 목록 (전체 교체)"),
       material_bundle_id: z
         .string()
         .optional()
@@ -318,10 +301,7 @@ user_id는 인증된 사용자로 자동 설정됩니다.`,
 
   server.tool(
     "duplicate_material",
-    `기존 자료(Material)를 복제합니다.
-
-원본 자료의 활동, 문제 등이 모두 복사됩니다.
-복제 후 update_material로 이름이나 내용을 수정하세요.`,
+    "자료(Material)를 복제합니다. 활동, 문제 등 모두 복사됩니다.",
     {
       material_id: z.string().describe("복제할 원본 자료의 ID"),
     },
