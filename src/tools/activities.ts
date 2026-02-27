@@ -405,6 +405,9 @@ export function registerActivityTools(server: McpServer): void {
         (i) => i.type === "activity_transition"
       );
 
+      // AIDEV-NOTE: level 구분 없이 branch_from의 모든 transition 삭제가 의도된 동작.
+      // 갈림길은 선형 흐름을 대체하므로 기존 linear transition도 함께 제거해야 한다.
+      // cf. codle-react useBranchBundleCreate.tsx
       const dataToDestroy: { id: string }[] = [];
       for (const t of existingTransitions) {
         const attrs =
