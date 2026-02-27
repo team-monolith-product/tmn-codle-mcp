@@ -31,28 +31,11 @@ const SERVER_OPTIONS = {
 
 사용자가 "코스"라고 하면 Material을 의미합니다.
 
-### 활동 타입 → activity_type 파라미터 값
-
-| 서비스 용어 | activity_type 값 |
-|---|---|
-| 교안, 교안 실습 | HtmlActivity |
-| 퀴즈 | QuizActivity |
-| 코딩, Python | StudioActivity |
-| 보드 | BoardActivity |
-| 활동지 | SheetActivity |
-| 영상 | VideoActivity |
-| 엔트리 | EntryActivity |
-| 스크래치 | ScratchActivity |
-| PDF | PdfActivity |
-
 ## depth 컨벤션 (1-indexed)
 
-활동의 depth는 **1-indexed**로 지정한다:
 - 1: 메인 활동 (코스 흐름에서 독립 노드)
 - 2: 하위 활동 (직전 depth=1 활동의 하위로 들여쓰기 표시)
 - 3: 하위의 하위
-
-MCP 도구에 1-indexed 값을 그대로 전달하면, 내부에서 Rails API용 0-indexed로 자동 변환한다.
 
 ## 자료 생성 전체 워크플로우
 
