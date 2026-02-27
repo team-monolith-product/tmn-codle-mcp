@@ -15,10 +15,20 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (url === "/mcp") {
-    const authHeader = req.headers.authorization ?? "";
-    const accessToken = authHeader.startsWith("Bearer ")
+    const authHeader = req.headers.authorization;
+    const accessToken = authHeader?.startsWith("Bearer ")
       ? authHeader.slice(7)
-      : "";
+      : undefined;
+
+    if (!accessToken) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: "Authorization 헤더에 Bearer 토큰이 필요합니다.",
+        })
+      );
+      return;
+    }
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,

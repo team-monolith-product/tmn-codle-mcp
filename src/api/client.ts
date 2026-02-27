@@ -10,7 +10,7 @@ export class CodleClient {
     this.baseUrl = config.apiUrl;
   }
 
-  private getToken(): string {
+  private getToken(): string | undefined {
     return getAccessToken();
   }
 
