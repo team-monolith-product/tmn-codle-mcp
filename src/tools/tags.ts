@@ -36,6 +36,8 @@ export function registerTagTools(server: McpServer): void {
         .default(1)
         .describe("페이지 번호 (1부터 시작)"),
     },
+    // AIDEV-NOTE: Tags API는 인증 불필요(before_action 없음)하지만,
+    // MCP 서버는 항상 인증된 사용자가 사용하므로 ensureAuth()를 우회하지 않는다.
     async ({ domain, query, page_size, page_number }) => {
       const params: Record<string, string | number> = {
         "page[size]": Math.min(page_size, 100),
