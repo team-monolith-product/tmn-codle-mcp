@@ -44,18 +44,12 @@ export function registerTagTools(server: McpServer): void {
       if (domain && VALID_DOMAINS.includes(domain)) {
         params["filter[domain]"] = domain;
       }
+      if (query) {
+        params["filter[name_cont]"] = query;
+      }
 
       const response = await client.listTags(params);
-      let tags = extractList(response);
-
-      if (query) {
-        const q = query.toLowerCase();
-        tags = tags.filter((t) =>
-          String(t.name || "")
-            .toLowerCase()
-            .includes(q)
-        );
-      }
+      const tags = extractList(response);
 
       if (!tags.length) {
         return { content: [{ type: "text", text: "태그가 없습니다." }] };
