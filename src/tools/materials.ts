@@ -206,23 +206,13 @@ export function registerMaterialTools(server: McpServer): void {
         .array(z.string())
         .optional()
         .describe("태그 ID 목록"),
-      material_bundle_id: z
-        .string()
-        .optional()
-        .describe("소속 시리즈 ID"),
-      position: z
-        .number()
-        .optional()
-        .describe("시리즈 내 순서"),
     },
-    async ({ name, is_public, tag_ids, material_bundle_id, position }) => {
+    async ({ name, is_public, tag_ids }) => {
       const attrs: Record<string, unknown> = {
         name,
         is_public,
       };
       if (tag_ids?.length) attrs.tag_ids = tag_ids;
-      if (material_bundle_id) attrs.material_bundle_id = material_bundle_id;
-      if (position !== undefined) attrs.position = position;
 
       const payload = buildJsonApiPayload("materials", attrs);
       const response = await client.createMaterial(
@@ -254,27 +244,17 @@ export function registerMaterialTools(server: McpServer): void {
         .array(z.string())
         .optional()
         .describe("태그 ID 목록 (전체 교체)"),
-      material_bundle_id: z
-        .string()
-        .optional()
-        .describe("소속 시리즈 ID"),
-      position: z.number().optional().describe("시리즈 내 순서"),
     },
     async ({
       material_id,
       name,
       is_public,
       tag_ids,
-      material_bundle_id,
-      position,
     }) => {
       const attrs: Record<string, unknown> = {};
       if (name !== undefined) attrs.name = name;
       if (is_public !== undefined) attrs.is_public = is_public;
       if (tag_ids !== undefined) attrs.tag_ids = tag_ids;
-      if (material_bundle_id !== undefined)
-        attrs.material_bundle_id = material_bundle_id;
-      if (position !== undefined) attrs.position = position;
 
       if (!Object.keys(attrs).length) {
         return {

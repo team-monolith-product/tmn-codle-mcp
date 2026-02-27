@@ -183,21 +183,6 @@ describe("create_material", () => {
     expect(getText(result)).toContain("새 자료");
   });
 
-  it("with bundle", async () => {
-    mockClient.createMaterial.mockResolvedValue(
-      makeJsonApiResponse("material", "1", { name: "시리즈 자료" })
-    );
-
-    await toolHandlers.create_material({
-      name: "시리즈 자료",
-      is_public: false,
-      material_bundle_id: "b1",
-      position: 0,
-    });
-    const callArgs = mockClient.createMaterial.mock.calls[0][0];
-    expect(callArgs.data.attributes.material_bundle_id).toBe("b1");
-    expect(callArgs.data.attributes.position).toBe(0);
-  });
 });
 
 describe("update_material", () => {
