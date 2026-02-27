@@ -69,14 +69,6 @@ MCP 도구에 1-indexed 값을 그대로 전달하면, 내부에서 Rails API용
 4. **검증**: get_material_detail로 활동 목록, 유형, 분기 확인
    - type이 "미연결"로 표시되면 activitiable 생성이 실패한 것 → 활동 재생성 필요
 
-## API 제약사항
-
-- **api/v1만 사용**: 이 MCP 서버는 \`/api/v1/*\` 엔드포인트만 사용합니다.
-  \`/admin/v1/*\`은 관리자 전용이며 사용할 수 없습니다.
-- **activitiable 연결 확인**: Activity의 activitiable 연결 여부는 API 응답의 attributes가 아닌
-  \`include=activitiable\` 파라미터를 사용한 relationships로만 확인 가능합니다.
-  API 응답에서 \`relationships.activitiable: {}\`는 "데이터 미포함"이지 "연결 안 됨"이 아닙니다.
-
 ## 주의사항
 
 - 활동 삭제 시 코스 흐름(transition) 체인이 끊어짐. 중간 활동 삭제 후 복구 불가.
