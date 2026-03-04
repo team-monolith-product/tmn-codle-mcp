@@ -20,8 +20,12 @@ echo "========================="
 
 cd "$PROJECT_DIR"
 
+# Allow running inside an existing Claude Code session
+unset CLAUDECODE
+
 claude -p "$PROMPT" \
     --output-format stream-json \
+    --verbose \
     --mcp-config e2e/mcp-config.json \
     --strict-mcp-config \
     --allowed-tools "mcp__codle__*" \

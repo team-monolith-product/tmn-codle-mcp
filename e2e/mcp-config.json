@@ -2,7 +2,7 @@
   "mcpServers": {
     "codle": {
       "type": "http",
-      "url": "https://mcp.e2e.codle.io/mcp"
+      "url": "https://mcp.dev.codle.io/mcp"
     }
   }
 }
