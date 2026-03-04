@@ -5,9 +5,6 @@ import { logger } from "./logger.js";
 import { createServer as createMcpServer } from "./server.js";
 import { requestContext } from "./context.js";
 
-// AIDEV-NOTE: v2에서는 MCP가 Resource Server 역할만 수행한다.
-// AS proxy를 제거하고 user-rails를 직접 AS로 노출한다.
-// 브라우저/Claude Code가 user-rails에 직접 접근하여 OAuth 흐름을 수행한다.
 
 const httpServer = createServer(async (req, res) => {
   const url = req.url ?? "";
