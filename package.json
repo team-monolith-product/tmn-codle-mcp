@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "start:e2e": "DOTENV_CONFIG_PATH=.env.e2e node dist/index.js",
-    "e2e": "node e2e/run.js",
+    "e2e": "vitest run --config e2e/vitest.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
