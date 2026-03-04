@@ -125,6 +125,82 @@ function runClaude() {
   });
 }
 
+// --- Report ---
+
+function generateReport() {
+  const rawPath = resolve(RESULT_DIR, "raw.ndjson");
+  const reportPath = resolve(RESULT_DIR, "report.md");
+  const lines = readFileSync(rawPath, "utf-8").split("\n").filter(Boolean);
+  const entries = lines.map((l) => JSON.parse(l));
+
+  const result = entries.findLast((e) => e.type === "result");
+  const init = entries.find((e) => e.subtype === "init");
+
+  const cost = result?.total_cost_usd ?? "N/A";
+  const inputTokens = result?.usage?.input_tokens ?? "N/A";
+  const outputTokens = result?.usage?.output_tokens ?? "N/A";
+  const duration = result?.duration_ms ?? "N/A";
+  const turns = result?.num_turns ?? "N/A";
+  const finalText = result?.result ?? "";
+
+  const toolCalls = entries
+    .filter((e) => e.type === "assistant")
+    .flatMap((e) => e.message?.content ?? [])
+    .filter((c) => c.type === "tool_use")
+    .map((c) => c.name);
+
+  const mcpStatus = (init?.mcp_servers ?? [])
+    .map((s) => `${s.name}: ${s.status ?? "unknown"}`)
+    .join("\n") || "N/A";
+
+  const toolList = toolCalls
+    .map((name, i) => `${String(i + 1).padStart(6)}\t${name}`)
+    .join("\n");
+
+  const report = `# Codle MCP E2E Test Report
+
+**Generated:** ${new Date().toISOString().replace("T", " ").slice(0, 19)} UTC
+**Result Dir:** ${RESULT_DIR}
+
+## Execution Stats
+
+| Metric | Value |
+|--------|-------|
+| Cost | $${cost} |
+| Input Tokens | ${inputTokens} |
+| Output Tokens | ${outputTokens} |
+| Duration (ms) | ${duration} |
+| Turns | ${turns} |
+| Tool Calls | ${toolCalls.length} |
+
+## MCP Connection
+
+\`\`\`
+${mcpStatus}
+\`\`\`
+
+## Tool Call Sequence
+
+\`\`\`
+${toolList}
+\`\`\`
+
+## Test Results
+
+${finalText}
+`;
+
+  writeFileSync(reportPath, report);
+
+  console.log(`\n=== Report generated: ${reportPath} ===\n`);
+  console.log("--- Quick Summary ---");
+  console.log(`Cost:       $${cost}`);
+  console.log(`Tokens:     ${inputTokens} in / ${outputTokens} out`);
+  console.log(`Duration:   ${duration}ms`);
+  console.log(`Tool Calls: ${toolCalls.length}`);
+  console.log("---");
+}
+
 // --- Main ---
 
 mkdirSync(RESULT_DIR, { recursive: true });
@@ -169,13 +245,7 @@ try {
   console.log(`\nRaw output saved to ${RESULT_DIR}/raw.ndjson`);
   console.log(`Stderr log saved to ${RESULT_DIR}/stderr.log`);
 
-  // Generate report
-  const code = await new Promise((ok, fail) => {
-    const child = spawn("bash", [resolve(SCRIPT_DIR, "parse-result.sh"), RESULT_DIR], { stdio: "inherit" });
-    child.on("error", fail);
-    child.on("close", ok);
-  });
-  if (code !== 0) throw new Error(`parse-result.sh exited with code ${code}`);
+  generateReport();
 } catch (err) {
   console.error(`ERROR: ${err.message}`);
   process.exit(1);
