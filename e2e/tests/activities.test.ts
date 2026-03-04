@@ -1,6 +1,10 @@
 import { describe, expect, test } from "../fixtures/claude.js";
 import { createActivity, createMaterial } from "../lib/factory.js";
-import { extractText, findAllToolResults, findToolResult } from "../lib/ndjson.js";
+import {
+  extractText,
+  findAllToolResults,
+  findToolResult,
+} from "../lib/ndjson.js";
 
 describe("activities", () => {
   // [Single Tool Contract] manage_activities create 계약
@@ -14,7 +18,10 @@ describe("activities", () => {
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__manage_activities");
 
-    const interaction = findToolResult(result.toolInteractions, "mcp__codle__manage_activities");
+    const interaction = findToolResult(
+      result.toolInteractions,
+      "mcp__codle__manage_activities",
+    );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
     const text = extractText(interaction!.result!);
@@ -25,8 +32,12 @@ describe("activities", () => {
   // seed: material + 2 activities → Claude는 흐름 설정만 담당
   test("set_activity_flow로 코스 흐름 설정", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
-    const activity1 = await createActivity(factory, material.id, { name: "Flow Act 1" });
-    const activity2 = await createActivity(factory, material.id, { name: "Flow Act 2" });
+    const activity1 = await createActivity(factory, material.id, {
+      name: "Flow Act 1",
+    });
+    const activity2 = await createActivity(factory, material.id, {
+      name: "Flow Act 2",
+    });
 
     const result = await claude.run(
       `자료 ID "${material.id}"의 활동 "${activity1.id}"와 "${activity2.id}"를 순서대로 연결하는 코스 흐름을 설정해줘.`,
@@ -35,7 +46,10 @@ describe("activities", () => {
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__set_activity_flow");
 
-    const interaction = findToolResult(result.toolInteractions, "mcp__codle__set_activity_flow");
+    const interaction = findToolResult(
+      result.toolInteractions,
+      "mcp__codle__set_activity_flow",
+    );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
     const text = extractText(interaction!.result!);
@@ -47,14 +61,14 @@ describe("activities", () => {
     const material = await createMaterial(factory);
     const activity = await createActivity(factory, material.id);
 
-    const result = await claude.run(
-      `활동 ID "${activity.id}"를 삭제해줘.`,
-    );
+    const result = await claude.run(`활동 ID "${activity.id}"를 삭제해줘.`);
 
     expect(result.toolNames).toContain("mcp__codle__manage_activities");
 
-    const deleteInteractions = findAllToolResults(result.toolInteractions, "mcp__codle__manage_activities")
-      .filter((i) => i.call.input.action === "delete");
+    const deleteInteractions = findAllToolResults(
+      result.toolInteractions,
+      "mcp__codle__manage_activities",
+    ).filter((i) => i.call.input.action === "delete");
     expect(deleteInteractions.length).toBeGreaterThanOrEqual(1);
 
     // AIDEV-NOTE: 활동 삭제 API가 빈 body를 반환하여 "Unexpected end of JSON input" 발생 가능.
