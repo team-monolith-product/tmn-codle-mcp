@@ -5,6 +5,15 @@ import { logger } from "./logger.js";
 import { createServer as createMcpServer } from "./server.js";
 import { requestContext } from "./context.js";
 
+const PROTECTED_RESOURCE_PATH = "/.well-known/oauth-protected-resource";
+
+const protectedResourceBody = JSON.stringify({
+  resource: config.publicUrl,
+  authorization_servers: [config.authServerUrl],
+  bearer_methods_supported: ["header"],
+});
+
+const wwwAuthenticate = `Bearer resource_metadata="${config.publicUrl}${PROTECTED_RESOURCE_PATH}"`;
 
 const httpServer = createServer(async (req, res) => {
   const url = req.url ?? "";
@@ -17,15 +26,9 @@ const httpServer = createServer(async (req, res) => {
   }
 
   // RFC 9728: OAuth Protected Resource Metadata
-  if (pathname === "/.well-known/oauth-protected-resource") {
+  if (pathname === PROTECTED_RESOURCE_PATH) {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        resource: config.publicUrl,
-        authorization_servers: [config.authServerUrl],
-        bearer_methods_supported: ["header"],
-      }),
-    );
+    res.end(protectedResourceBody);
     return;
   }
 
@@ -38,7 +41,7 @@ const httpServer = createServer(async (req, res) => {
     if (!accessToken) {
       res.writeHead(401, {
         "Content-Type": "application/json",
-        "WWW-Authenticate": `Bearer resource_metadata="${config.publicUrl}/.well-known/oauth-protected-resource"`,
+        "WWW-Authenticate": wwwAuthenticate,
       });
       res.end(
         JSON.stringify({
