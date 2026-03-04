@@ -46,7 +46,7 @@ describe("buildJsonApiPayload", () => {
       "activities",
       { name: "test" },
       undefined,
-      rels
+      rels,
     );
     const data = result.data as Record<string, unknown>;
     expect(data.relationships).toEqual(rels);
@@ -177,7 +177,7 @@ describe("snakeToPascal", () => {
 
   it("three words", () => {
     expect(snakeToPascal("ai_recommend_quiz_activity")).toBe(
-      "AiRecommendQuizActivity"
+      "AiRecommendQuizActivity",
     );
   });
 });
@@ -205,5 +205,4 @@ describe("formatSummaries", () => {
     const result = formatMaterialSummary({ id: "1" });
     expect(result).toContain("(무제)");
   });
-
 });

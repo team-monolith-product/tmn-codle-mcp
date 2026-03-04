@@ -25,7 +25,7 @@ const httpServer = createServer(async (req, res) => {
       res.end(
         JSON.stringify({
           error: "Authorization 헤더에 Bearer 토큰이 필요합니다.",
-        })
+        }),
       );
       return;
     }
@@ -43,7 +43,7 @@ const httpServer = createServer(async (req, res) => {
     });
 
     await requestContext.run({ accessToken }, () =>
-      transport.handleRequest(req, res)
+      transport.handleRequest(req, res),
     );
     return;
   }

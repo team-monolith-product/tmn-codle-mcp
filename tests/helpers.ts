@@ -3,7 +3,7 @@ export function makeJsonApiResponse(
   resourceId: string,
   attrs?: Record<string, unknown>,
   relationships?: Record<string, unknown>,
-  included?: Record<string, unknown>[]
+  included?: Record<string, unknown>[],
 ): Record<string, unknown> {
   const data: Record<string, unknown> = {
     type: resourceType,
@@ -19,7 +19,7 @@ export function makeJsonApiResponse(
 export function makeJsonApiListResponse(
   resourceType: string,
   items: Array<Record<string, unknown>>,
-  included?: Record<string, unknown>[]
+  included?: Record<string, unknown>[],
 ): Record<string, unknown> {
   const data = items.map((item) => {
     const { id, ...rest } = item;

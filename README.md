@@ -18,11 +18,11 @@ Claude Desktop/Code
 
 ### 엔드포인트별 인증 (Rails 소스 기준)
 
-| 엔드포인트 | 인증 방식 | MCP 사용 |
-|---|---|---|
-| `/api/v1/materials` | `authorize_user_token!` | O |
-| `/api/v1/activities` | `authorize_user_token!` | O |
-| `/api/v1/tags` | 인증 없음 (public) | O |
+| 엔드포인트           | 인증 방식               | MCP 사용 |
+| -------------------- | ----------------------- | -------- |
+| `/api/v1/materials`  | `authorize_user_token!` | O        |
+| `/api/v1/activities` | `authorize_user_token!` | O        |
+| `/api/v1/tags`       | 인증 없음 (public)      | O        |
 
 ## 디버깅
 

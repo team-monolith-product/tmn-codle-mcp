@@ -29,11 +29,7 @@ describe("extractErrorDetail", () => {
 
   it("JSON error passthrough", () => {
     const text = '{"errors": [{"detail": "Validation failed"}]}';
-    const result = extractErrorDetail(
-      422,
-      "application/vnd.api+json",
-      text
-    );
+    const result = extractErrorDetail(422, "application/vnd.api+json", text);
     expect(result).toContain("Validation failed");
   });
 
@@ -60,7 +56,7 @@ describe("CodleClient", () => {
     const client = new CodleClient();
 
     await expect(client.ensureAuth()).rejects.toThrow(
-      "Authorization 헤더에 Bearer 토큰이 필요합니다."
+      "Authorization 헤더에 Bearer 토큰이 필요합니다.",
     );
   });
 
@@ -93,7 +89,7 @@ describe("CodleClient", () => {
 
     await requestContext.run({ accessToken: "expired-token" }, async () => {
       await expect(
-        client.request("GET", "/api/v1/materials")
+        client.request("GET", "/api/v1/materials"),
       ).rejects.toThrow();
     });
 

@@ -2,10 +2,9 @@ name: Build Codle MCP Dev
 
 on:
   push:
-    branches: [ develop ]
+    branches: [develop]
 
 jobs:
-
   build:
     uses: team-monolith-product/tmn-gh-actions/.github/workflows/build_v2.yml@main
     with:

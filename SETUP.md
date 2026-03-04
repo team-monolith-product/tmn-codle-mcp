@@ -36,10 +36,10 @@
 
 ## 문제 해결
 
-| 증상 | 원인 | 해결 |
-|------|------|------|
-| 401 Unauthorized | 토큰 누락/만료 | MCP 클라이언트의 Authorization 헤더 확인 |
-| Connection refused | 서버 URL 오류 | `.mcp.json`의 URL 확인 |
+| 증상               | 원인           | 해결                                     |
+| ------------------ | -------------- | ---------------------------------------- |
+| 401 Unauthorized   | 토큰 누락/만료 | MCP 클라이언트의 Authorization 헤더 확인 |
+| Connection refused | 서버 URL 오류  | `.mcp.json`의 URL 확인                   |
 
 ## 로컬 개발
 

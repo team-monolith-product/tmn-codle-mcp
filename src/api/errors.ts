@@ -1,7 +1,7 @@
 export class CodleAPIError extends Error {
   constructor(
     public readonly statusCode: number,
-    public readonly detail: string
+    public readonly detail: string,
   ) {
     super(`Codle API error ${statusCode}: ${detail}`);
     this.name = "CodleAPIError";
@@ -11,7 +11,7 @@ export class CodleAPIError extends Error {
 export function extractErrorDetail(
   statusCode: number,
   contentType: string,
-  text: string
+  text: string,
 ): string {
   if (contentType.includes("text/html")) {
     const match = text.slice(0, 2000).match(/<h[12]>(.*?)<\/h[12]>/);
