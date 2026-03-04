@@ -92,7 +92,9 @@ export function registerActivityTools(server: McpServer): void {
             content: [
               {
                 type: "text",
-                text: `유효하지 않은 activity_type: ${activity_type}. 사용 가능: ${ACTIVITIABLE_TYPES.join(", ")}`,
+                text: `유효하지 않은 activity_type: ${activity_type}. 사용 가능: ${ACTIVITIABLE_TYPES.join(
+                  ", ",
+                )}`,
               },
             ],
           };
@@ -461,7 +463,9 @@ export function registerActivityTools(server: McpServer): void {
         content: [
           {
             type: "text",
-            text: `갈림길 설정 완료: ${branch_from} → ${levelsCreated.join(", ")}${destroyedMsg}`,
+            text: `갈림길 설정 완료: ${branch_from} → ${levelsCreated.join(
+              ", ",
+            )}${destroyedMsg}`,
           },
         ],
       };
