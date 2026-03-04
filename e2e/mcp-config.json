@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "codle": {
-      "type": "http",
-      "url": "https://mcp.dev.codle.io/mcp"
-    }
-  }
-}
