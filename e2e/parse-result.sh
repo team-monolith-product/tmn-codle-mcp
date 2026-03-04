@@ -11,9 +11,9 @@ if [ ! -f "$RAW" ]; then
 fi
 
 # Extract final result stats
-COST=$(jq -r 'select(.type == "result") | .cost_usd // "N/A"' "$RAW" | tail -1)
-INPUT_TOKENS=$(jq -r 'select(.type == "result") | .input_tokens // "N/A"' "$RAW" | tail -1)
-OUTPUT_TOKENS=$(jq -r 'select(.type == "result") | .output_tokens // "N/A"' "$RAW" | tail -1)
+COST=$(jq -r 'select(.type == "result") | .total_cost_usd // "N/A"' "$RAW" | tail -1)
+INPUT_TOKENS=$(jq -r 'select(.type == "result") | .usage.input_tokens // "N/A"' "$RAW" | tail -1)
+OUTPUT_TOKENS=$(jq -r 'select(.type == "result") | .usage.output_tokens // "N/A"' "$RAW" | tail -1)
 DURATION=$(jq -r 'select(.type == "result") | .duration_ms // "N/A"' "$RAW" | tail -1)
 TURNS=$(jq -r 'select(.type == "result") | .num_turns // "N/A"' "$RAW" | tail -1)
 
@@ -30,9 +30,8 @@ TOOL_COUNT=$(echo "$TOOL_CALLS" | grep -c . || true)
 # Extract MCP init status
 MCP_STATUS=$(jq -r '
   select(.subtype == "init") |
-  .mcp_servers // empty |
-  to_entries[] |
-  "\(.key): \(.value.status // "unknown")"
+  .mcp_servers[]? |
+  "\(.name): \(.status // "unknown")"
 ' "$RAW" 2>/dev/null || echo "N/A")
 
 # Extract final text output (the test report from Claude)
