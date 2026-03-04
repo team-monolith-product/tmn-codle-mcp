@@ -46,7 +46,10 @@ async function waitForHealth(retries = 20): Promise<void> {
   throw new Error("MCP server did not become ready in time.");
 }
 
-async function createUserAndGetToken(): Promise<{ userId: string; accessToken: string }> {
+async function createUserAndGetToken(): Promise<{
+  userId: string;
+  accessToken: string;
+}> {
   const tenantNumber = requireEnv("E2E_TENANT_NUMBER");
   const clientId = requireEnv("E2E_USER_CLIENT_ID");
   const userRailsUrl = `https://user.${tenantNumber}.e2e.codle.io`;

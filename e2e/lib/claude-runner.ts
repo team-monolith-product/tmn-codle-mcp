@@ -18,7 +18,10 @@ export class ClaudeRunner {
     this.maxBudgetUsd = opts.maxBudgetUsd;
   }
 
-  async run(prompt: string, opts?: { timeout?: number }): Promise<ClaudeResult> {
+  async run(
+    prompt: string,
+    opts?: { timeout?: number },
+  ): Promise<ClaudeResult> {
     const timeout = opts?.timeout ?? 120_000;
 
     return new Promise<ClaudeResult>((resolve, reject) => {
