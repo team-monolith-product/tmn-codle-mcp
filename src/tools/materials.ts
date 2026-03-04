@@ -146,7 +146,9 @@ export function registerMaterialTools(server: McpServer): void {
             : "";
           const displayDepth = depthVal + 1; // 0-indexed → 1-indexed
           lines.push(
-            `  ${depthPrefix}[${a.id}] ${a.name ?? "(무제)"} (type: ${actType}, depth: ${displayDepth}${activitiableInfo}${problemInfo})`,
+            `  ${depthPrefix}[${a.id}] ${
+              a.name ?? "(무제)"
+            } (type: ${actType}, depth: ${displayDepth}${activitiableInfo}${problemInfo})`,
           );
         }
       } else {
