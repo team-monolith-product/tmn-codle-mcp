@@ -18,7 +18,10 @@ describe("activities", () => {
         !e.includes("Unexpected end of JSON input") &&
         !e.includes("Sibling tool call errored"),
     );
-    expect(significantErrors, `Tool errors: ${JSON.stringify(significantErrors)}`).toHaveLength(0);
+    expect(
+      significantErrors,
+      `Tool errors: ${JSON.stringify(significantErrors)}`,
+    ).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__manage_materials");
     expect(result.toolNames).toContain("mcp__codle__manage_activities");
     expect(result.toolNames).toContain("mcp__codle__set_activity_flow");

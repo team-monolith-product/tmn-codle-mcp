@@ -2,9 +2,7 @@ import { describe, expect, test } from "../fixtures/claude.js";
 
 describe("materials", () => {
   test("search_materials로 공개 자료 검색", async ({ claude }) => {
-    const result = await claude.run(
-      "공개된 자료 5개를 검색해줘.",
-    );
+    const result = await claude.run("공개된 자료 5개를 검색해줘.");
 
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__search_materials");
