@@ -66,16 +66,22 @@ export function extractText(result: ToolResult): string {
   return content;
 }
 
-export function parseNdjson(raw: string, exitCode: number, stderr: string): ClaudeResult {
+export function parseNdjson(
+  raw: string,
+  exitCode: number,
+  stderr: string,
+): ClaudeResult {
   const lines = raw.split("\n").filter(Boolean);
   const entries = lines.map((l) => JSON.parse(l));
 
-  const resultEntry = [...entries].reverse().find(
-    (e: Record<string, unknown>) => e.type === "result",
-  ) as Record<string, unknown> | undefined;
-  const init = entries.find((e: Record<string, unknown>) => e.subtype === "init") as
+  const resultEntry = [...entries]
+    .reverse()
+    .find((e: Record<string, unknown>) => e.type === "result") as
     | Record<string, unknown>
     | undefined;
+  const init = entries.find(
+    (e: Record<string, unknown>) => e.subtype === "init",
+  ) as Record<string, unknown> | undefined;
 
   // tool_use 블록 추출
   const toolCalls: ToolCall[] = entries
@@ -118,12 +124,12 @@ export function parseNdjson(raw: string, exitCode: number, stderr: string): Clau
     result: resultMap.get(call.id),
   }));
 
-  const mcpServers = ((init?.mcp_servers as Array<Record<string, unknown>>) ?? []).map(
-    (s) => ({
-      name: s.name as string,
-      status: (s.status as string) ?? "unknown",
-    }),
-  );
+  const mcpServers = (
+    (init?.mcp_servers as Array<Record<string, unknown>>) ?? []
+  ).map((s) => ({
+    name: s.name as string,
+    status: (s.status as string) ?? "unknown",
+  }));
 
   return {
     toolCalls,

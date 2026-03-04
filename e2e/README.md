@@ -34,7 +34,9 @@ npm run e2e
 await claude.run("공개된 자료 5개를 검색해줘.");
 
 // Bad — 도구명과 파라미터 누출
-await claude.run("search_materials 도구로 is_public=true, page_size=5로 검색해줘. 도구를 반드시 호출해.");
+await claude.run(
+  "search_materials 도구로 is_public=true, page_size=5로 검색해줘. 도구를 반드시 호출해.",
+);
 ```
 
 ### 3. Contrastive Seeding
@@ -59,7 +61,10 @@ Claude가 재해석한 최종 텍스트(`result.text`)가 아니라, `extractTex
 
 ```ts
 // Good — tool result 원본 검증
-const interaction = findToolResult(result.toolInteractions, "mcp__codle__manage_materials");
+const interaction = findToolResult(
+  result.toolInteractions,
+  "mcp__codle__manage_materials",
+);
 const text = extractText(interaction!.result!);
 expect(text).toMatch(/자료 생성 완료/);
 

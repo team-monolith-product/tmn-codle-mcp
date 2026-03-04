@@ -9,7 +9,10 @@ describe("materials", () => {
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__search_materials");
 
-    const interaction = findToolResult(result.toolInteractions, "mcp__codle__search_materials");
+    const interaction = findToolResult(
+      result.toolInteractions,
+      "mcp__codle__search_materials",
+    );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
     const text = extractText(interaction!.result!);
@@ -26,7 +29,10 @@ describe("materials", () => {
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__get_material_detail");
 
-    const interaction = findToolResult(result.toolInteractions, "mcp__codle__get_material_detail");
+    const interaction = findToolResult(
+      result.toolInteractions,
+      "mcp__codle__get_material_detail",
+    );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
     const text = extractText(interaction!.result!);
@@ -44,7 +50,10 @@ describe("materials", () => {
     expect(result.toolNames).toContain("mcp__codle__manage_materials");
     expect(result.toolNames).toContain("mcp__codle__get_material_detail");
 
-    const createInteraction = findToolResult(result.toolInteractions, "mcp__codle__manage_materials");
+    const createInteraction = findToolResult(
+      result.toolInteractions,
+      "mcp__codle__manage_materials",
+    );
     expect(createInteraction?.result).toBeDefined();
     expect(createInteraction!.result!.isError).toBe(false);
     const createText = extractText(createInteraction!.result!);

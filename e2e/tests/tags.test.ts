@@ -8,7 +8,10 @@ describe("tags", () => {
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__manage_tags");
 
-    const interaction = findToolResult(result.toolInteractions, "mcp__codle__manage_tags");
+    const interaction = findToolResult(
+      result.toolInteractions,
+      "mcp__codle__manage_tags",
+    );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
     const text = extractText(interaction!.result!);
@@ -21,7 +24,10 @@ describe("tags", () => {
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__manage_tags");
 
-    const interaction = findToolResult(result.toolInteractions, "mcp__codle__manage_tags");
+    const interaction = findToolResult(
+      result.toolInteractions,
+      "mcp__codle__manage_tags",
+    );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
   });
