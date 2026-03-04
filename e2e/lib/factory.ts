@@ -12,6 +12,7 @@ if (!tenantNumber) {
 
 const USER_RAILS_URL = `https://user.${tenantNumber}.e2e.codle.io`;
 const CLASS_RAILS_URL = `https://class.${tenantNumber}.e2e.codle.io`;
+const CONFIG_PATH = resolve(import.meta.dirname, "..", ".mcp-config.tmp.json");
 
 const USER_RAILS_FACTORIES = ["user", "experience"];
 
@@ -27,8 +28,26 @@ function snakecaseKeys(obj: Record<string, unknown>): Record<string, unknown> {
   return result;
 }
 
+interface TmpConfig {
+  mcpServers: { codle: { headers: { Authorization: string } } };
+  e2e: { userId: string };
+}
+
+function readConfig(): TmpConfig {
+  return JSON.parse(readFileSync(CONFIG_PATH, "utf-8")) as TmpConfig;
+}
+
 export class TestFactory {
   private sequence = 0;
+  private _userId: string | undefined;
+
+  /** global-setup에서 생성한 E2E 유저 ID */
+  get userId(): string {
+    if (!this._userId) {
+      this._userId = readConfig().e2e.userId;
+    }
+    return this._userId;
+  }
 
   async create<T extends { id: string } = { id: string }>(
     factory: string,
@@ -58,11 +77,6 @@ export class TestFactory {
     const result = (await response.json()) as { data: T };
     return result.data;
   }
-
-  /** 현재 sequence 값 (유니크 이름 생성에 활용) */
-  get seq(): number {
-    return this.sequence;
-  }
 }
 
 // --- 편의 함수 ---
@@ -77,16 +91,19 @@ interface Activity {
   name: string;
 }
 
+/** E2E 유저 소유의 자료를 생성한다. */
 export async function createMaterial(
   factory: TestFactory,
   overrides: Record<string, unknown> = {},
 ): Promise<Material> {
   return factory.create<Material>("material", {
     name: `e2e-mcp-material-${Date.now()}`,
+    userId: factory.userId,
     ...overrides,
   });
 }
 
+/** E2E 유저 소유 자료에 활동을 생성한다. */
 export async function createActivity(
   factory: TestFactory,
   materialId: string,
@@ -97,13 +114,4 @@ export async function createActivity(
     materialId,
     ...overrides,
   });
-}
-
-/** global-setup에서 생성한 access token을 읽는다. */
-export function readAccessToken(): string {
-  const configPath = resolve(import.meta.dirname, "..", ".mcp-config.tmp.json");
-  const config = JSON.parse(readFileSync(configPath, "utf-8")) as {
-    mcpServers: { codle: { headers: { Authorization: string } } };
-  };
-  return config.mcpServers.codle.headers.Authorization.replace("Bearer ", "");
 }

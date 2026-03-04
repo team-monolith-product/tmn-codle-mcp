@@ -1,4 +1,5 @@
 import { describe, expect, test } from "../fixtures/claude.js";
+import { createMaterial } from "../lib/factory.js";
 
 describe("materials", () => {
   test("search_materials로 공개 자료 검색", async ({ claude }) => {
@@ -6,6 +7,17 @@ describe("materials", () => {
 
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__search_materials");
+  });
+
+  test("factory로 생성한 자료를 상세 조회", async ({ claude, factory }) => {
+    const material = await createMaterial(factory);
+
+    const result = await claude.run(
+      `자료 ID "${material.id}"의 상세 정보를 조회해줘.`,
+    );
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.toolNames).toContain("mcp__codle__get_material_detail");
   });
 
   test("자료 생성 후 상세 조회", async ({ claude }) => {

@@ -46,7 +46,7 @@ async function waitForHealth(retries = 20): Promise<void> {
   throw new Error("MCP server did not become ready in time.");
 }
 
-async function createUserAndGetToken(): Promise<string> {
+async function createUserAndGetToken(): Promise<{ userId: string; accessToken: string }> {
   const tenantNumber = requireEnv("E2E_TENANT_NUMBER");
   const clientId = requireEnv("E2E_USER_CLIENT_ID");
   const userRailsUrl = `https://user.${tenantNumber}.e2e.codle.io`;
@@ -74,6 +74,7 @@ async function createUserAndGetToken(): Promise<string> {
       `Factory create failed: ${createRes.status} ${await createRes.text()}`,
     );
   }
+  const { data: user } = (await createRes.json()) as { data: { id: string } };
 
   const tokenRes = await fetch(`${userRailsUrl}/oauth/token`, {
     method: "POST",
@@ -91,13 +92,13 @@ async function createUserAndGetToken(): Promise<string> {
     );
   }
   const { access_token } = (await tokenRes.json()) as { access_token: string };
-  return access_token;
+  return { userId: user.id, accessToken: access_token };
 }
 
 export async function setup(): Promise<void> {
   mcpServer = startMcpServer();
 
-  const [, accessToken] = await Promise.all([
+  const [, { userId, accessToken }] = await Promise.all([
     waitForHealth(),
     createUserAndGetToken(),
   ]);
@@ -113,6 +114,7 @@ export async function setup(): Promise<void> {
             headers: { Authorization: `Bearer ${accessToken}` },
           },
         },
+        e2e: { userId },
       },
       null,
       2,
