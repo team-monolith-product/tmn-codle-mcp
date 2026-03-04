@@ -1,4 +1,5 @@
 import { describe, expect, test } from "../fixtures/claude.js";
+import { extractText, findToolResult } from "../lib/ndjson.js";
 
 describe("tags", () => {
   test("manage_tags로 도메인별 태그 조회", async ({ claude }) => {
@@ -6,6 +7,12 @@ describe("tags", () => {
 
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__manage_tags");
+
+    const interaction = findToolResult(result.toolInteractions, "mcp__codle__manage_tags");
+    expect(interaction?.result).toBeDefined();
+    expect(interaction!.result!.isError).toBe(false);
+    const text = extractText(interaction!.result!);
+    expect(text).toMatch(/태그 목록|태그가 없습니다/);
   });
 
   test("manage_tags로 키워드 검색", async ({ claude }) => {
@@ -13,5 +20,9 @@ describe("tags", () => {
 
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__manage_tags");
+
+    const interaction = findToolResult(result.toolInteractions, "mcp__codle__manage_tags");
+    expect(interaction?.result).toBeDefined();
+    expect(interaction!.result!.isError).toBe(false);
   });
 });

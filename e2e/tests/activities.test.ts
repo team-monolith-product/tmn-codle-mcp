@@ -1,5 +1,6 @@
 import { describe, expect, test } from "../fixtures/claude.js";
 import { createMaterial } from "../lib/factory.js";
+import { extractText, findAllToolResults, findToolResult } from "../lib/ndjson.js";
 
 describe("activities", () => {
   test("활동 생성 + 코스 흐름 설정 + 삭제", async ({ claude, factory }) => {
@@ -26,8 +27,28 @@ describe("activities", () => {
       significantErrors,
       `Tool errors: ${JSON.stringify(significantErrors)}`,
     ).toHaveLength(0);
+
+    // 도구 호출 검증
     expect(result.toolNames).toContain("mcp__codle__manage_activities");
     expect(result.toolNames).toContain("mcp__codle__set_activity_flow");
     expect(result.toolNames).toContain("mcp__codle__get_material_detail");
+
+    // 활동 생성 결과 검증
+    const activityCreations = findAllToolResults(result.toolInteractions, "mcp__codle__manage_activities")
+      .filter((i) => i.call.input.action === "create");
+    expect(activityCreations.length).toBe(2);
+    for (const interaction of activityCreations) {
+      expect(interaction.result).toBeDefined();
+      expect(interaction.result!.isError).toBe(false);
+      const text = extractText(interaction.result!);
+      expect(text).toMatch(/활동 생성 완료/);
+    }
+
+    // 코스 흐름 설정 검증
+    const flowInteraction = findToolResult(result.toolInteractions, "mcp__codle__set_activity_flow");
+    expect(flowInteraction?.result).toBeDefined();
+    expect(flowInteraction!.result!.isError).toBe(false);
+    const flowText = extractText(flowInteraction!.result!);
+    expect(flowText).toMatch(/코스 흐름/);
   });
 });
