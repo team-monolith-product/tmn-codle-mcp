@@ -19,7 +19,13 @@ const SERVER_OPTIONS = {
 | 갈림길 | ActivityTransition (with level) |
 | 코스 흐름 | ActivityTransition (linear) |
 
-활동 유형: 퀴즈=QuizActivity, 교안=HtmlActivity, 코딩=StudioActivity, 보드=BoardActivity, 활동지=SheetActivity, 영상=VideoActivity, 엔트리=EntryActivity, 스크래치=ScratchActivity, PDF=PdfActivity`,
+활동 유형: 퀴즈=QuizActivity, 교안=HtmlActivity, 코딩=StudioActivity, 보드=BoardActivity, 활동지=SheetActivity, 영상=VideoActivity, 엔트리=EntryActivity, 스크래치=ScratchActivity, PDF=PdfActivity
+
+## 콘텐츠 설정 워크플로우
+
+1. 퀴즈 활동: manage_problems로 문제 생성 → manage_problem_collection_problems로 활동에 연결
+2. 보드 활동: update_board로 안내문 설정 (markdown 입력)
+3. 활동지: manage_problems로 문제 생성 → manage_problem_collection_problems로 연결 + update_sheet_description으로 설명 설정`,
 };
 
 export function createServer(): McpServer {

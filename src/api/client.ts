@@ -202,6 +202,83 @@ export class CodleClient {
   ): Promise<Record<string, unknown>> {
     return this.request("GET", "/api/v1/tags", { params });
   }
+
+  // --- Problems ---
+  async createProblem(
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/problems", { json: data });
+  }
+
+  async updateProblem(
+    problemId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("PUT", `/api/v1/problems/${problemId}`, { json: data });
+  }
+
+  async deleteProblem(problemId: string): Promise<Record<string, unknown>> {
+    return this.request("DELETE", `/api/v1/problems/${problemId}`);
+  }
+
+  // --- Problem Collections ---
+  async listProblemCollections(
+    params?: Record<string, string | number | boolean>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("GET", "/api/v1/problem_collections", { params });
+  }
+
+  // --- Problem Collections Problems ---
+  async createPCP(
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/problem_collections_problems", {
+      json: data,
+    });
+  }
+
+  async deletePCP(pcpId: string): Promise<Record<string, unknown>> {
+    return this.request(
+      "DELETE",
+      `/api/v1/problem_collections_problems/${pcpId}`,
+    );
+  }
+
+  async doManyPCP(
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request(
+      "POST",
+      "/api/v1/problem_collections_problems/do_many",
+      { json: data },
+    );
+  }
+
+  // --- Boards ---
+  async listBoards(
+    params?: Record<string, string | number | boolean>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("GET", "/api/v1/boards", { params });
+  }
+
+  async updateBoard(
+    boardId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("PUT", `/api/v1/boards/${boardId}`, { json: data });
+  }
+
+  // --- Sheet Activities ---
+  async updateSheetActivity(
+    sheetActivityId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request(
+      "PUT",
+      `/api/v1/sheet_activities/${sheetActivityId}`,
+      { json: data },
+    );
+  }
 }
 
 export const client = new CodleClient();
