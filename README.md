@@ -24,6 +24,13 @@ Claude Desktop/Code
 | `/api/v1/activities` | `authorize_user_token!` | O        |
 | `/api/v1/tags`       | 인증 없음 (public)      | O        |
 
+## E2E 테스트
+
+자연어 프롬프트가 올바른 MCP tool call을 트리거하는지 검증하는 테스트가 있다.
+도구 스키마나 description 변경 시 실행한다.
+
+> 상세 가이드: [e2e/README.md](e2e/README.md)
+
 ## 디버깅
 
 Claude Code에서는 stderr가 MCP 서버 로그 파일로 리다이렉트된다:

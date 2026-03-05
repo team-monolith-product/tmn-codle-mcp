@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { parseNdjson, type ClaudeResult } from "./ndjson.js";
+import { parseNdjson, type ClaudeResult, type UsageStats } from "./ndjson.js";
 
 interface ClaudeRunnerOptions {
   mcpConfigPath: string;
@@ -11,6 +11,16 @@ export class ClaudeRunner {
   private mcpConfigPath: string;
   private projectDir: string;
   private maxBudgetUsd: string;
+  lastCostUsd = 0;
+  lastDurationMs = 0;
+  lastNumTurns = 0;
+  lastToolCallCount = 0;
+  lastUsage: UsageStats = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+  };
 
   constructor(opts: ClaudeRunnerOptions) {
     this.mcpConfigPath = opts.mcpConfigPath;
@@ -71,7 +81,13 @@ export class ClaudeRunner {
         clearTimeout(timer);
         const stdout = Buffer.concat(stdoutChunks).toString("utf-8");
         const stderr = Buffer.concat(stderrChunks).toString("utf-8");
-        resolve(parseNdjson(stdout, code ?? 1, stderr));
+        const result = parseNdjson(stdout, code ?? 1, stderr);
+        this.lastCostUsd = result.costUsd;
+        this.lastDurationMs = result.durationMs;
+        this.lastNumTurns = result.numTurns;
+        this.lastToolCallCount = result.toolCalls.length;
+        this.lastUsage = result.usage;
+        resolve(result);
       });
     });
   }
