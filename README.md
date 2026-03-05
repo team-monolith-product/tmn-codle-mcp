@@ -24,6 +24,20 @@ Claude Desktop/Code
 | `/api/v1/activities` | `authorize_user_token!` | O        |
 | `/api/v1/tags`       | 인증 없음 (public)      | O        |
 
+## E2E 테스트
+
+자연어 프롬프트가 올바른 MCP tool call을 트리거하는지 검증하는 테스트가 있다.
+도구 스키마나 description 변경 시 실행한다.
+
+> 상세 가이드: [e2e/README.md](e2e/README.md)
+
+### `/e2e-report` 스킬
+
+Claude Code 스킬로 E2E 테스트 실행 및 PR 코멘트 포스팅을 자동화한다.
+도구 스키마·description 변경 시 `/e2e-report`를 실행하면 테스트 통계가 PR 코멘트에 첨부된다.
+
+> 스킬 정의: [.claude/skills/e2e-report/SKILL.md](.claude/skills/e2e-report/SKILL.md)
+
 ## 디버깅
 
 Claude Code에서는 stderr가 MCP 서버 로그 파일로 리다이렉트된다:

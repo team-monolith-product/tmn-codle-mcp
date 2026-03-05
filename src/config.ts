@@ -25,10 +25,9 @@ function e2eOverrides(tenant: string): Partial<Config> {
 }
 
 function envOverrides(): Partial<Config> {
-  const strip = (v: string) => v.replace(/\/$/, "");
   return {
     ...(process.env.CODLE_API_URL && {
-      apiUrl: strip(process.env.CODLE_API_URL),
+      apiUrl: process.env.CODLE_API_URL,
     }),
     ...(process.env.CODLE_PORT && {
       port: parseInt(process.env.CODLE_PORT, 10),
@@ -37,10 +36,10 @@ function envOverrides(): Partial<Config> {
       logLevel: process.env.CODLE_LOG_LEVEL,
     }),
     ...(process.env.CODLE_MCP_PUBLIC_URL && {
-      publicUrl: strip(process.env.CODLE_MCP_PUBLIC_URL),
+      publicUrl: process.env.CODLE_MCP_PUBLIC_URL,
     }),
     ...(process.env.CODLE_AUTH_SERVER_URL && {
-      authServerUrl: strip(process.env.CODLE_AUTH_SERVER_URL),
+      authServerUrl: process.env.CODLE_AUTH_SERVER_URL,
     }),
   };
 }

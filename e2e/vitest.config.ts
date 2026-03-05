@@ -7,5 +7,6 @@ export default defineConfig({
     testTimeout: 180_000,
     hookTimeout: 60_000,
     fileParallelism: true,
+    reporters: ["default", "e2e/lib/stats-reporter.ts"],
   },
 });

@@ -15,6 +15,13 @@ export interface ToolInteraction {
   result: ToolResult | undefined;
 }
 
+export interface UsageStats {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens: number;
+  cacheCreationInputTokens: number;
+}
+
 export interface ClaudeResult {
   toolCalls: ToolCall[];
   toolResults: ToolResult[];
@@ -25,6 +32,7 @@ export interface ClaudeResult {
   costUsd: number;
   durationMs: number;
   numTurns: number;
+  usage: UsageStats;
   mcpServers: Array<{ name: string; status: string }>;
   exitCode: number;
   stderr: string;
@@ -131,6 +139,8 @@ export function parseNdjson(
     status: (s.status as string) ?? "unknown",
   }));
 
+  const rawUsage = (resultEntry?.usage as Record<string, unknown>) ?? {};
+
   return {
     toolCalls,
     toolResults,
@@ -141,6 +151,13 @@ export function parseNdjson(
     costUsd: (resultEntry?.total_cost_usd as number) ?? 0,
     durationMs: (resultEntry?.duration_ms as number) ?? 0,
     numTurns: (resultEntry?.num_turns as number) ?? 0,
+    usage: {
+      inputTokens: (rawUsage.input_tokens as number) ?? 0,
+      outputTokens: (rawUsage.output_tokens as number) ?? 0,
+      cacheReadInputTokens: (rawUsage.cache_read_input_tokens as number) ?? 0,
+      cacheCreationInputTokens:
+        (rawUsage.cache_creation_input_tokens as number) ?? 0,
+    },
     mcpServers,
     exitCode,
     stderr,
