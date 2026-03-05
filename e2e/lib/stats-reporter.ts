@@ -58,8 +58,7 @@ export default class CostReporter implements Reporter {
     const totalOutput = sum((r) => r.outputTokens);
     const totalToolCalls = sum((r) => r.toolCalls);
 
-    const header =
-      "│ Cost     Time    Turns  Tools  In/Out Tokens   Test";
+    const header = "│ Cost     Time    Turns  Tools  In/Out Tokens   Test";
     const sep = "─".repeat(header.length);
 
     console.log(`\n┌${sep}`);
@@ -73,19 +72,27 @@ export default class CostReporter implements Reporter {
       const dur = `${(row.duration / 1000).toFixed(1)}s`;
       const turns = `${row.turns}`;
       const tools = `${row.toolCalls}`;
-      const tokens = `${formatTokens(row.inputTokens)}/${formatTokens(row.outputTokens)}`;
+      const tokens = `${formatTokens(row.inputTokens)}/${formatTokens(
+        row.outputTokens,
+      )}`;
       console.log(
-        `│ ${cost.padEnd(8)} ${dur.padEnd(7)} ${turns.padEnd(6)} ${tools.padEnd(6)} ${tokens.padEnd(15)} ${row.name}`,
+        `│ ${cost.padEnd(8)} ${dur.padEnd(7)} ${turns.padEnd(6)} ${tools.padEnd(
+          6,
+        )} ${tokens.padEnd(15)} ${row.name}`,
       );
     }
 
     console.log(`├${sep}`);
-    const totTokens = `${formatTokens(totalInput)}/${formatTokens(totalOutput)}`;
+    const totTokens = `${formatTokens(totalInput)}/${formatTokens(
+      totalOutput,
+    )}`;
     const totCost = `$${totalCost.toFixed(4)}`;
     const totDur = `${(totalDuration / 1000).toFixed(1)}s`;
     const totTools = `${totalToolCalls}`;
     console.log(
-      `│ ${totCost.padEnd(8)} ${totDur.padEnd(7)} ${"".padEnd(6)} ${totTools.padEnd(6)} ${totTokens.padEnd(15)} TOTAL`,
+      `│ ${totCost.padEnd(8)} ${totDur.padEnd(7)} ${"".padEnd(
+        6,
+      )} ${totTools.padEnd(6)} ${totTokens.padEnd(15)} TOTAL`,
     );
     console.log(`└${sep}`);
   }
