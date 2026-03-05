@@ -64,7 +64,7 @@ export default class CostReporter implements Reporter {
     const sep = "─".repeat(header.length);
 
     console.log(`\n┌${sep}`);
-    console.log("│ E2E Stats");
+    console.log(`│ E2E Stats (model: ${process.env.E2E_MODEL || "sonnet"})`);
     console.log(`├${sep}`);
     console.log(header);
     console.log(`├${sep}`);
@@ -118,7 +118,7 @@ export default class CostReporter implements Reporter {
     },
   ) {
     const lines: string[] = [
-      "## E2E Stats",
+      `## E2E Stats (model: ${process.env.E2E_MODEL || "sonnet"})`,
       "",
       "| Test | Cost | Time | Turns | Tools | Tokens (In/Out) |",
       "|------|------|------|-------|-------|-----------------|",

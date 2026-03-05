@@ -52,7 +52,7 @@ export class ClaudeRunner {
           this.maxBudgetUsd,
           "--no-session-persistence",
           "--model",
-          "sonnet",
+          process.env.E2E_MODEL || "sonnet",
         ],
         {
           cwd: this.projectDir,
