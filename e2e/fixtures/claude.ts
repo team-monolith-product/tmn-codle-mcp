@@ -21,12 +21,17 @@ export const test = base.extend<{
       maxBudgetUsd: "0.30",
     });
     await use(runner);
-    task.meta.costUsd = runner.lastCostUsd;
-    task.meta.durationMs = runner.lastDurationMs;
+    // AIDEV-NOTE: repeats 시 fixture가 매 반복마다 호출되어 meta가 덮어쓰여지므로 비용/토큰은 누적한다
+    task.meta.costUsd =
+      ((task.meta.costUsd as number) ?? 0) + runner.lastCostUsd;
+    task.meta.durationMs =
+      ((task.meta.durationMs as number) ?? 0) + runner.lastDurationMs;
     task.meta.numTurns = runner.lastNumTurns;
     task.meta.toolCallCount = runner.lastToolCallCount;
-    task.meta.inputTokens = runner.lastUsage.inputTokens;
-    task.meta.outputTokens = runner.lastUsage.outputTokens;
+    task.meta.inputTokens =
+      ((task.meta.inputTokens as number) ?? 0) + runner.lastUsage.inputTokens;
+    task.meta.outputTokens =
+      ((task.meta.outputTokens as number) ?? 0) + runner.lastUsage.outputTokens;
   },
   factory: async ({}, use) => {
     await use(new TestFactory());
