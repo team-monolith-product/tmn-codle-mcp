@@ -221,13 +221,6 @@ export class CodleClient {
     return this.request("DELETE", `/api/v1/problems/${problemId}`);
   }
 
-  // --- Problem Collections ---
-  async listProblemCollections(
-    params?: Record<string, string | number | boolean>,
-  ): Promise<Record<string, unknown>> {
-    return this.request("GET", "/api/v1/problem_collections", { params });
-  }
-
   // --- Problem Collections Problems ---
   async createPCP(
     data: Record<string, unknown>,

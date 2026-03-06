@@ -7,7 +7,11 @@ import {
   extractList,
   extractSingle,
 } from "../api/models.js";
-import { buildSelectBlock, buildInputBlock } from "../lexical/index.js";
+import {
+  buildSelectBlock,
+  buildInputBlock,
+  convertFromMarkdown,
+} from "../lexical/index.js";
 
 export function registerProblemTools(server: McpServer): void {
   server.tool(
@@ -79,6 +83,10 @@ export function registerProblemTools(server: McpServer): void {
           blocks = buildSelectBlock(choices);
         } else if (solutions?.length) {
           blocks = buildInputBlock(solutions, input_options);
+        } else if (content !== undefined) {
+          // AIDEV-NOTE: Rails Problem 모델은 모든 타입에서 blocks presence를 요구한다.
+          // sheet/descriptive 타입은 choices/solutions가 없으므로 content를 Lexical로 변환하여 blocks에 넣는다.
+          blocks = convertFromMarkdown(content);
         }
 
         const attrs: Record<string, unknown> = {
@@ -134,6 +142,8 @@ export function registerProblemTools(server: McpServer): void {
           blocks = buildSelectBlock(choices);
         } else if (solutions?.length) {
           blocks = buildInputBlock(solutions, input_options);
+        } else if (content !== undefined) {
+          blocks = convertFromMarkdown(content);
         }
 
         const attrs: Record<string, unknown> = {};
@@ -250,14 +260,19 @@ export function registerProblemTools(server: McpServer): void {
       point,
       is_required,
     }) => {
-      // activity_id → problem_collection_id 조회
+      // AIDEV-NOTE: /api/v1/problem_collections는 classroom_id가 필수라 자료 제작 단계에서 사용 불가.
+      // activity include로 problem_collection_ids를 가져온다.
       let pcId: string;
       try {
-        const pcResp = await client.listProblemCollections({
-          "filter[activity_id]": activity_id,
-        });
-        const pcs = extractList(pcResp);
-        if (!pcs.length) {
+        const actResp = await client.request(
+          "GET",
+          `/api/v1/activities/${activity_id}`,
+          { params: { include: "problem_collections" } },
+        );
+        const actData = (actResp.data as Record<string, unknown>) || {};
+        const attrs = (actData.attributes as Record<string, unknown>) || {};
+        const pcIds = attrs.problem_collection_ids as string[] | undefined;
+        if (!pcIds?.length) {
           return {
             content: [
               {
@@ -267,7 +282,7 @@ export function registerProblemTools(server: McpServer): void {
             ],
           };
         }
-        pcId = String(pcs[0].id);
+        pcId = String(pcIds[0]);
       } catch (e) {
         if (e instanceof CodleAPIError) {
           return {

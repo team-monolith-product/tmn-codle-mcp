@@ -9,7 +9,6 @@ vi.mock("../src/api/client.js", () => {
     createProblem: vi.fn(),
     updateProblem: vi.fn(),
     deleteProblem: vi.fn(),
-    listProblemCollections: vi.fn(),
     createPCP: vi.fn(),
     deletePCP: vi.fn(),
     doManyPCP: vi.fn(),
@@ -116,7 +115,7 @@ describe("manage_problems create", () => {
     expect(getText(result)).toContain("문제 생성 완료");
   });
 
-  it("create without blocks", async () => {
+  it("create descriptive with content converts to blocks", async () => {
     mockClient.createProblem.mockResolvedValue(
       makeJsonApiResponse("problem", "12", { title: "서술형" }),
     );
@@ -130,8 +129,27 @@ describe("manage_problems create", () => {
     expect(getText(result)).toContain("문제 생성 완료");
 
     const payload = mockClient.createProblem.mock.calls[0][0];
-    expect(payload.data.attributes.blocks).toBeUndefined();
+    expect(payload.data.attributes.blocks).toBeDefined();
+    expect(payload.data.attributes.blocks.root.type).toBe("root");
     expect(payload.data.attributes.content).toBe("설명을 작성하세요");
+  });
+
+  it("create sheet with content converts to blocks", async () => {
+    mockClient.createProblem.mockResolvedValue(
+      makeJsonApiResponse("problem", "13", { title: "활동지" }),
+    );
+
+    const result = await toolHandlers.manage_problems({
+      action: "create",
+      title: "활동지",
+      problem_type: "sheet",
+      content: "문제 내용",
+    });
+    expect(getText(result)).toContain("문제 생성 완료");
+
+    const payload = mockClient.createProblem.mock.calls[0][0];
+    expect(payload.data.attributes.blocks).toBeDefined();
+    expect(payload.data.attributes.content).toBe("문제 내용");
   });
 
   it("create API error", async () => {
@@ -207,11 +225,19 @@ describe("manage_problems delete", () => {
 
 // ===== manage_problem_collection_problems =====
 
+function makeActivityWithPcIds(pcIds: string[]) {
+  return {
+    data: {
+      id: "1",
+      type: "activity",
+      attributes: { problem_collection_ids: pcIds },
+    },
+  };
+}
+
 describe("manage_problem_collection_problems add", () => {
   it("no problem collection found", async () => {
-    mockClient.listProblemCollections.mockResolvedValue(
-      makeJsonApiListResponse("problem_collection", []),
-    );
+    mockClient.request.mockResolvedValue(makeActivityWithPcIds([]));
 
     const result = await toolHandlers.manage_problem_collection_problems({
       action: "add",
@@ -222,9 +248,7 @@ describe("manage_problem_collection_problems add", () => {
   });
 
   it("missing problem_id", async () => {
-    mockClient.listProblemCollections.mockResolvedValue(
-      makeJsonApiListResponse("problem_collection", [{ id: "pc1" }]),
-    );
+    mockClient.request.mockResolvedValue(makeActivityWithPcIds(["pc1"]));
 
     const result = await toolHandlers.manage_problem_collection_problems({
       action: "add",
@@ -234,9 +258,7 @@ describe("manage_problem_collection_problems add", () => {
   });
 
   it("successful add", async () => {
-    mockClient.listProblemCollections.mockResolvedValue(
-      makeJsonApiListResponse("problem_collection", [{ id: "pc1" }]),
-    );
+    mockClient.request.mockResolvedValue(makeActivityWithPcIds(["pc1"]));
     mockClient.createPCP.mockResolvedValue(
       makeJsonApiResponse("problem_collections_problem", "pcp1", {
         problem_collection_id: "pc1",
@@ -261,14 +283,13 @@ describe("manage_problem_collection_problems add", () => {
 
 describe("manage_problem_collection_problems remove", () => {
   it("successful remove", async () => {
-    mockClient.listProblemCollections.mockResolvedValue(
-      makeJsonApiListResponse("problem_collection", [{ id: "pc1" }]),
-    );
-    mockClient.request.mockResolvedValue(
-      makeJsonApiListResponse("problem_collections_problem", [
-        { id: "pcp1", problem_id: "10" },
-      ]),
-    );
+    mockClient.request
+      .mockResolvedValueOnce(makeActivityWithPcIds(["pc1"]))
+      .mockResolvedValueOnce(
+        makeJsonApiListResponse("problem_collections_problem", [
+          { id: "pcp1", problem_id: "10" },
+        ]),
+      );
     mockClient.deletePCP.mockResolvedValue({});
 
     const result = await toolHandlers.manage_problem_collection_problems({
@@ -280,12 +301,11 @@ describe("manage_problem_collection_problems remove", () => {
   });
 
   it("problem not found in collection", async () => {
-    mockClient.listProblemCollections.mockResolvedValue(
-      makeJsonApiListResponse("problem_collection", [{ id: "pc1" }]),
-    );
-    mockClient.request.mockResolvedValue(
-      makeJsonApiListResponse("problem_collections_problem", []),
-    );
+    mockClient.request
+      .mockResolvedValueOnce(makeActivityWithPcIds(["pc1"]))
+      .mockResolvedValueOnce(
+        makeJsonApiListResponse("problem_collections_problem", []),
+      );
 
     const result = await toolHandlers.manage_problem_collection_problems({
       action: "remove",
@@ -298,9 +318,7 @@ describe("manage_problem_collection_problems remove", () => {
 
 describe("manage_problem_collection_problems reorder", () => {
   it("missing problem_ids", async () => {
-    mockClient.listProblemCollections.mockResolvedValue(
-      makeJsonApiListResponse("problem_collection", [{ id: "pc1" }]),
-    );
+    mockClient.request.mockResolvedValue(makeActivityWithPcIds(["pc1"]));
 
     const result = await toolHandlers.manage_problem_collection_problems({
       action: "reorder",
@@ -310,16 +328,15 @@ describe("manage_problem_collection_problems reorder", () => {
   });
 
   it("successful reorder", async () => {
-    mockClient.listProblemCollections.mockResolvedValue(
-      makeJsonApiListResponse("problem_collection", [{ id: "pc1" }]),
-    );
-    mockClient.request.mockResolvedValue(
-      makeJsonApiListResponse("problem_collections_problem", [
-        { id: "pcp1", problem_id: "10" },
-        { id: "pcp2", problem_id: "20" },
-        { id: "pcp3", problem_id: "30" },
-      ]),
-    );
+    mockClient.request
+      .mockResolvedValueOnce(makeActivityWithPcIds(["pc1"]))
+      .mockResolvedValueOnce(
+        makeJsonApiListResponse("problem_collections_problem", [
+          { id: "pcp1", problem_id: "10" },
+          { id: "pcp2", problem_id: "20" },
+          { id: "pcp3", problem_id: "30" },
+        ]),
+      );
     mockClient.doManyPCP.mockResolvedValue({});
 
     const result = await toolHandlers.manage_problem_collection_problems({
