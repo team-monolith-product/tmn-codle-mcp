@@ -30,10 +30,12 @@ export function registerProblemTools(server: McpServer): void {
           z.object({
             text: z.string(),
             isAnswer: z.boolean(),
+            imageUrl: z.string().optional(),
+            imageAlt: z.string().optional(),
           }),
         )
         .optional()
-        .describe("객관식 선택지 (quiz 타입). [{text, isAnswer}]"),
+        .describe("객관식 선택지 (quiz 타입). [{text, isAnswer, imageUrl?, imageAlt?}]"),
       solutions: z
         .array(z.string())
         .optional()
