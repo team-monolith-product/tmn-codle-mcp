@@ -232,6 +232,24 @@ export class CodleClient {
     );
   }
 
+  // --- Problem Answers ---
+  async doManyProblemAnswers(
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/problem_answers/do_many", {
+      json: data,
+    });
+  }
+
+  // --- Descriptive Criteria ---
+  async doManyDescriptiveCriteria(
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/descriptive_criteria/do_many", {
+      json: data,
+    });
+  }
+
   // --- Boards ---
   async listBoards(
     params?: Record<string, string | number | boolean>,

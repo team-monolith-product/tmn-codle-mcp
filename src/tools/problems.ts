@@ -52,6 +52,25 @@ export function registerProblemTools(server: McpServer): void {
       tag_ids: z.array(z.string()).optional().describe("태그 ID 목록"),
       is_public: z.boolean().optional().describe("공개 여부"),
       commentary: z.string().optional().describe("해설"),
+      sample_answer: z
+        .string()
+        .optional()
+        .describe("모범답안 (descriptive 타입)"),
+      descriptive_criterium: z
+        .object({
+          input_size: z
+            .number()
+            .optional()
+            .describe("입력칸 크기 (100, 200, 400)"),
+          placeholder: z.string().optional().describe("입력칸 자리표시자"),
+          scoring_element: z.string().optional().describe("평가 요소"),
+          criteria: z
+            .array(z.object({ content: z.string(), ratio: z.number() }))
+            .optional()
+            .describe("채점기준 상/중/하 순서. [{content, ratio}]"),
+        })
+        .optional()
+        .describe("서술형 채점기준 (descriptive 타입)"),
     },
     async ({
       action,
@@ -65,6 +84,8 @@ export function registerProblemTools(server: McpServer): void {
       tag_ids,
       is_public,
       commentary,
+      sample_answer,
+      descriptive_criterium,
     }) => {
       if (action === "create") {
         if (!title || !problem_type) {
@@ -107,13 +128,73 @@ export function registerProblemTools(server: McpServer): void {
             payload as Record<string, unknown>,
           );
           const problem = extractSingle(response);
+          const problemId = String(problem.id);
+
+          // AIDEV-NOTE: descriptive 타입은 Problem 외에 ProblemAnswer(모범답안)와
+          // DescriptiveCriterium(채점기준)을 별도 리소스로 생성해야 한다.
+          const warnings: string[] = [];
+          if (sample_answer !== undefined) {
+            try {
+              await client.doManyProblemAnswers({
+                data_to_create: [
+                  {
+                    attributes: {
+                      code: sample_answer,
+                      problem_id: problemId,
+                    },
+                  },
+                ],
+                data_to_update: [],
+                data_to_destroy: [],
+              });
+            } catch (e) {
+              warnings.push(
+                `모범답안 생성 실패: ${e instanceof CodleAPIError ? e.detail : String(e)}`,
+              );
+            }
+          }
+          if (descriptive_criterium) {
+            try {
+              const dcAttrs: Record<string, unknown> = {
+                problem_id: problemId,
+              };
+              if (descriptive_criterium.input_size !== undefined)
+                dcAttrs.input_size = descriptive_criterium.input_size;
+              if (descriptive_criterium.placeholder !== undefined)
+                dcAttrs.placeholder = descriptive_criterium.placeholder;
+              if (descriptive_criterium.scoring_element !== undefined)
+                dcAttrs.scoring_element = descriptive_criterium.scoring_element;
+              // AIDEV-NOTE: criteria 배열은 상/중/하 순서. API는 high/mid/low_content, high/mid/low_ratio 개별 필드.
+              const [high, mid, low] = descriptive_criterium.criteria ?? [];
+              if (high) {
+                dcAttrs.high_content = high.content;
+                dcAttrs.high_ratio = high.ratio;
+              }
+              if (mid) {
+                dcAttrs.mid_content = mid.content;
+                dcAttrs.mid_ratio = mid.ratio;
+              }
+              if (low) {
+                dcAttrs.low_content = low.content;
+                dcAttrs.low_ratio = low.ratio;
+              }
+              await client.doManyDescriptiveCriteria({
+                data_to_create: [{ attributes: dcAttrs }],
+                data_to_update: [],
+                data_to_destroy: [],
+              });
+            } catch (e) {
+              warnings.push(
+                `채점기준 생성 실패: ${e instanceof CodleAPIError ? e.detail : String(e)}`,
+              );
+            }
+          }
+
+          let resultText = `문제 생성 완료: [${problemId}] ${problem.title}`;
+          if (warnings.length)
+            resultText += `\n⚠️ ${warnings.join("\n⚠️ ")}`;
           return {
-            content: [
-              {
-                type: "text" as const,
-                text: `문제 생성 완료: [${problem.id}] ${problem.title}`,
-              },
-            ],
+            content: [{ type: "text" as const, text: resultText }],
           };
         } catch (e) {
           if (e instanceof CodleAPIError) {
@@ -173,13 +254,115 @@ export function registerProblemTools(server: McpServer): void {
             payload as Record<string, unknown>,
           );
           const problem = extractSingle(response);
+
+          // AIDEV-NOTE: update 시에도 ProblemAnswer/DescriptiveCriterium을 upsert한다.
+          // 기존 리소스가 있으면 update, 없으면 create.
+          const warnings: string[] = [];
+          if (sample_answer !== undefined) {
+            try {
+              const paResp = await client.request(
+                "GET",
+                "/api/v1/problem_answers",
+                { params: { "filter[problem_id]": problem_id } },
+              );
+              const paList =
+                (paResp.data as Array<Record<string, unknown>> | undefined) ||
+                [];
+              if (paList.length > 0) {
+                await client.doManyProblemAnswers({
+                  data_to_create: [],
+                  data_to_update: [
+                    {
+                      id: String(paList[0].id),
+                      attributes: { code: sample_answer },
+                    },
+                  ],
+                  data_to_destroy: [],
+                });
+              } else {
+                await client.doManyProblemAnswers({
+                  data_to_create: [
+                    {
+                      attributes: {
+                        code: sample_answer,
+                        problem_id,
+                      },
+                    },
+                  ],
+                  data_to_update: [],
+                  data_to_destroy: [],
+                });
+              }
+            } catch (e) {
+              warnings.push(
+                `모범답안 수정 실패: ${e instanceof CodleAPIError ? e.detail : String(e)}`,
+              );
+            }
+          }
+          if (descriptive_criterium) {
+            try {
+              const probResp = await client.request(
+                "GET",
+                `/api/v1/problems/${problem_id}`,
+                { params: { include: "descriptive_criterium" } },
+              );
+              const included =
+                (
+                  (probResp as Record<string, unknown>).included as Array<
+                    Record<string, unknown>
+                  >
+                ) || [];
+              const existingDC = included.find(
+                (i) => i.type === "descriptive_criterium",
+              );
+              const dcAttrs: Record<string, unknown> = {};
+              if (descriptive_criterium.input_size !== undefined)
+                dcAttrs.input_size = descriptive_criterium.input_size;
+              if (descriptive_criterium.placeholder !== undefined)
+                dcAttrs.placeholder = descriptive_criterium.placeholder;
+              if (descriptive_criterium.scoring_element !== undefined)
+                dcAttrs.scoring_element = descriptive_criterium.scoring_element;
+              const [high, mid, low] = descriptive_criterium.criteria ?? [];
+              if (high) {
+                dcAttrs.high_content = high.content;
+                dcAttrs.high_ratio = high.ratio;
+              }
+              if (mid) {
+                dcAttrs.mid_content = mid.content;
+                dcAttrs.mid_ratio = mid.ratio;
+              }
+              if (low) {
+                dcAttrs.low_content = low.content;
+                dcAttrs.low_ratio = low.ratio;
+              }
+              if (existingDC) {
+                await client.doManyDescriptiveCriteria({
+                  data_to_create: [],
+                  data_to_update: [
+                    { id: String(existingDC.id), attributes: dcAttrs },
+                  ],
+                  data_to_destroy: [],
+                });
+              } else {
+                dcAttrs.problem_id = problem_id;
+                await client.doManyDescriptiveCriteria({
+                  data_to_create: [{ attributes: dcAttrs }],
+                  data_to_update: [],
+                  data_to_destroy: [],
+                });
+              }
+            } catch (e) {
+              warnings.push(
+                `채점기준 수정 실패: ${e instanceof CodleAPIError ? e.detail : String(e)}`,
+              );
+            }
+          }
+
+          let resultText = `문제 수정 완료: [${problem.id}] ${problem.title}`;
+          if (warnings.length)
+            resultText += `\n⚠️ ${warnings.join("\n⚠️ ")}`;
           return {
-            content: [
-              {
-                type: "text" as const,
-                text: `문제 수정 완료: [${problem.id}] ${problem.title}`,
-              },
-            ],
+            content: [{ type: "text" as const, text: resultText }],
           };
         } catch (e) {
           if (e instanceof CodleAPIError) {
