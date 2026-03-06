@@ -97,7 +97,9 @@ export function registerProblemTools(server: McpServer): void {
         if (blocks !== undefined) attrs.blocks = blocks;
         if (tag_ids?.length) attrs.tag_ids = tag_ids;
         if (is_public !== undefined) attrs.is_public = is_public;
-        if (commentary !== undefined) attrs.commentary = commentary;
+        // AIDEV-NOTE: commentary는 프론트엔드에서 Lexical JSON으로 렌더링하므로 문자열을 변환해야 한다.
+        if (commentary !== undefined)
+          attrs.commentary = convertFromMarkdown(commentary);
 
         const payload = buildJsonApiPayload("problems", attrs);
         try {
@@ -152,7 +154,9 @@ export function registerProblemTools(server: McpServer): void {
         if (blocks !== undefined) attrs.blocks = blocks;
         if (tag_ids !== undefined) attrs.tag_ids = tag_ids;
         if (is_public !== undefined) attrs.is_public = is_public;
-        if (commentary !== undefined) attrs.commentary = commentary;
+        // AIDEV-NOTE: commentary는 프론트엔드에서 Lexical JSON으로 렌더링하므로 문자열을 변환해야 한다.
+        if (commentary !== undefined)
+          attrs.commentary = convertFromMarkdown(commentary);
 
         if (!Object.keys(attrs).length) {
           return {

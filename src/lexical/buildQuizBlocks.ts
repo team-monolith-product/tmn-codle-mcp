@@ -19,7 +19,7 @@ function wrapRoot(children: Record<string, unknown>[]): SerializedEditorState {
       format: "",
       indent: 0,
       version: 1,
-      direction: "ltr",
+      direction: null,
       children,
     },
   } as unknown as SerializedEditorState;
