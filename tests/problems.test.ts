@@ -228,9 +228,7 @@ function makeActivityWithPcps(
   pcId: string | null,
   pcps: Array<{ id: string; problem_id: string }> = [],
 ) {
-  const pcRelData = pcId
-    ? [{ id: pcId, type: "problem_collection" }]
-    : [];
+  const pcRelData = pcId ? [{ id: pcId, type: "problem_collection" }] : [];
   const included: Record<string, unknown>[] = [];
   if (pcId) {
     included.push({

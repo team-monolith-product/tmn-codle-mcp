@@ -3,6 +3,8 @@ import type { SerializedEditorState } from "lexical";
 interface SelectChoice {
   text: string;
   isAnswer: boolean;
+  imageUrl?: string;
+  imageAlt?: string;
 }
 
 interface InputOptions {
@@ -30,12 +32,24 @@ function wrapRoot(children: Record<string, unknown>[]): SerializedEditorState {
 export function buildSelectBlock(
   choices: SelectChoice[],
 ): SerializedEditorState {
-  const selections = choices.map((c) => ({
+  const hasMultipleSolutions = choices.filter((c) => c.isAnswer).length > 1;
+  const selections = choices.map((c, i) => ({
     isAnswer: c.isAnswer,
-    show: { text: c.text },
-    value: c.text,
+    show: {
+      text: c.text,
+      image: c.imageUrl ? { src: c.imageUrl, altText: c.imageAlt ?? "" } : null,
+    },
+    value: String(i),
   }));
-  return wrapRoot([{ type: "problem-select", selections }]);
+  return wrapRoot([
+    {
+      type: "problem-select",
+      version: 1,
+      selected: [],
+      selections,
+      hasMultipleSolutions,
+    },
+  ]);
 }
 
 export function buildInputBlock(

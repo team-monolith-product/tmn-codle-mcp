@@ -19,18 +19,21 @@ describe("buildSelectBlock", () => {
 
     const node = children[0];
     expect(node.type).toBe("problem-select");
+    expect(node.version).toBe(1);
+    expect(node.selected).toEqual([]);
+    expect(node.hasMultipleSolutions).toBe(false);
 
     const selections = node.selections as Array<Record<string, unknown>>;
     expect(selections).toHaveLength(2);
     expect(selections[0]).toEqual({
       isAnswer: true,
-      show: { text: "O" },
-      value: "O",
+      show: { text: "O", image: null },
+      value: "0",
     });
     expect(selections[1]).toEqual({
       isAnswer: false,
-      show: { text: "X" },
-      value: "X",
+      show: { text: "X", image: null },
+      value: "1",
     });
   });
 
@@ -49,6 +52,35 @@ describe("buildSelectBlock", () => {
     expect(selections).toHaveLength(4);
     expect(selections[1].isAnswer).toBe(true);
     expect(selections[0].isAnswer).toBe(false);
+  });
+
+  it("choices with imageUrl produce show.image object", () => {
+    const result = buildSelectBlock([
+      { text: "사과", isAnswer: true, imageUrl: "https://example.com/apple.png", imageAlt: "사과 이미지" },
+      { text: "바나나", isAnswer: false, imageUrl: "https://example.com/banana.png" },
+      { text: "포도", isAnswer: false },
+    ]);
+
+    const children = (result.root as Record<string, unknown>).children as Array<
+      Record<string, unknown>
+    >;
+    const selections = children[0].selections as Array<Record<string, unknown>>;
+    expect(selections).toHaveLength(3);
+    expect(selections[0]).toEqual({
+      isAnswer: true,
+      show: { text: "사과", image: { src: "https://example.com/apple.png", altText: "사과 이미지" } },
+      value: "0",
+    });
+    expect(selections[1]).toEqual({
+      isAnswer: false,
+      show: { text: "바나나", image: { src: "https://example.com/banana.png", altText: "" } },
+      value: "1",
+    });
+    expect(selections[2]).toEqual({
+      isAnswer: false,
+      show: { text: "포도", image: null },
+      value: "2",
+    });
   });
 
   it("root structure matches Lexical format", () => {
