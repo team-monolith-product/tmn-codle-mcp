@@ -67,7 +67,9 @@ export function registerProblemTools(server: McpServer): void {
           criteria: z
             .array(z.object({ content: z.string(), ratio: z.number() }))
             .optional()
-            .describe("채점기준 상/중/하 순서. [{content, ratio(0~1)}] 예: 1.0, 0.7, 0.3"),
+            .describe(
+              "채점기준 상/중/하 순서. [{content, ratio(0~1)}] 예: 1.0, 0.7, 0.3",
+            ),
         })
         .optional()
         .describe("서술형 채점기준 (descriptive 타입)"),
