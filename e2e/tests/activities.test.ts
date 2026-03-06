@@ -40,9 +40,7 @@ describe("manage_activities", () => {
       "mcp__codle__manage_activities",
     ).filter((i) => i.call.input.action === "delete");
     expect(deleteInteractions.length).toBeGreaterThanOrEqual(1);
-
-    // AIDEV-NOTE: 활동 삭제 API가 빈 body를 반환하여 "Unexpected end of JSON input" 발생 가능.
-    // 삭제 도구 호출 자체가 성공적으로 이루어졌는지만 확인한다.
+    expect(deleteInteractions[0]!.result!.isError).toBe(false);
   });
 });
 

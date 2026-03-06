@@ -21,7 +21,6 @@ export const test = base.extend<{
       maxBudgetUsd: "0.30",
     });
     await use(runner);
-    // AIDEV-NOTE: repeats 시 fixture가 매 반복마다 호출되어 meta가 덮어쓰여지므로 비용/토큰은 누적한다
     task.meta.costUsd =
       ((task.meta.costUsd as number) ?? 0) + runner.lastCostUsd;
     task.meta.durationMs =

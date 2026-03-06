@@ -112,7 +112,10 @@ export class CodleClient {
     if (response.status === 204) return {};
     const contentLength = response.headers.get("content-length");
     if (contentLength === "0") return {};
-    return (await response.json()) as Record<string, unknown>;
+    // AIDEV-NOTE: CrudActions#destroy가 head(:ok)로 빈 body를 반환. content-length 헤더 없을 수 있음.
+    const text = await response.text();
+    if (!text) return {};
+    return JSON.parse(text) as Record<string, unknown>;
   }
 
   // --- Me ---
