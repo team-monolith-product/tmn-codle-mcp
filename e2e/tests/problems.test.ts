@@ -72,10 +72,7 @@ describe("manage_problem_collection_problems", () => {
     expect(result.toolNames).toContain("mcp__codle__manage_problems");
   });
 
-  test("여러 문제를 퀴즈 활동에 순서대로 연결", async ({
-    claude,
-    factory,
-  }) => {
+  test("여러 문제를 퀴즈 활동에 순서대로 연결", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
 
     const result = await claude.run(

@@ -268,8 +268,7 @@ export function registerProblemTools(server: McpServer): void {
           { params: { include: "problem_collections.pcps" } },
         );
         const actData = (actResp.data as Record<string, unknown>) || {};
-        const rels =
-          (actData.relationships as Record<string, unknown>) || {};
+        const rels = (actData.relationships as Record<string, unknown>) || {};
         const pcRel =
           (rels.problem_collections as Record<string, unknown>) || {};
         const pcRelData = pcRel.data as
