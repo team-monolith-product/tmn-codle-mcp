@@ -76,7 +76,9 @@ export default class CostReporter implements Reporter {
     const repeatsLabel = showPass ? `, repeats: ${totalRuns}` : "";
     console.log(`\n┌${sep}`);
     console.log(
-      `│ E2E Stats (model: ${process.env.E2E_MODEL || "sonnet"}${repeatsLabel})`,
+      `│ E2E Stats (model: ${
+        process.env.E2E_MODEL || "sonnet"
+      }${repeatsLabel})`,
     );
     console.log(`├${sep}`);
     console.log(header);
@@ -140,7 +142,9 @@ export default class CostReporter implements Reporter {
     const passSep = totals.showPass ? "------|" : "";
 
     const lines: string[] = [
-      `## E2E Stats (model: ${process.env.E2E_MODEL || "sonnet"}${repeatsLabel})`,
+      `## E2E Stats (model: ${
+        process.env.E2E_MODEL || "sonnet"
+      }${repeatsLabel})`,
       "",
       `| Test |${passHeader} Cost | Time | Turns | Tools | Tokens (In/Out) |`,
       `|------|${passSep}------|------|-------|-------|-----------------|`,
