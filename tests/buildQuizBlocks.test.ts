@@ -183,7 +183,7 @@ describe("buildInputBlock", () => {
 
     const node = children[2];
     expect(node.type).toBe("problem-input");
-    expect(node.solutions).toEqual(["42"]);
+    expect(node.solutions).toEqual([{ value: "42", textType: "normal" }]);
   });
 
   it("without questionText produces single empty paragraph", () => {
@@ -200,7 +200,10 @@ describe("buildInputBlock", () => {
   it("multiple solutions", () => {
     const result = buildInputBlock(["서울", "Seoul"]);
     const node = getQuizNode(result);
-    expect(node.solutions).toEqual(["서울", "Seoul"]);
+    expect(node.solutions).toEqual([
+      { value: "서울", textType: "normal" },
+      { value: "Seoul", textType: "normal" },
+    ]);
   });
 
   it("with caseSensitive option", () => {
@@ -217,10 +220,14 @@ describe("buildInputBlock", () => {
     expect(node.placeholder).toBe("답을 입력하세요");
   });
 
-  it("no options omits optional fields", () => {
+  it("defaults: version, answer, showCharacterNumber, ignoreWhitespace, caseSensitive, placeholder", () => {
     const result = buildInputBlock(["test"]);
     const node = getQuizNode(result);
-    expect(node.caseSensitive).toBeUndefined();
-    expect(node.placeholder).toBeUndefined();
+    expect(node.version).toBe(1);
+    expect(node.answer).toBe("");
+    expect(node.showCharacterNumber).toBe(false);
+    expect(node.ignoreWhitespace).toBe(true);
+    expect(node.caseSensitive).toBe(false);
+    expect(node.placeholder).toBe("");
   });
 });

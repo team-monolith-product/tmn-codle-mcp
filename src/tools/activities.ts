@@ -66,6 +66,10 @@ export function registerActivityTools(server: McpServer): void {
           "활동 깊이, 1-indexed (1=메인, 2=하위, 3=하위의 하위). create 시 미지정이면 1",
         ),
       tag_ids: z.array(z.string()).optional().describe("연결할 태그 ID 목록"),
+      url: z
+        .string()
+        .optional()
+        .describe("URL (VideoActivity, EmbeddedActivity 전용)"),
     },
     async ({
       action,
@@ -75,6 +79,7 @@ export function registerActivityTools(server: McpServer): void {
       activity_type,
       depth,
       tag_ids,
+      url,
     }) => {
       if (action === "create") {
         if (!material_id || !name || !activity_type) {
@@ -103,8 +108,16 @@ export function registerActivityTools(server: McpServer): void {
         // 1단계: activitiable 생성
         const endpoint = ACTIVITIABLE_ENDPOINTS[activity_type];
         const jsonapiType = pascalToSnake(activity_type);
+        const activitiableAttrs: Record<string, unknown> = {};
+        if (
+          url !== undefined &&
+          (activity_type === "VideoActivity" ||
+            activity_type === "EmbeddedActivity")
+        ) {
+          activitiableAttrs.url = url;
+        }
         const activitiablePayload = {
-          data: { type: jsonapiType, attributes: {} },
+          data: { type: jsonapiType, attributes: activitiableAttrs },
         };
         let activitiableId: string;
         try {
@@ -183,18 +196,54 @@ export function registerActivityTools(server: McpServer): void {
         if (depth !== undefined) attrs.depth = Math.max(0, depth - 1);
         if (tag_ids !== undefined) attrs.tag_ids = tag_ids;
 
-        if (!Object.keys(attrs).length) {
+        if (!Object.keys(attrs).length && url === undefined) {
           return {
             content: [{ type: "text", text: "수정할 항목이 없습니다." }],
           };
         }
 
-        const payload = buildJsonApiPayload("activities", attrs, activity_id);
-        const response = await client.updateActivity(
-          activity_id,
-          payload as Record<string, unknown>,
-        );
-        const activity = extractSingle(response);
+        let activity: Record<string, unknown> = {};
+        if (Object.keys(attrs).length) {
+          const payload = buildJsonApiPayload("activities", attrs, activity_id);
+          const response = await client.updateActivity(
+            activity_id,
+            payload as Record<string, unknown>,
+          );
+          activity = extractSingle(response);
+        }
+
+        // AIDEV-NOTE: url 수정 시 activity의 activitiable을 조회하여 해당 리소스를 업데이트한다.
+        if (url !== undefined) {
+          const actResp = await client.request(
+            "GET",
+            `/api/v1/activities/${activity_id}`,
+          );
+          const actData = (actResp.data as Record<string, unknown>) || {};
+          const actAttrs =
+            (actData.attributes as Record<string, unknown>) || {};
+          const aType = String(actAttrs.activitiable_type || "");
+          const aId = String(actAttrs.activitiable_id || "");
+          if (
+            aId &&
+            (aType === "VideoActivity" || aType === "EmbeddedActivity")
+          ) {
+            const endpoint = ACTIVITIABLE_ENDPOINTS[aType];
+            const jsonapiType = pascalToSnake(aType);
+            await client.request("PUT", `${endpoint}/${aId}`, {
+              json: {
+                data: {
+                  id: aId,
+                  type: jsonapiType,
+                  attributes: { url },
+                },
+              },
+            });
+          }
+          if (!Object.keys(activity).length) {
+            activity = { id: activity_id, name: actAttrs.name };
+          }
+        }
+
         return {
           content: [
             {

@@ -89,16 +89,17 @@ export function buildInputBlock(
   options?: InputOptions,
   questionText?: string,
 ): SerializedEditorState {
+  // AIDEV-NOTE: solutions는 {value, textType} 객체 배열이어야 한다. CDS ProblemInputNode 참고.
   const node: Record<string, unknown> = {
     type: "problem-input",
-    solutions,
+    version: 1,
+    answer: "",
+    solutions: solutions.map((s) => ({ value: s, textType: "normal" })),
+    placeholder: options?.placeholder ?? "",
+    showCharacterNumber: false,
+    caseSensitive: options?.caseSensitive ?? false,
+    ignoreWhitespace: true,
   };
-  if (options?.caseSensitive !== undefined) {
-    node.caseSensitive = options.caseSensitive;
-  }
-  if (options?.placeholder !== undefined) {
-    node.placeholder = options.placeholder;
-  }
   const children: Record<string, unknown>[] = questionText
     ? [buildParagraph(questionText), buildParagraph()]
     : [buildParagraph()];
