@@ -36,9 +36,14 @@ const mockServer = {
 } as unknown as McpServer;
 registerActivityTools(mockServer);
 
-const mockClient = client as unknown as Record<string, ReturnType<typeof vi.fn>>;
+const mockClient = client as unknown as Record<
+  string,
+  ReturnType<typeof vi.fn>
+>;
 
-function getText(result: { content: Array<{ type: string; text: string }> }): string {
+function getText(result: {
+  content: Array<{ type: string; text: string }>;
+}): string {
   return result.content[0].text;
 }
 
@@ -62,7 +67,7 @@ describe("pascalToSnake", () => {
 
   it("AiRecommendQuizActivity", () => {
     expect(pascalToSnake("AiRecommendQuizActivity")).toBe(
-      "ai_recommend_quiz_activity"
+      "ai_recommend_quiz_activity",
     );
   });
 });
@@ -89,14 +94,14 @@ describe("manage_activities create", () => {
 
   it("successful create", async () => {
     mockClient.request.mockResolvedValue(
-      makeJsonApiResponse("quiz_activity", "99", { is_exam: false })
+      makeJsonApiResponse("quiz_activity", "99", { is_exam: false }),
     );
     mockClient.createActivity.mockResolvedValue(
       makeJsonApiResponse("activity", "100", {
         name: "테스트",
         depth: 0,
         material_id: "1",
-      })
+      }),
     );
 
     const result = await toolHandlers.manage_activities({
@@ -109,9 +114,13 @@ describe("manage_activities create", () => {
 
     expect(getText(result)).toContain("100");
     expect(getText(result)).toContain("생성 완료");
-    expect(mockClient.request).toHaveBeenCalledWith("POST", "/api/v1/quiz_activities", {
-      json: { data: { type: "quiz_activity", attributes: {} } },
-    });
+    expect(mockClient.request).toHaveBeenCalledWith(
+      "POST",
+      "/api/v1/quiz_activities",
+      {
+        json: { data: { type: "quiz_activity", attributes: {} } },
+      },
+    );
     const callArgs = mockClient.createActivity.mock.calls[0][0];
     expect(callArgs.data.attributes.activitiable_type).toBe("QuizActivity");
     expect(callArgs.data.attributes.activitiable_id).toBe("99");
@@ -124,7 +133,7 @@ describe("manage_activities create", () => {
       data: { id: "99", type: "html_activity", attributes: {} },
     });
     mockClient.createActivity.mockResolvedValue(
-      makeJsonApiResponse("activity", "100", { name: "깊은활동", depth: 1 })
+      makeJsonApiResponse("activity", "100", { name: "깊은활동", depth: 1 }),
     );
 
     await toolHandlers.manage_activities({
@@ -145,7 +154,7 @@ describe("manage_activities create", () => {
       data: { id: "99", type: "html_activity", attributes: {} },
     });
     mockClient.createActivity.mockResolvedValue(
-      makeJsonApiResponse("activity", "100", { name: "기본활동", depth: 0 })
+      makeJsonApiResponse("activity", "100", { name: "기본활동", depth: 0 }),
     );
 
     await toolHandlers.manage_activities({
@@ -177,7 +186,7 @@ describe("manage_activities create", () => {
 
   it("activitiable API error", async () => {
     mockClient.request.mockRejectedValue(
-      new CodleAPIError(422, "Validation failed: name is required")
+      new CodleAPIError(422, "Validation failed: name is required"),
     );
 
     const result = await toolHandlers.manage_activities({
@@ -190,7 +199,6 @@ describe("manage_activities create", () => {
     expect(getText(result)).toContain("activitiable(HtmlActivity) 생성 실패");
     expect(getText(result)).toContain("Validation failed");
   });
-
 });
 
 describe("manage_activities update", () => {
@@ -204,7 +212,7 @@ describe("manage_activities update", () => {
 
   it("default depth still updates", async () => {
     mockClient.updateActivity.mockResolvedValue(
-      makeJsonApiResponse("activity", "1", { name: "test", depth: 0 })
+      makeJsonApiResponse("activity", "1", { name: "test", depth: 0 }),
     );
     const result = await toolHandlers.manage_activities({
       action: "update",
@@ -216,7 +224,7 @@ describe("manage_activities update", () => {
 
   it("update name", async () => {
     mockClient.updateActivity.mockResolvedValue(
-      makeJsonApiResponse("activity", "1", { name: "새이름", depth: 0 })
+      makeJsonApiResponse("activity", "1", { name: "새이름", depth: 0 }),
     );
     const result = await toolHandlers.manage_activities({
       action: "update",
@@ -249,7 +257,7 @@ describe("manage_activities delete", () => {
 
   it("delete API error", async () => {
     mockClient.deleteActivity.mockRejectedValue(
-      new CodleAPIError(404, "Not found")
+      new CodleAPIError(404, "Not found"),
     );
     const result = await toolHandlers.manage_activities({
       action: "delete",
@@ -368,7 +376,7 @@ describe("set_activity_branch", () => {
       included: [],
     });
     mockClient.doManyActivityTransitions.mockRejectedValue(
-      new CodleAPIError(422, "Invalid")
+      new CodleAPIError(422, "Invalid"),
     );
 
     const result = await toolHandlers.set_activity_branch({
@@ -505,7 +513,7 @@ describe("set_activity_flow", () => {
       included: [],
     });
     mockClient.doManyActivityTransitions.mockRejectedValue(
-      new CodleAPIError(422, "Invalid transition")
+      new CodleAPIError(422, "Invalid transition"),
     );
 
     const result = await toolHandlers.set_activity_flow({

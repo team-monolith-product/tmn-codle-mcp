@@ -6,6 +6,7 @@ dist/
 
 # Environment
 .env
+.env.e2e
 .envrc
 
 # IDE
@@ -17,6 +18,9 @@ dist/
 
 # Test
 coverage/
+e2e/results/
+e2e/.mcp-config.tmp.json
+e2e/.stats.md
 
 # Stash (removed features pending reimplementation)
 _stash/

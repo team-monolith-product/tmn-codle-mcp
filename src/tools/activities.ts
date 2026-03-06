@@ -44,10 +44,7 @@ export function registerActivityTools(server: McpServer): void {
       action: z
         .enum(["create", "update", "delete", "duplicate"])
         .describe("수행할 작업"),
-      material_id: z
-        .string()
-        .optional()
-        .describe("자료 ID (create 시 필수)"),
+      material_id: z.string().optional().describe("자료 ID (create 시 필수)"),
       activity_id: z
         .string()
         .optional()
@@ -60,16 +57,15 @@ export function registerActivityTools(server: McpServer): void {
         .string()
         .optional()
         .describe(
-          "활동 유형 (create 시 필수). HtmlActivity, QuizActivity, BoardActivity, SheetActivity, StudioActivity, VideoActivity 등"
+          "활동 유형 (create 시 필수). HtmlActivity, QuizActivity, BoardActivity, SheetActivity, StudioActivity, VideoActivity 등",
         ),
       depth: z
         .number()
         .optional()
-        .describe("활동 깊이, 1-indexed (1=메인, 2=하위, 3=하위의 하위). create 시 미지정이면 1"),
-      tag_ids: z
-        .array(z.string())
-        .optional()
-        .describe("연결할 태그 ID 목록"),
+        .describe(
+          "활동 깊이, 1-indexed (1=메인, 2=하위, 3=하위의 하위). create 시 미지정이면 1",
+        ),
+      tag_ids: z.array(z.string()).optional().describe("연결할 태그 ID 목록"),
     },
     async ({
       action,
@@ -96,7 +92,9 @@ export function registerActivityTools(server: McpServer): void {
             content: [
               {
                 type: "text",
-                text: `유효하지 않은 activity_type: ${activity_type}. 사용 가능: ${ACTIVITIABLE_TYPES.join(", ")}`,
+                text: `유효하지 않은 activity_type: ${activity_type}. 사용 가능: ${ACTIVITIABLE_TYPES.join(
+                  ", ",
+                )}`,
               },
             ],
           };
@@ -110,12 +108,11 @@ export function registerActivityTools(server: McpServer): void {
         };
         let activitiableId: string;
         try {
-          const activitiableResponse = await client.request(
-            "POST",
-            endpoint,
-            { json: activitiablePayload }
-          );
-          const activitiableData = (activitiableResponse.data as Record<string, unknown>) || {};
+          const activitiableResponse = await client.request("POST", endpoint, {
+            json: activitiablePayload,
+          });
+          const activitiableData =
+            (activitiableResponse.data as Record<string, unknown>) || {};
           activitiableId = String(activitiableData.id || "");
           if (!activitiableId) {
             return {
@@ -155,7 +152,7 @@ export function registerActivityTools(server: McpServer): void {
 
         const payload = buildJsonApiPayload("activities", attrs);
         const response = await client.createActivity(
-          payload as Record<string, unknown>
+          payload as Record<string, unknown>,
         );
         const activity = extractSingle(response);
 
@@ -188,16 +185,14 @@ export function registerActivityTools(server: McpServer): void {
 
         if (!Object.keys(attrs).length) {
           return {
-            content: [
-              { type: "text", text: "수정할 항목이 없습니다." },
-            ],
+            content: [{ type: "text", text: "수정할 항목이 없습니다." }],
           };
         }
 
         const payload = buildJsonApiPayload("activities", attrs, activity_id);
         const response = await client.updateActivity(
           activity_id,
-          payload as Record<string, unknown>
+          payload as Record<string, unknown>,
         );
         const activity = extractSingle(response);
         return {
@@ -277,7 +272,7 @@ export function registerActivityTools(server: McpServer): void {
           },
         ],
       };
-    }
+    },
   );
 
   server.tool(
@@ -288,9 +283,7 @@ export function registerActivityTools(server: McpServer): void {
       activity_ids: z
         .array(z.string())
         .min(2)
-        .describe(
-          '활동 ID 배열 (코스 흐름 순서). 예: ["123", "41", "151"]'
-        ),
+        .describe('활동 ID 배열 (코스 흐름 순서). 예: ["123", "41", "151"]'),
     },
     async ({ material_id, activity_ids }) => {
       // 1단계: 기존 transition 조회
@@ -302,14 +295,13 @@ export function registerActivityTools(server: McpServer): void {
           Record<string, unknown>
         >) || [];
       const existingTransitions = included.filter(
-        (i) => i.type === "activity_transition"
+        (i) => i.type === "activity_transition",
       );
 
       // 2단계: level 없는 transition → 선형 → 삭제 대상
       const dataToDestroy: { id: string }[] = [];
       for (const t of existingTransitions) {
-        const attrs =
-          (t.attributes as Record<string, unknown>) || {};
+        const attrs = (t.attributes as Record<string, unknown>) || {};
         if (!attrs.level) {
           dataToDestroy.push({ id: String(t.id) });
         }
@@ -362,7 +354,7 @@ export function registerActivityTools(server: McpServer): void {
           },
         ],
       };
-    }
+    },
   );
 
   server.tool(
@@ -373,17 +365,9 @@ export function registerActivityTools(server: McpServer): void {
       branch_from: z
         .string()
         .describe("분기점 활동 ID (이 활동에서 갈림길이 시작됨)"),
-      mid_activity_id: z
-        .string()
-        .describe("기본 갈림길 활동 ID (필수)"),
-      low_activity_id: z
-        .string()
-        .optional()
-        .describe("보완 갈림길 활동 ID"),
-      high_activity_id: z
-        .string()
-        .optional()
-        .describe("정복 갈림길 활동 ID"),
+      mid_activity_id: z.string().describe("기본 갈림길 활동 ID (필수)"),
+      low_activity_id: z.string().optional().describe("보완 갈림길 활동 ID"),
+      high_activity_id: z.string().optional().describe("정복 갈림길 활동 ID"),
     },
     async ({
       material_id,
@@ -396,13 +380,12 @@ export function registerActivityTools(server: McpServer): void {
       const matResp = await client.getMaterial(material_id, {
         include: "activity_transitions",
       });
-      const included = (
-        (matResp as Record<string, unknown>).included as Array<
+      const included =
+        ((matResp as Record<string, unknown>).included as Array<
           Record<string, unknown>
-        >
-      ) || [];
+        >) || [];
       const existingTransitions = included.filter(
-        (i) => i.type === "activity_transition"
+        (i) => i.type === "activity_transition",
       );
 
       // AIDEV-NOTE: level 구분 없이 branch_from의 모든 transition 삭제가 의도된 동작.
@@ -410,8 +393,7 @@ export function registerActivityTools(server: McpServer): void {
       // cf. codle-react useBranchBundleCreate.tsx
       const dataToDestroy: { id: string }[] = [];
       for (const t of existingTransitions) {
-        const attrs =
-          (t.attributes as Record<string, unknown>) || {};
+        const attrs = (t.attributes as Record<string, unknown>) || {};
         if (String(attrs.before_activity_id) === String(branch_from)) {
           dataToDestroy.push({ id: String(t.id) });
         }
@@ -481,10 +463,12 @@ export function registerActivityTools(server: McpServer): void {
         content: [
           {
             type: "text",
-            text: `갈림길 설정 완료: ${branch_from} → ${levelsCreated.join(", ")}${destroyedMsg}`,
+            text: `갈림길 설정 완료: ${branch_from} → ${levelsCreated.join(
+              ", ",
+            )}${destroyedMsg}`,
           },
         ],
       };
-    }
+    },
   );
 }

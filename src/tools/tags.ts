@@ -25,16 +25,15 @@ export function registerTagTools(server: McpServer): void {
       domain: z
         .string()
         .optional()
-        .describe("태그 도메인 (material, problem, difficulty, school_level, category 등)"),
+        .describe(
+          "태그 도메인 (material, problem, difficulty, school_level, category 등)",
+        ),
       query: z.string().optional().describe("태그 이름 검색 키워드"),
       page_size: z
         .number()
         .default(50)
         .describe("페이지당 결과 수 (기본 50, 최대 100)"),
-      page_number: z
-        .number()
-        .default(1)
-        .describe("페이지 번호 (1부터 시작)"),
+      page_number: z.number().default(1).describe("페이지 번호 (1부터 시작)"),
     },
     // AIDEV-NOTE: Tags API는 인증 불필요(before_action 없음)하지만,
     // MCP 서버는 항상 인증된 사용자가 사용하므로 ensureAuth()를 우회하지 않는다.
@@ -60,11 +59,9 @@ export function registerTagTools(server: McpServer): void {
       const lines = [`태그 목록 (${tags.length}건):`];
       for (const t of tags) {
         const tagDomain = t.domain ?? "unknown";
-        lines.push(
-          `  [${t.id}] ${t.name ?? "(무제)"} (domain: ${tagDomain})`
-        );
+        lines.push(`  [${t.id}] ${t.name ?? "(무제)"} (domain: ${tagDomain})`);
       }
       return { content: [{ type: "text", text: lines.join("\n") }] };
-    }
+    },
   );
 }

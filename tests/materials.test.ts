@@ -28,9 +28,14 @@ const mockServer = {
 } as unknown as McpServer;
 registerMaterialTools(mockServer);
 
-const mockClient = client as unknown as Record<string, ReturnType<typeof vi.fn>>;
+const mockClient = client as unknown as Record<
+  string,
+  ReturnType<typeof vi.fn>
+>;
 
-function getText(result: { content: Array<{ type: string; text: string }> }): string {
+function getText(result: {
+  content: Array<{ type: string; text: string }>;
+}): string {
   return result.content[0].text;
 }
 
@@ -47,7 +52,7 @@ describe("search_materials", () => {
     mockClient.listMaterials.mockResolvedValue(
       makeJsonApiListResponse("material", [
         { id: "1", name: "테스트 자료", is_public: false },
-      ])
+      ]),
     );
 
     const result = await toolHandlers.search_materials({
@@ -68,7 +73,7 @@ describe("search_materials", () => {
     mockClient.listMaterials.mockResolvedValue(
       makeJsonApiListResponse("material", [
         { id: "2", name: "공개자료", is_public: true },
-      ])
+      ]),
     );
 
     await toolHandlers.search_materials({
@@ -107,7 +112,7 @@ describe("search_materials", () => {
     mockClient.listMaterials.mockResolvedValue(
       makeJsonApiListResponse("material", [
         { id: "3", name: "내 자료", is_public: false },
-      ])
+      ]),
     );
 
     const result = await toolHandlers.search_materials({
@@ -141,7 +146,11 @@ describe("get_material_detail", () => {
         {
           id: "10",
           type: "activity",
-          attributes: { name: "활동1", depth: 0, activitiable_type: "QuizActivity" },
+          attributes: {
+            name: "활동1",
+            depth: 0,
+            activitiable_type: "QuizActivity",
+          },
           relationships: {
             activitiable: { data: { type: "quiz_activity", id: "q1" } },
           },
@@ -201,7 +210,7 @@ describe("get_material_detail", () => {
 describe("manage_materials", () => {
   it("create", async () => {
     mockClient.createMaterial.mockResolvedValue(
-      makeJsonApiResponse("material", "1", { name: "새 자료" })
+      makeJsonApiResponse("material", "1", { name: "새 자료" }),
     );
 
     const result = await toolHandlers.manage_materials({
@@ -221,7 +230,7 @@ describe("manage_materials", () => {
 
   it("update", async () => {
     mockClient.updateMaterial.mockResolvedValue(
-      makeJsonApiResponse("material", "1", { name: "수정됨" })
+      makeJsonApiResponse("material", "1", { name: "수정됨" }),
     );
 
     const result = await toolHandlers.manage_materials({
@@ -250,7 +259,7 @@ describe("manage_materials", () => {
 
   it("duplicate", async () => {
     mockClient.duplicateMaterial.mockResolvedValue(
-      makeJsonApiResponse("material", "2", { name: "복제됨" })
+      makeJsonApiResponse("material", "2", { name: "복제됨" }),
     );
 
     const result = await toolHandlers.manage_materials({

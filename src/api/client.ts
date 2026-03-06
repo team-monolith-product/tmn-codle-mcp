@@ -26,7 +26,7 @@ export class CodleClient {
     if (!this.getToken()) {
       throw new CodleAPIError(
         401,
-        "Authorization 헤더에 Bearer 토큰이 필요합니다."
+        "Authorization 헤더에 Bearer 토큰이 필요합니다.",
       );
     }
   }
@@ -34,7 +34,7 @@ export class CodleClient {
   static extractErrorDetailStatic(
     statusCode: number,
     contentType: string,
-    text: string
+    text: string,
   ): string {
     return extractErrorDetail(statusCode, contentType, text);
   }
@@ -43,7 +43,7 @@ export class CodleClient {
     method: string,
     path: string,
     params?: Record<string, string | number>,
-    body?: unknown
+    body?: unknown,
   ): void {
     const parts = [`${method} ${path}`];
     if (params) parts.push(`params=${JSON.stringify(params)}`);
@@ -61,7 +61,7 @@ export class CodleClient {
     options?: {
       params?: Record<string, string | number | boolean>;
       json?: unknown;
-    }
+    },
   ): Promise<Record<string, unknown>> {
     await this.ensureAuth();
 
@@ -70,7 +70,7 @@ export class CodleClient {
       method,
       path,
       params as Record<string, string | number>,
-      json
+      json,
     );
 
     let url = `${this.baseUrl}${path}`;
@@ -103,7 +103,7 @@ export class CodleClient {
         method,
         path,
         response.status,
-        detail.slice(0, 300)
+        detail.slice(0, 300),
       );
       throw new CodleAPIError(response.status, detail);
     }
@@ -122,27 +122,27 @@ export class CodleClient {
 
   // --- Materials ---
   async listMaterials(
-    params?: Record<string, string | number | boolean>
+    params?: Record<string, string | number | boolean>,
   ): Promise<Record<string, unknown>> {
     return this.request("GET", "/api/v1/materials", { params });
   }
 
   async getMaterial(
     materialId: string,
-    params?: Record<string, string | number | boolean>
+    params?: Record<string, string | number | boolean>,
   ): Promise<Record<string, unknown>> {
     return this.request("GET", `/api/v1/materials/${materialId}`, { params });
   }
 
   async createMaterial(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.request("POST", "/api/v1/materials", { json: data });
   }
 
   async updateMaterial(
     materialId: string,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.request("PUT", `/api/v1/materials/${materialId}`, {
       json: data,
@@ -150,48 +150,46 @@ export class CodleClient {
   }
 
   async duplicateMaterial(
-    materialId: string
+    materialId: string,
   ): Promise<Record<string, unknown>> {
     return this.request("POST", `/api/v1/materials/${materialId}/duplicate`);
   }
 
   // --- Activities ---
   async createActivity(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.request("POST", "/api/v1/activities", { json: data });
   }
 
   async updateActivity(
     activityId: string,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.request("PUT", `/api/v1/activities/${activityId}`, {
       json: data,
     });
   }
 
-  async deleteActivity(
-    activityId: string
-  ): Promise<Record<string, unknown>> {
+  async deleteActivity(activityId: string): Promise<Record<string, unknown>> {
     return this.request("DELETE", `/api/v1/activities/${activityId}`);
   }
 
   async duplicateActivity(
-    activityId: string
+    activityId: string,
   ): Promise<Record<string, unknown>> {
     return this.request("POST", `/api/v1/activities/${activityId}/duplicate`);
   }
 
   // --- Activity Transitions ---
   async createActivityTransition(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.request("POST", "/api/v1/activity_transitions", { json: data });
   }
 
   async doManyActivityTransitions(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.request("POST", "/api/v1/activity_transitions/do_many", {
       json: data,
@@ -200,11 +198,97 @@ export class CodleClient {
 
   // --- Tags ---
   async listTags(
-    params?: Record<string, string | number | boolean>
+    params?: Record<string, string | number | boolean>,
   ): Promise<Record<string, unknown>> {
     return this.request("GET", "/api/v1/tags", { params });
   }
 
+  // --- Problems ---
+  async createProblem(
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/problems", { json: data });
+  }
+
+  async updateProblem(
+    problemId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("PUT", `/api/v1/problems/${problemId}`, { json: data });
+  }
+
+  async deleteProblem(problemId: string): Promise<Record<string, unknown>> {
+    return this.request("DELETE", `/api/v1/problems/${problemId}`);
+  }
+
+  // --- Problem Collections ---
+  async listProblemCollections(
+    params?: Record<string, string | number | boolean>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("GET", "/api/v1/problem_collections", { params });
+  }
+
+  // --- Problem Collections Problems ---
+  async createPCP(
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/problem_collections_problems", {
+      json: data,
+    });
+  }
+
+  async deletePCP(pcpId: string): Promise<Record<string, unknown>> {
+    return this.request(
+      "DELETE",
+      `/api/v1/problem_collections_problems/${pcpId}`,
+    );
+  }
+
+  async doManyPCP(
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request(
+      "POST",
+      "/api/v1/problem_collections_problems/do_many",
+      { json: data },
+    );
+  }
+
+  // --- Boards ---
+  async listBoards(
+    params?: Record<string, string | number | boolean>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("GET", "/api/v1/boards", { params });
+  }
+
+  async updateBoard(
+    boardId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("PUT", `/api/v1/boards/${boardId}`, { json: data });
+  }
+
+  // --- Embedded Activities ---
+  async updateEmbeddedActivity(
+    embeddedActivityId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request(
+      "PUT",
+      `/api/v1/embedded_activities/${embeddedActivityId}`,
+      { json: data },
+    );
+  }
+
+  // --- Sheet Activities ---
+  async updateSheetActivity(
+    sheetActivityId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.request("PUT", `/api/v1/sheet_activities/${sheetActivityId}`, {
+      json: data,
+    });
+  }
 }
 
 export const client = new CodleClient();

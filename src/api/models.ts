@@ -11,13 +11,13 @@ export interface JsonApiResponse {
 }
 
 export function extractAttributes(
-  resource: JsonApiResource
+  resource: JsonApiResource,
 ): Record<string, unknown> {
   return { id: resource.id ?? null, ...resource.attributes };
 }
 
 export function extractList(
-  response: JsonApiResponse
+  response: JsonApiResponse,
 ): Record<string, unknown>[] {
   const data = response.data;
   if (!Array.isArray(data)) return [];
@@ -25,7 +25,7 @@ export function extractList(
 }
 
 export function extractSingle(
-  response: JsonApiResponse
+  response: JsonApiResponse,
 ): Record<string, unknown> {
   const data = response.data;
   if (Array.isArray(data) || !data) return { id: null };
@@ -34,7 +34,7 @@ export function extractSingle(
 
 export function extractIncluded(
   response: JsonApiResponse,
-  resourceType: string
+  resourceType: string,
 ): Record<string, unknown>[] {
   const included = response.included || [];
   return included
@@ -46,12 +46,14 @@ export function buildJsonApiPayload(
   resourceType: string,
   attributes: Record<string, unknown>,
   resourceId?: string,
-  relationships?: Record<string, unknown>
+  relationships?: Record<string, unknown>,
 ): JsonApiResponse {
   const data: Record<string, unknown> = {
     type: resourceType,
     attributes: Object.fromEntries(
-      Object.entries(attributes).filter(([, v]) => v !== null && v !== undefined)
+      Object.entries(attributes).filter(
+        ([, v]) => v !== null && v !== undefined,
+      ),
     ),
   };
   if (resourceId) data.id = resourceId;
@@ -60,7 +62,7 @@ export function buildJsonApiPayload(
 }
 
 export function formatMaterialSummary(
-  material: Record<string, unknown>
+  material: Record<string, unknown>,
 ): string {
   const pub = material.is_public ? "공개" : "비공개";
   return `- [${material.id}] ${material.name ?? "(무제)"} (${pub})`;

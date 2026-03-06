@@ -15,10 +15,7 @@ export function registerMaterialTools(server: McpServer): void {
     "자료(Material)를 검색합니다.",
     {
       query: z.string().optional().describe("검색 키워드 (자료 이름에서 검색)"),
-      tag_ids: z
-        .array(z.string())
-        .optional()
-        .describe("필터링할 태그 ID 목록"),
+      tag_ids: z.array(z.string()).optional().describe("필터링할 태그 ID 목록"),
       is_public: z
         .boolean()
         .optional()
@@ -27,10 +24,7 @@ export function registerMaterialTools(server: McpServer): void {
         .number()
         .default(20)
         .describe("페이지당 결과 수 (기본 20, 최대 100)"),
-      page_number: z
-        .number()
-        .default(1)
-        .describe("페이지 번호 (1부터 시작)"),
+      page_number: z.number().default(1).describe("페이지 번호 (1부터 시작)"),
     },
     async ({ query, tag_ids, is_public, page_size, page_number }) => {
       const params: Record<string, string | number> = {
@@ -62,7 +56,7 @@ export function registerMaterialTools(server: McpServer): void {
         lines.push(formatMaterialSummary(m));
       }
       return { content: [{ type: "text", text: lines.join("\n") }] };
-    }
+    },
   );
 
   server.tool(
@@ -73,17 +67,15 @@ export function registerMaterialTools(server: McpServer): void {
     },
     async ({ material_id }) => {
       const params = {
-        include:
-          "activities,activities.activitiable,tags,activity_transitions",
+        include: "activities,activities.activitiable,tags,activity_transitions",
       };
       const response = await client.getMaterial(material_id, params);
       const material = extractSingle(response);
 
-      const included = (
-        (response as Record<string, unknown>).included as Array<
+      const included =
+        ((response as Record<string, unknown>).included as Array<
           Record<string, unknown>
-        >
-      ) || [];
+        >) || [];
 
       const activities: Record<string, unknown>[] = [];
       for (const i of included) {
@@ -91,8 +83,10 @@ export function registerMaterialTools(server: McpServer): void {
         const attrs = (i.attributes as Record<string, unknown>) || {};
         const a: Record<string, unknown> = { id: i.id, ...attrs };
         if (!a.activitiable_type) {
-          const relationships = (i.relationships as Record<string, unknown>) || {};
-          const activitiable = (relationships.activitiable as Record<string, unknown>) || {};
+          const relationships =
+            (i.relationships as Record<string, unknown>) || {};
+          const activitiable =
+            (relationships.activitiable as Record<string, unknown>) || {};
           const rel = (activitiable.data as Record<string, unknown>) || {};
           if (rel.id) {
             a.activitiable_id = rel.id;
@@ -104,17 +98,21 @@ export function registerMaterialTools(server: McpServer): void {
 
       const tags = included
         .filter((i) => i.type === "tag")
-        .map((i): Record<string, unknown> => ({
-          id: i.id,
-          ...((i.attributes as Record<string, unknown>) || {}),
-        }));
+        .map(
+          (i): Record<string, unknown> => ({
+            id: i.id,
+            ...((i.attributes as Record<string, unknown>) || {}),
+          }),
+        );
 
       const transitions = included
         .filter((i) => i.type === "activity_transition")
-        .map((i): Record<string, unknown> => ({
-          id: i.id,
-          ...((i.attributes as Record<string, unknown>) || {}),
-        }));
+        .map(
+          (i): Record<string, unknown> => ({
+            id: i.id,
+            ...((i.attributes as Record<string, unknown>) || {}),
+          }),
+        );
 
       const lines = [
         `자료: ${material.name ?? "(무제)"}`,
@@ -125,9 +123,7 @@ export function registerMaterialTools(server: McpServer): void {
       ];
 
       if (tags.length) {
-        const tagNames = tags.map(
-          (t) => `${t.name ?? ""} (${t.domain ?? ""})`
-        );
+        const tagNames = tags.map((t) => `${t.name ?? ""} (${t.domain ?? ""})`);
         lines.push(`태그: ${tagNames.join(", ")}`);
       }
 
@@ -142,7 +138,7 @@ export function registerMaterialTools(server: McpServer): void {
             actType = !hasActivitiable ? "미연결" : "?";
           }
           const needsProblems = ["QuizActivity", "SheetActivity"].includes(
-            actType
+            actType,
           );
           const problemInfo = needsProblems ? ", 문제 연결 필요" : "";
           const activitiableInfo = hasActivitiable
@@ -150,7 +146,9 @@ export function registerMaterialTools(server: McpServer): void {
             : "";
           const displayDepth = depthVal + 1; // 0-indexed → 1-indexed
           lines.push(
-            `  ${depthPrefix}[${a.id}] ${a.name ?? "(무제)"} (type: ${actType}, depth: ${displayDepth}${activitiableInfo}${problemInfo})`
+            `  ${depthPrefix}[${a.id}] ${
+              a.name ?? "(무제)"
+            } (type: ${actType}, depth: ${displayDepth}${activitiableInfo}${problemInfo})`,
           );
         }
       } else {
@@ -172,18 +170,18 @@ export function registerMaterialTools(server: McpServer): void {
           const afterName = activityNames[afterId] ?? afterId;
           if (level) {
             lines.push(
-              `  [${beforeId}] ${beforeName} →(${level}) [${afterId}] ${afterName}`
+              `  [${beforeId}] ${beforeName} →(${level}) [${afterId}] ${afterName}`,
             );
           } else {
             lines.push(
-              `  [${beforeId}] ${beforeName} → [${afterId}] ${afterName}`
+              `  [${beforeId}] ${beforeName} → [${afterId}] ${afterName}`,
             );
           }
         }
       }
 
       return { content: [{ type: "text", text: lines.join("\n") }] };
-    }
+    },
   );
 
   server.tool(
@@ -199,22 +197,14 @@ export function registerMaterialTools(server: McpServer): void {
         .string()
         .optional()
         .describe("자료 이름 (create 시 필수, 최대 255자)"),
-      is_public: z
-        .boolean()
-        .optional()
-        .describe("공개 여부 (비가역)"),
-      tag_ids: z
-        .array(z.string())
-        .optional()
-        .describe("태그 ID 목록"),
+      is_public: z.boolean().optional().describe("공개 여부 (비가역)"),
+      tag_ids: z.array(z.string()).optional().describe("태그 ID 목록"),
     },
     async ({ action, material_id, name, is_public, tag_ids }) => {
       if (action === "create") {
         if (!name) {
           return {
-            content: [
-              { type: "text", text: "create 시 name은 필수입니다." },
-            ],
+            content: [{ type: "text", text: "create 시 name은 필수입니다." }],
           };
         }
         const attrs: Record<string, unknown> = {
@@ -225,7 +215,7 @@ export function registerMaterialTools(server: McpServer): void {
 
         const payload = buildJsonApiPayload("materials", attrs);
         const response = await client.createMaterial(
-          payload as Record<string, unknown>
+          payload as Record<string, unknown>,
         );
         const mat = extractSingle(response);
         return {
@@ -260,7 +250,7 @@ export function registerMaterialTools(server: McpServer): void {
         const payload = buildJsonApiPayload("materials", attrs, material_id);
         const response = await client.updateMaterial(
           material_id,
-          payload as Record<string, unknown>
+          payload as Record<string, unknown>,
         );
         const mat = extractSingle(response);
         return {
@@ -304,6 +294,6 @@ export function registerMaterialTools(server: McpServer): void {
           },
         ],
       };
-    }
+    },
   );
 }
