@@ -30,16 +30,18 @@ function wrapRoot(children: Record<string, unknown>[]): SerializedEditorState {
 // The JSON structure is derived from Rails factory specs and CDS node implementations.
 
 // AIDEV-NOTE: Lexical 에디터 편집 모드에서 역직렬화하려면 root.children에
-// paragraph(질문텍스트) + paragraph(빈줄) + quiz노드 순서가 필요하다.
-// Rails QuizActivityService::Lexical.lexical_block 구조를 그대로 따른다.
+// paragraph + quiz노드 순서가 필요하다. 질문텍스트가 있으면 paragraph(질문) + paragraph(빈줄) + quiz노드,
+// 없으면 paragraph(빈) + quiz노드. paragraph에는 textStyle, textFormat 필수.
 
-function buildQuestionParagraph(text: string): Record<string, unknown> {
+function buildParagraph(text?: string): Record<string, unknown> {
   return {
     type: "paragraph",
     format: "",
     indent: 0,
     version: 1,
-    direction: "ltr",
+    direction: null,
+    textStyle: "",
+    textFormat: 0,
     children: text
       ? [
           {
@@ -56,17 +58,6 @@ function buildQuestionParagraph(text: string): Record<string, unknown> {
   };
 }
 
-function buildBlankParagraph(): Record<string, unknown> {
-  return {
-    type: "paragraph",
-    format: "",
-    indent: 0,
-    version: 1,
-    direction: "ltr",
-    children: [],
-  };
-}
-
 export function buildSelectBlock(
   choices: SelectChoice[],
   questionText?: string,
@@ -80,17 +71,17 @@ export function buildSelectBlock(
     },
     value: String(i),
   }));
-  return wrapRoot([
-    buildQuestionParagraph(questionText ?? ""),
-    buildBlankParagraph(),
-    {
-      type: "problem-select",
-      version: 1,
-      selected: [],
-      selections,
-      hasMultipleSolutions,
-    },
-  ]);
+  const children: Record<string, unknown>[] = questionText
+    ? [buildParagraph(questionText), buildParagraph()]
+    : [buildParagraph()];
+  children.push({
+    type: "problem-select",
+    version: 1,
+    selected: [],
+    selections,
+    hasMultipleSolutions,
+  });
+  return wrapRoot(children);
 }
 
 export function buildInputBlock(
@@ -108,9 +99,9 @@ export function buildInputBlock(
   if (options?.placeholder !== undefined) {
     node.placeholder = options.placeholder;
   }
-  return wrapRoot([
-    buildQuestionParagraph(questionText ?? ""),
-    buildBlankParagraph(),
-    node,
-  ]);
+  const children: Record<string, unknown>[] = questionText
+    ? [buildParagraph(questionText), buildParagraph()]
+    : [buildParagraph()];
+  children.push(node);
+  return wrapRoot(children);
 }

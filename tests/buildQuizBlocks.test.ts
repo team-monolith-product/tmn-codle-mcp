@@ -19,6 +19,14 @@ function getParagraphText(node: Record<string, unknown>): string {
   return children.length ? String(children[0].text) : "";
 }
 
+/** 마지막 child에서 quiz 노드 추출 */
+function getQuizNode(
+  result: ReturnType<typeof buildSelectBlock>,
+): Record<string, unknown> {
+  const children = getChildren(result);
+  return children[children.length - 1];
+}
+
 describe("buildSelectBlock", () => {
   it("O/X choices with question text", () => {
     const result = buildSelectBlock(
@@ -31,17 +39,15 @@ describe("buildSelectBlock", () => {
 
     expect(result.root.type).toBe("root");
     const children = getChildren(result);
+    // questionText 있으면: paragraph(질문) + paragraph(빈) + problem-select
     expect(children).toHaveLength(3);
 
-    // paragraph (질문 텍스트)
     expect(children[0].type).toBe("paragraph");
     expect(getParagraphText(children[0])).toBe("다음 중 맞는 것은?");
 
-    // paragraph (빈 줄)
     expect(children[1].type).toBe("paragraph");
     expect(children[1].children).toEqual([]);
 
-    // problem-select
     const node = children[2];
     expect(node.type).toBe("problem-select");
     expect(node.version).toBe(1);
@@ -62,17 +68,18 @@ describe("buildSelectBlock", () => {
     });
   });
 
-  it("without questionText produces empty paragraph", () => {
+  it("without questionText produces single empty paragraph", () => {
     const result = buildSelectBlock([
       { text: "A", isAnswer: true },
       { text: "B", isAnswer: false },
     ]);
 
     const children = getChildren(result);
-    expect(children).toHaveLength(3);
+    // questionText 없으면: paragraph(빈) + problem-select
+    expect(children).toHaveLength(2);
     expect(children[0].type).toBe("paragraph");
-    expect(getParagraphText(children[0])).toBe("");
-    expect(children[2].type).toBe("problem-select");
+    expect(children[0].children).toEqual([]);
+    expect(children[1].type).toBe("problem-select");
   });
 
   it("multiple choice with 4 options", () => {
@@ -83,8 +90,8 @@ describe("buildSelectBlock", () => {
       { text: "수박", isAnswer: false },
     ]);
 
-    const children = getChildren(result);
-    const selections = children[2].selections as Array<Record<string, unknown>>;
+    const node = getQuizNode(result);
+    const selections = node.selections as Array<Record<string, unknown>>;
     expect(selections).toHaveLength(4);
     expect(selections[1].isAnswer).toBe(true);
     expect(selections[0].isAnswer).toBe(false);
@@ -106,8 +113,8 @@ describe("buildSelectBlock", () => {
       { text: "포도", isAnswer: false },
     ]);
 
-    const children = getChildren(result);
-    const selections = children[2].selections as Array<Record<string, unknown>>;
+    const node = getQuizNode(result);
+    const selections = node.selections as Array<Record<string, unknown>>;
     expect(selections).toHaveLength(3);
     expect(selections[0]).toEqual({
       isAnswer: true,
@@ -135,29 +142,21 @@ describe("buildSelectBlock", () => {
     });
   });
 
-  it("root structure matches Lexical format", () => {
-    const result = buildSelectBlock([
-      { text: "A", isAnswer: true },
-      { text: "B", isAnswer: false },
-    ]);
+  it("paragraph has textStyle and textFormat fields", () => {
+    const result = buildSelectBlock([{ text: "A", isAnswer: true }]);
 
-    const root = result.root as Record<string, unknown>;
-    expect(root.format).toBe("");
-    expect(root.indent).toBe(0);
-    expect(root.version).toBe(1);
-    expect(root.direction).toBe("ltr");
+    const children = getChildren(result);
+    const paragraph = children[0];
+    expect(paragraph.textStyle).toBe("");
+    expect(paragraph.textFormat).toBe(0);
+    expect(paragraph.direction).toBeNull();
   });
 
-  it("paragraph nodes match Lexical format", () => {
+  it("paragraph with question text has correct text node format", () => {
     const result = buildSelectBlock([{ text: "A", isAnswer: true }], "질문");
 
     const children = getChildren(result);
     const questionParagraph = children[0];
-    expect(questionParagraph.format).toBe("");
-    expect(questionParagraph.indent).toBe(0);
-    expect(questionParagraph.version).toBe(1);
-    expect(questionParagraph.direction).toBe("ltr");
-
     const textNode = (
       questionParagraph.children as Array<Record<string, unknown>>
     )[0];
@@ -174,6 +173,7 @@ describe("buildInputBlock", () => {
     const result = buildInputBlock(["42"], undefined, "정답은?");
 
     const children = getChildren(result);
+    // questionText 있으면: paragraph(질문) + paragraph(빈) + problem-input
     expect(children).toHaveLength(3);
 
     expect(children[0].type).toBe("paragraph");
@@ -186,28 +186,26 @@ describe("buildInputBlock", () => {
     expect(node.solutions).toEqual(["42"]);
   });
 
-  it("without questionText produces empty paragraph", () => {
+  it("without questionText produces single empty paragraph", () => {
     const result = buildInputBlock(["42"]);
 
     const children = getChildren(result);
-    expect(children).toHaveLength(3);
+    // questionText 없으면: paragraph(빈) + problem-input
+    expect(children).toHaveLength(2);
     expect(children[0].type).toBe("paragraph");
-    expect(getParagraphText(children[0])).toBe("");
+    expect(children[0].children).toEqual([]);
+    expect(children[1].type).toBe("problem-input");
   });
 
   it("multiple solutions", () => {
     const result = buildInputBlock(["서울", "Seoul"]);
-
-    const children = getChildren(result);
-    const node = children[2];
+    const node = getQuizNode(result);
     expect(node.solutions).toEqual(["서울", "Seoul"]);
   });
 
   it("with caseSensitive option", () => {
     const result = buildInputBlock(["Hello"], { caseSensitive: true });
-
-    const children = getChildren(result);
-    const node = children[2];
+    const node = getQuizNode(result);
     expect(node.caseSensitive).toBe(true);
   });
 
@@ -215,17 +213,13 @@ describe("buildInputBlock", () => {
     const result = buildInputBlock(["정답"], {
       placeholder: "답을 입력하세요",
     });
-
-    const children = getChildren(result);
-    const node = children[2];
+    const node = getQuizNode(result);
     expect(node.placeholder).toBe("답을 입력하세요");
   });
 
   it("no options omits optional fields", () => {
     const result = buildInputBlock(["test"]);
-
-    const children = getChildren(result);
-    const node = children[2];
+    const node = getQuizNode(result);
     expect(node.caseSensitive).toBeUndefined();
     expect(node.placeholder).toBeUndefined();
   });
