@@ -222,21 +222,6 @@ export class CodleClient {
   }
 
   // --- Problem Collections Problems ---
-  async createPCP(
-    data: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    return this.request("POST", "/api/v1/problem_collections_problems", {
-      json: data,
-    });
-  }
-
-  async deletePCP(pcpId: string): Promise<Record<string, unknown>> {
-    return this.request(
-      "DELETE",
-      `/api/v1/problem_collections_problems/${pcpId}`,
-    );
-  }
-
   async doManyPCP(
     data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {

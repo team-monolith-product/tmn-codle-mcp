@@ -106,6 +106,19 @@ export async function setup(): Promise<void> {
     createUserAndGetToken(),
   ]);
 
+  // AIDEV-NOTE: Problems API 등 교사 전용 엔드포인트에 teacher_levels가 필요하다.
+  // subscription_grant factory의 기본 trait(:active)이 start_at/end_at을 넓게 잡아 항상 active이다.
+  const tenantNumber = requireEnv("E2E_TENANT_NUMBER");
+  const classRailsUrl = `https://class.${tenantNumber}.e2e.codle.io`;
+  await fetch(`${classRailsUrl}/e2e/factory/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      factory: "subscription_grant",
+      attributes: { user_id: userId },
+    }),
+  });
+
   writeFileSync(
     TMP_CONFIG,
     JSON.stringify(

@@ -2,11 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { CodleAPIError } from "../api/errors.js";
 import { client } from "../api/client.js";
-import {
-  buildJsonApiPayload,
-  extractList,
-  extractSingle,
-} from "../api/models.js";
+import { buildJsonApiPayload, extractSingle } from "../api/models.js";
 import {
   buildSelectBlock,
   buildInputBlock,
@@ -261,18 +257,25 @@ export function registerProblemTools(server: McpServer): void {
       is_required,
     }) => {
       // AIDEV-NOTE: /api/v1/problem_collections는 classroom_id가 필수라 자료 제작 단계에서 사용 불가.
-      // activity include로 problem_collection_ids를 가져온다.
+      // AIDEV-NOTE: serializer가 lazy_load_data: true이므로 include 파라미터가 있어야 relationship data가 채워진다.
+      // AIDEV-NOTE: controller의 jsonapi_include 화이트리스트는 "problem_collections.pcps"이므로 정확히 맞춰야 한다.
       let pcId: string;
+      let existingPcps: Record<string, unknown>[];
       try {
         const actResp = await client.request(
           "GET",
           `/api/v1/activities/${activity_id}`,
-          { params: { include: "problem_collections" } },
+          { params: { include: "problem_collections.pcps" } },
         );
         const actData = (actResp.data as Record<string, unknown>) || {};
-        const attrs = (actData.attributes as Record<string, unknown>) || {};
-        const pcIds = attrs.problem_collection_ids as string[] | undefined;
-        if (!pcIds?.length) {
+        const rels =
+          (actData.relationships as Record<string, unknown>) || {};
+        const pcRel =
+          (rels.problem_collections as Record<string, unknown>) || {};
+        const pcRelData = pcRel.data as
+          | Array<Record<string, unknown>>
+          | undefined;
+        if (!pcRelData?.length) {
           return {
             content: [
               {
@@ -282,7 +285,17 @@ export function registerProblemTools(server: McpServer): void {
             ],
           };
         }
-        pcId = String(pcIds[0]);
+        pcId = String(pcRelData[0].id);
+
+        // AIDEV-NOTE: PCP API는 do_many만 노출 (routes: only: []). create/delete/index 개별 라우트 없음.
+        // included 배열에서 기존 PCP를 추출하고, 모든 조작을 do_many로 수행한다.
+        const included =
+          ((actResp as Record<string, unknown>).included as Array<
+            Record<string, unknown>
+          >) || [];
+        existingPcps = included.filter(
+          (i) => i.type === "problem_collections_problem",
+        );
       } catch (e) {
         if (e instanceof CodleAPIError) {
           return {
@@ -317,20 +330,15 @@ export function registerProblemTools(server: McpServer): void {
         if (point !== undefined) attrs.point = point;
         if (is_required !== undefined) attrs.is_required = is_required;
 
-        const payload = buildJsonApiPayload(
-          "problem_collections_problems",
-          attrs,
-        );
         try {
-          const response = await client.createPCP(
-            payload as Record<string, unknown>,
-          );
-          const pcp = extractSingle(response);
+          await client.doManyPCP({
+            data_to_create: [{ attributes: attrs }],
+          });
           return {
             content: [
               {
                 type: "text" as const,
-                text: `문제 연결 완료: [${pcp.id}] problem=${problem_id} → activity=${activity_id}`,
+                text: `문제 연결 완료: problem=${problem_id} → activity=${activity_id}`,
               },
             ],
           };
@@ -361,38 +369,12 @@ export function registerProblemTools(server: McpServer): void {
           };
         }
 
-        // PCP 목록 조회 후 해당 problem_id의 PCP 찾기
-        let pcpIdToDelete: string | undefined;
-        try {
-          const pcpResp = await client.request(
-            "GET",
-            "/api/v1/problem_collections_problems",
-            {
-              params: {
-                "filter[problem_collection_id]": pcId,
-                "filter[problem_id]": problem_id,
-              },
-            },
-          );
-          const pcps = extractList(pcpResp);
-          if (pcps.length) {
-            pcpIdToDelete = String(pcps[0].id);
-          }
-        } catch (e) {
-          if (e instanceof CodleAPIError) {
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: `PCP 조회 실패: ${e.detail}`,
-                },
-              ],
-            };
-          }
-          throw e;
-        }
+        const targetPcp = existingPcps.find((pcp) => {
+          const attrs = (pcp.attributes as Record<string, unknown>) || {};
+          return String(attrs.problem_id) === String(problem_id);
+        });
 
-        if (!pcpIdToDelete) {
+        if (!targetPcp) {
           return {
             content: [
               {
@@ -404,7 +386,9 @@ export function registerProblemTools(server: McpServer): void {
         }
 
         try {
-          await client.deletePCP(pcpIdToDelete);
+          await client.doManyPCP({
+            data_to_destroy: [{ id: String(targetPcp.id) }],
+          });
         } catch (e) {
           if (e instanceof CodleAPIError) {
             return {
@@ -440,35 +424,11 @@ export function registerProblemTools(server: McpServer): void {
           };
         }
 
-        // 기존 PCP 목록 조회
-        let existingPcps: Record<string, unknown>[];
-        try {
-          const pcpResp = await client.request(
-            "GET",
-            "/api/v1/problem_collections_problems",
-            {
-              params: { "filter[problem_collection_id]": pcId },
-            },
-          );
-          existingPcps = extractList(pcpResp);
-        } catch (e) {
-          if (e instanceof CodleAPIError) {
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: `PCP 조회 실패: ${e.detail}`,
-                },
-              ],
-            };
-          }
-          throw e;
-        }
-
-        // problem_id → pcp_id 매핑
+        // problem_id → pcp_id 매핑 (included에서 추출)
         const problemToPcp: Record<string, string> = {};
         for (const pcp of existingPcps) {
-          problemToPcp[String(pcp.problem_id)] = String(pcp.id);
+          const attrs = (pcp.attributes as Record<string, unknown>) || {};
+          problemToPcp[String(attrs.problem_id)] = String(pcp.id);
         }
 
         const dataToUpdate: Record<string, unknown>[] = [];
