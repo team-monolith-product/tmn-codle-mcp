@@ -112,7 +112,9 @@ export class CodleClient {
     if (response.status === 204) return {};
     const contentLength = response.headers.get("content-length");
     if (contentLength === "0") return {};
-    return (await response.json()) as Record<string, unknown>;
+    const text = await response.text();
+    if (!text) return {};
+    return JSON.parse(text) as Record<string, unknown>;
   }
 
   // --- Me ---
