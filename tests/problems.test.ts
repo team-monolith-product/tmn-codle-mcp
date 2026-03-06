@@ -416,9 +416,7 @@ describe("update_activitiable — BoardActivity", () => {
     mockClient.listBoards.mockResolvedValue(
       makeJsonApiListResponse("board", [{ id: "b1" }]),
     );
-    mockClient.updateBoard.mockRejectedValue(
-      new CodleAPIError(422, "Invalid"),
-    );
+    mockClient.updateBoard.mockRejectedValue(new CodleAPIError(422, "Invalid"));
 
     const result = await toolHandlers.update_activitiable({
       activity_id: "1",

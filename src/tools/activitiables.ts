@@ -17,11 +17,9 @@ interface ActivitiableInfo {
 async function resolveActivitiable(
   activityId: string,
 ): Promise<ActivitiableInfo> {
-  const resp = await client.request(
-    "GET",
-    `/api/v1/activities/${activityId}`,
-    { params: { include: "activitiable" } },
-  );
+  const resp = await client.request("GET", `/api/v1/activities/${activityId}`, {
+    params: { include: "activitiable" },
+  });
   const actData = (resp.data as Record<string, unknown>) || {};
   const relationships =
     (actData.relationships as Record<string, unknown>) || {};
@@ -33,9 +31,7 @@ async function resolveActivitiable(
   const rawType = String(rel.type || "");
 
   if (!id || !rawType) {
-    throw new Error(
-      `활동 ${activityId}에서 activitiable을 찾을 수 없습니다.`,
-    );
+    throw new Error(`활동 ${activityId}에서 activitiable을 찾을 수 없습니다.`);
   }
 
   // snake_case → PascalCase
@@ -79,7 +75,10 @@ export function registerActivitiableTools(server: McpServer): void {
         if (e instanceof CodleAPIError) {
           return {
             content: [
-              { type: "text" as const, text: `Activity 조회 실패: ${e.detail}` },
+              {
+                type: "text" as const,
+                text: `Activity 조회 실패: ${e.detail}`,
+              },
             ],
           };
         }
