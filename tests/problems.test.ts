@@ -221,32 +221,11 @@ describe("manage_problems delete", () => {
   });
 });
 
-// ===== manage_problem_collection_problems =====
+// ===== manage_problems create + activity_id =====
 
-/** Activity 응답을 PC + PCP included 포함하여 생성 */
-function makeActivityWithPcps(
-  pcId: string | null,
-  pcps: Array<{ id: string; problem_id: string }> = [],
-) {
+/** Activity 응답을 PC relationship 포함하여 생성 */
+function makeActivityWithPc(pcId: string | null) {
   const pcRelData = pcId ? [{ id: pcId, type: "problem_collection" }] : [];
-  const included: Record<string, unknown>[] = [];
-  if (pcId) {
-    included.push({
-      id: pcId,
-      type: "problem_collection",
-      attributes: { name: "PC", activity_id: "1" },
-    });
-  }
-  for (const pcp of pcps) {
-    included.push({
-      id: pcp.id,
-      type: "problem_collections_problem",
-      attributes: {
-        problem_collection_id: pcId,
-        problem_id: pcp.problem_id,
-      },
-    });
-  }
   return {
     data: {
       id: "1",
@@ -256,118 +235,79 @@ function makeActivityWithPcps(
         problem_collections: { data: pcRelData },
       },
     },
-    included,
+    included: pcId
+      ? [
+          {
+            id: pcId,
+            type: "problem_collection",
+            attributes: { name: "PC", activity_id: "1" },
+          },
+        ]
+      : [],
   };
 }
 
-describe("manage_problem_collection_problems add", () => {
-  it("no problem collection found", async () => {
-    mockClient.request.mockResolvedValue(makeActivityWithPcps(null));
-
-    const result = await toolHandlers.manage_problem_collection_problems({
-      action: "add",
-      activity_id: "1",
-      problem_id: "10",
-    });
-    expect(getText(result)).toContain("ProblemCollection이 없습니다");
-  });
-
-  it("missing problem_id", async () => {
-    mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1"));
-
-    const result = await toolHandlers.manage_problem_collection_problems({
-      action: "add",
-      activity_id: "1",
-    });
-    expect(getText(result)).toContain("problem_id는 필수");
-  });
-
-  it("successful add via do_many", async () => {
-    mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1"));
+describe("manage_problems create with activity_id", () => {
+  it("creates problem and links to activity", async () => {
+    mockClient.createProblem.mockResolvedValue(
+      makeJsonApiResponse("problem", "10", { title: "문제" }),
+    );
+    mockClient.request.mockResolvedValue(makeActivityWithPc("pc1"));
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      action: "add",
+    const result = await toolHandlers.manage_problems({
+      action: "create",
+      title: "문제",
+      problem_type: "quiz",
       activity_id: "1",
-      problem_id: "10",
-      point: 5,
+      choices: [
+        { text: "O", isAnswer: true },
+        { text: "X", isAnswer: false },
+      ],
     });
-    expect(getText(result)).toContain("문제 연결 완료");
+    expect(getText(result)).toContain("문제 생성 완료");
+    expect(getText(result)).toContain("activity=1에 연결됨");
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_create[0].attributes.problem_collection_id).toBe(
       "pc1",
     );
     expect(payload.data_to_create[0].attributes.problem_id).toBe("10");
-    expect(payload.data_to_create[0].attributes.point).toBe(5);
   });
-});
 
-describe("manage_problem_collection_problems remove", () => {
-  it("successful remove via do_many", async () => {
-    mockClient.request.mockResolvedValue(
-      makeActivityWithPcps("pc1", [{ id: "pcp1", problem_id: "10" }]),
+  it("warns when activity has no problem collection", async () => {
+    mockClient.createProblem.mockResolvedValue(
+      makeJsonApiResponse("problem", "10", { title: "문제" }),
     );
-    mockClient.doManyPCP.mockResolvedValue({});
+    mockClient.request.mockResolvedValue(makeActivityWithPc(null));
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      action: "remove",
-      activity_id: "1",
-      problem_id: "10",
-    });
-    expect(getText(result)).toContain("문제 연결 해제 완료");
-
-    const payload = mockClient.doManyPCP.mock.calls[0][0];
-    expect(payload.data_to_destroy).toEqual([{ id: "pcp1" }]);
-  });
-
-  it("problem not found in collection", async () => {
-    mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1"));
-
-    const result = await toolHandlers.manage_problem_collection_problems({
-      action: "remove",
-      activity_id: "1",
-      problem_id: "999",
-    });
-    expect(getText(result)).toContain("찾을 수 없습니다");
-  });
-});
-
-describe("manage_problem_collection_problems reorder", () => {
-  it("missing problem_ids", async () => {
-    mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1"));
-
-    const result = await toolHandlers.manage_problem_collection_problems({
-      action: "reorder",
+    const result = await toolHandlers.manage_problems({
+      action: "create",
+      title: "문제",
+      problem_type: "quiz",
       activity_id: "1",
     });
-    expect(getText(result)).toContain("problem_ids는 필수");
+    expect(getText(result)).toContain("문제 생성 완료");
+    expect(getText(result)).toContain("활동 연결 실패");
   });
 
-  it("successful reorder", async () => {
-    mockClient.request.mockResolvedValue(
-      makeActivityWithPcps("pc1", [
-        { id: "pcp1", problem_id: "10" },
-        { id: "pcp2", problem_id: "20" },
-        { id: "pcp3", problem_id: "30" },
-      ]),
+  it("warns when PCP creation fails", async () => {
+    mockClient.createProblem.mockResolvedValue(
+      makeJsonApiResponse("problem", "10", { title: "문제" }),
     );
-    mockClient.doManyPCP.mockResolvedValue({});
+    mockClient.request.mockResolvedValue(makeActivityWithPc("pc1"));
+    mockClient.doManyPCP.mockRejectedValue(
+      new CodleAPIError(422, "PCP failed"),
+    );
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      action: "reorder",
+    const result = await toolHandlers.manage_problems({
+      action: "create",
+      title: "문제",
+      problem_type: "quiz",
       activity_id: "1",
-      problem_ids: ["30", "10", "20"],
     });
-    expect(getText(result)).toContain("문제 정렬 완료");
-    expect(getText(result)).toContain("30 → 10 → 20");
-
-    const payload = mockClient.doManyPCP.mock.calls[0][0];
-    expect(payload.data_to_update).toEqual([
-      { id: "pcp3", attributes: { position: 0 } },
-      { id: "pcp1", attributes: { position: 1 } },
-      { id: "pcp2", attributes: { position: 2 } },
-    ]);
+    expect(getText(result)).toContain("문제 생성 완료");
+    expect(getText(result)).toContain("활동 연결 실패");
   });
 });
 
