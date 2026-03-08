@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { extractDirectives, replaceDirectivePlaceholders } from "../src/lexical/directives.js";
+import {
+  extractDirectives,
+  replaceDirectivePlaceholders,
+} from "../src/lexical/directives.js";
 import { convertFromMarkdown } from "../src/lexical/index.js";
 
 // ── extractDirectives ──
@@ -188,9 +191,9 @@ describe("convertFromMarkdown + directives", () => {
     ].join("\n");
 
     const result = convertFromMarkdown(md);
-    const types = (
-      result.root.children as Array<Record<string, unknown>>
-    ).map((c) => c.type);
+    const types = (result.root.children as Array<Record<string, unknown>>).map(
+      (c) => c.type,
+    );
 
     expect(types).toContain("heading");
     expect(types).toContain("paragraph");

@@ -164,12 +164,11 @@ function buildDirectiveNode(d: ParsedDirective): Record<string, unknown> {
 
 const PLACEHOLDER_RE = /^DIRECTIVEPLACEHOLDER(\d+)END$/;
 
-function getPlaceholderIndex(
-  node: SerializedLexicalNode,
-): number | null {
+function getPlaceholderIndex(node: SerializedLexicalNode): number | null {
   if (node.type !== "paragraph") return null;
-  const children = (node as Record<string, unknown>)
-    .children as SerializedLexicalNode[] | undefined;
+  const children = (node as Record<string, unknown>).children as
+    | SerializedLexicalNode[]
+    | undefined;
   if (!children || children.length !== 1) return null;
   const textNode = children[0] as Record<string, unknown>;
   if (textNode.type !== "text") return null;
