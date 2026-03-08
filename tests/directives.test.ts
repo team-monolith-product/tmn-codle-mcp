@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { extractDirectives, replaceDirectivePlaceholders } from "../src/lexical/directives.js";
+import {
+  extractDirectives,
+  replaceDirectivePlaceholders,
+} from "../src/lexical/directives.js";
 import { convertFromMarkdown } from "../src/lexical/index.js";
 
 // ── extractDirectives ──
@@ -9,7 +12,7 @@ describe("extractDirectives", () => {
     const md = ':::short-answer{placeholder="이름"}\n:::';
     const { cleaned, directives } = extractDirectives(md);
 
-    expect(cleaned).toBe("DIRECTIVEPLACEHOLDER0END");
+    expect(cleaned.trim()).toBe("DIRECTIVEPLACEHOLDER0END");
     expect(directives).toHaveLength(1);
     expect(directives[0].nodeType).toBe("sheet-input");
     expect(directives[0].attrs.multiline).toBe("false");
@@ -73,6 +76,31 @@ describe("extractDirectives", () => {
     expect(directives).toHaveLength(2);
     expect(cleaned).toContain("DIRECTIVEPLACEHOLDER0END");
     expect(cleaned).toContain("DIRECTIVEPLACEHOLDER1END");
+  });
+
+  it("직전 텍스트와 blank line 없이 붙은 directive도 별도 paragraph로 분리", () => {
+    const md = [
+      "AI 서비스:",
+      ':::short-answer{placeholder="적어 보세요"}',
+      ":::",
+      "이유:",
+      ':::long-answer{placeholder="이유를 적어 보세요"}',
+      ":::",
+    ].join("\n");
+    const { cleaned, directives } = extractDirectives(md);
+
+    expect(directives).toHaveLength(2);
+    // placeholder 앞에 blank line이 삽입되어 별도 paragraph가 된다
+    const lines = cleaned.split("\n");
+    const ph0Line = lines.findIndex((l) =>
+      l.includes("DIRECTIVEPLACEHOLDER0END"),
+    );
+    const ph1Line = lines.findIndex((l) =>
+      l.includes("DIRECTIVEPLACEHOLDER1END"),
+    );
+    // placeholder 바로 앞 줄은 blank line이어야 한다
+    expect(lines[ph0Line - 1]).toBe("");
+    expect(lines[ph1Line - 1]).toBe("");
   });
 
   it("알 수 없는 directive는 무시", () => {
@@ -188,14 +216,37 @@ describe("convertFromMarkdown + directives", () => {
     ].join("\n");
 
     const result = convertFromMarkdown(md);
-    const types = (
-      result.root.children as Array<Record<string, unknown>>
-    ).map((c) => c.type);
+    const types = (result.root.children as Array<Record<string, unknown>>).map(
+      (c) => c.type,
+    );
 
     expect(types).toContain("heading");
     expect(types).toContain("paragraph");
     expect(types).toContain("sheet-input");
     expect(types).toContain("sheet-select");
+  });
+
+  it("텍스트 바로 뒤에 directive가 오면 placeholder가 노출되지 않음", () => {
+    const md = [
+      "AI 서비스:",
+      ':::short-answer{placeholder="적어 보세요"}',
+      ":::",
+      "",
+      "이유:",
+      ':::long-answer{placeholder="이유를 적어 보세요"}',
+      ":::",
+    ].join("\n");
+    const result = convertFromMarkdown(md);
+    const types = (result.root.children as Array<Record<string, unknown>>).map(
+      (c) => c.type,
+    );
+
+    expect(types).toContain("sheet-input");
+    expect(types).not.toContain(undefined);
+
+    // placeholder 문자열이 텍스트 노드에 남아있으면 안 된다
+    const json = JSON.stringify(result);
+    expect(json).not.toContain("DIRECTIVEPLACEHOLDER");
   });
 
   it("attrs 없는 directive", () => {

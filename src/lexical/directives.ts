@@ -77,7 +77,14 @@ export function extractDirectives(markdown: string): {
           attrs,
           contentLines,
         });
+        // AIDEV-NOTE: placeholder 앞뒤에 blank line을 보장한다.
+        // 그렇지 않으면 markdown 파서가 직전/직후 텍스트와 같은 paragraph로 합쳐서
+        // getPlaceholderIndex가 매칭에 실패하고 placeholder 문자열이 그대로 노출된다.
+        if (output.length > 0 && output[output.length - 1].trim() !== "") {
+          output.push("");
+        }
         output.push(`DIRECTIVEPLACEHOLDER${idx}END`);
+        output.push("");
         continue;
       }
     }
@@ -164,12 +171,11 @@ function buildDirectiveNode(d: ParsedDirective): Record<string, unknown> {
 
 const PLACEHOLDER_RE = /^DIRECTIVEPLACEHOLDER(\d+)END$/;
 
-function getPlaceholderIndex(
-  node: SerializedLexicalNode,
-): number | null {
+function getPlaceholderIndex(node: SerializedLexicalNode): number | null {
   if (node.type !== "paragraph") return null;
-  const children = (node as Record<string, unknown>)
-    .children as SerializedLexicalNode[] | undefined;
+  const children = (node as Record<string, unknown>).children as
+    | SerializedLexicalNode[]
+    | undefined;
   if (!children || children.length !== 1) return null;
   const textNode = children[0] as Record<string, unknown>;
   if (textNode.type !== "text") return null;

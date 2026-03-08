@@ -21,10 +21,7 @@ export function convertFromMarkdown(
 
   editor.update(
     () => {
-      $convertFromMarkdownString(
-        cleaned,
-        transformers ?? CUSTOM_TRANSFORMERS,
-      );
+      $convertFromMarkdownString(cleaned, transformers ?? CUSTOM_TRANSFORMERS);
     },
     { discrete: true },
   );

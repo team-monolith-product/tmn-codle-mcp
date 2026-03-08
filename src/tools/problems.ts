@@ -456,9 +456,7 @@ export function registerProblemTools(server: McpServer): void {
             {
               type: "text" as const,
               text:
-                e instanceof Error
-                  ? e.message
-                  : `활동 조회 실패: ${String(e)}`,
+                e instanceof Error ? e.message : `활동 조회 실패: ${String(e)}`,
             },
           ],
         };
@@ -546,13 +544,14 @@ export function registerProblemTools(server: McpServer): void {
         content: [
           {
             type: "text" as const,
-            text: `PCP 설정 완료 (${parts.join(", ")}). 최종 문제 수: ${problems.length}`,
+            text: `PCP 설정 완료 (${parts.join(", ")}). 최종 문제 수: ${
+              problems.length
+            }`,
           },
         ],
       };
     },
   );
-
 }
 
 // AIDEV-NOTE: Activity → ProblemCollection ID + 기존 PCP 목록을 조회하는 헬퍼.
@@ -581,9 +580,7 @@ async function getActivityPcpState(
   const actData = (actResp.data as Record<string, unknown>) || {};
   const rels = (actData.relationships as Record<string, unknown>) || {};
   const pcRel = (rels.problem_collections as Record<string, unknown>) || {};
-  const pcRelData = pcRel.data as
-    | Array<Record<string, unknown>>
-    | undefined;
+  const pcRelData = pcRel.data as Array<Record<string, unknown>> | undefined;
   if (!pcRelData?.length) {
     throw new Error(
       `활동 ${activityId}에 연결된 ProblemCollection이 없습니다.`,
