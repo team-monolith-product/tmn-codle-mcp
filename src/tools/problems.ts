@@ -429,11 +429,19 @@ export function registerProblemTools(server: McpServer): void {
     "활동의 문제 목록을 선언적으로 설정. problem_ids 순서가 최종 상태. SheetActivity는 기본 문제가 자동 생성되므로, 문제 추가 후 반드시 이 도구로 최종 목록을 설정할 것.",
     {
       activity_id: z.string().describe("활동 ID"),
-      problem_ids: z
-        .array(z.string())
-        .describe("최종 문제 ID 목록 (순서대로). 빈 배열이면 전체 제거."),
+      problems: z
+        .array(
+          z.object({
+            id: z.string().describe("문제 ID"),
+            point: z
+              .number()
+              .optional()
+              .describe("배점 (기본 1). 0이면 채점 안 함."),
+          }),
+        )
+        .describe("최종 문제 목록 (순서대로). 빈 배열이면 전체 제거."),
     },
-    async ({ activity_id, problem_ids }) => {
+    async ({ activity_id, problems }) => {
       let state: ActivityPcpState;
       try {
         state = await getActivityPcpState(activity_id);
@@ -462,27 +470,26 @@ export function registerProblemTools(server: McpServer): void {
       const dataToUpdate: Array<Record<string, unknown>> = [];
       const dataToDestroy: Array<Record<string, unknown>> = [];
 
-      // Desired state: problem_ids with 0-based positions
-      const desiredSet = new Set(problem_ids);
+      const desiredSet = new Set(problems.map((p) => p.id));
 
-      for (let i = 0; i < problem_ids.length; i++) {
-        const problemId = problem_ids[i];
+      for (let i = 0; i < problems.length; i++) {
+        const { id: problemId, point } = problems[i];
+        const desiredPoint = point ?? 1;
         const existing = existingByProblemId.get(problemId);
         if (existing) {
-          // Already exists — update position if changed
-          if (existing.position !== i) {
-            dataToUpdate.push({
-              id: existing.id,
-              attributes: { position: i },
-            });
+          const attrs: Record<string, unknown> = {};
+          if (existing.position !== i) attrs.position = i;
+          if (existing.point !== desiredPoint) attrs.point = desiredPoint;
+          if (Object.keys(attrs).length) {
+            dataToUpdate.push({ id: existing.id, attributes: attrs });
           }
         } else {
-          // New — create
           dataToCreate.push({
             attributes: {
               problem_collection_id: pcId,
               problem_id: problemId,
               position: i,
+              point: desiredPoint,
             },
           });
         }
@@ -528,13 +535,13 @@ export function registerProblemTools(server: McpServer): void {
 
       const parts: string[] = [];
       if (dataToCreate.length) parts.push(`추가 ${dataToCreate.length}`);
-      if (dataToUpdate.length) parts.push(`순서변경 ${dataToUpdate.length}`);
+      if (dataToUpdate.length) parts.push(`변경 ${dataToUpdate.length}`);
       if (dataToDestroy.length) parts.push(`제거 ${dataToDestroy.length}`);
       return {
         content: [
           {
             type: "text" as const,
-            text: `PCP 설정 완료 (${parts.join(", ")}). 최종 문제 수: ${problem_ids.length}`,
+            text: `PCP 설정 완료 (${parts.join(", ")}). 최종 문제 수: ${problems.length}`,
           },
         ],
       };
@@ -550,6 +557,7 @@ interface ExistingPcp {
   id: string;
   problemId: string;
   position: number;
+  point: number;
 }
 
 interface ActivityPcpState {
@@ -590,6 +598,7 @@ async function getActivityPcpState(
         id: String(i.id),
         problemId: String(attrs.problem_id),
         position: Number(attrs.position ?? 0),
+        point: Number(attrs.point ?? 1),
       };
     });
 
