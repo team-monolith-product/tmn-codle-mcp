@@ -231,6 +231,7 @@ function makeActivityWithPcps(
     id: string;
     problem_id: string;
     position: number;
+    point?: number;
   }>,
 ) {
   const pcRelData = pcId ? [{ id: pcId, type: "problem_collection" }] : [];
@@ -249,6 +250,7 @@ function makeActivityWithPcps(
       attributes: {
         problem_id: pcp.problem_id,
         position: pcp.position,
+        point: pcp.point ?? 1,
         problem_collection_id: pcId,
       },
     });
@@ -273,7 +275,7 @@ describe("manage_problem_collection_problems set", () => {
 
     const result = await toolHandlers.manage_problem_collection_problems({
       activity_id: "1",
-      problem_ids: ["p1", "p2", "p3"],
+      problems: [{ id: "p1" }, { id: "p2" }, { id: "p3" }],
     });
     expect(getText(result)).toContain("추가 3");
     expect(getText(result)).toContain("최종 문제 수: 3");
@@ -284,6 +286,7 @@ describe("manage_problem_collection_problems set", () => {
     expect(payload.data_to_destroy).toHaveLength(0);
     expect(payload.data_to_create[0].attributes.problem_id).toBe("p1");
     expect(payload.data_to_create[0].attributes.position).toBe(0);
+    expect(payload.data_to_create[0].attributes.point).toBe(1);
     expect(payload.data_to_create[2].attributes.position).toBe(2);
   });
 
@@ -300,9 +303,9 @@ describe("manage_problem_collection_problems set", () => {
     // Reverse order
     const result = await toolHandlers.manage_problem_collection_problems({
       activity_id: "1",
-      problem_ids: ["p3", "p2", "p1"],
+      problems: [{ id: "p3" }, { id: "p2" }, { id: "p1" }],
     });
-    expect(getText(result)).toContain("순서변경 2");
+    expect(getText(result)).toContain("변경 2");
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_create).toHaveLength(0);
@@ -329,7 +332,7 @@ describe("manage_problem_collection_problems set", () => {
     // Remove p2, add p4, keep p1 and p3
     const result = await toolHandlers.manage_problem_collection_problems({
       activity_id: "1",
-      problem_ids: ["p1", "p3", "p4"],
+      problems: [{ id: "p1" }, { id: "p3" }, { id: "p4" }],
     });
     expect(getText(result)).toContain("추가 1");
     expect(getText(result)).toContain("제거 1");
@@ -351,7 +354,7 @@ describe("manage_problem_collection_problems set", () => {
 
     const result = await toolHandlers.manage_problem_collection_problems({
       activity_id: "1",
-      problem_ids: ["p1"],
+      problems: [{ id: "p1" }],
     });
     expect(getText(result)).toContain("ProblemCollection이 없습니다");
   });
@@ -367,7 +370,7 @@ describe("manage_problem_collection_problems set", () => {
 
     const result = await toolHandlers.manage_problem_collection_problems({
       activity_id: "1",
-      problem_ids: [],
+      problems: [],
     });
     expect(getText(result)).toContain("제거 2");
     expect(getText(result)).toContain("최종 문제 수: 0");
@@ -388,10 +391,48 @@ describe("manage_problem_collection_problems set", () => {
 
     const result = await toolHandlers.manage_problem_collection_problems({
       activity_id: "1",
-      problem_ids: ["p1", "p2"],
+      problems: [{ id: "p1" }, { id: "p2" }],
     });
     expect(getText(result)).toContain("변경 사항 없음");
     expect(mockClient.doManyPCP).not.toHaveBeenCalled();
+  });
+
+  it("point 지정하여 생성", async () => {
+    mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1", []));
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    const result = await toolHandlers.manage_problem_collection_problems({
+      activity_id: "1",
+      problems: [
+        { id: "p1", point: 2 },
+        { id: "p2", point: 0 },
+        { id: "p3" },
+      ],
+    });
+    expect(getText(result)).toContain("추가 3");
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_create[0].attributes.point).toBe(2);
+    expect(payload.data_to_create[1].attributes.point).toBe(0);
+    expect(payload.data_to_create[2].attributes.point).toBe(1);
+  });
+
+  it("기존 point 변경 → update", async () => {
+    mockClient.request.mockResolvedValue(
+      makeActivityWithPcps("pc1", [
+        { id: "pcp1", problem_id: "p1", position: 0, point: 1 },
+      ]),
+    );
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    const result = await toolHandlers.manage_problem_collection_problems({
+      activity_id: "1",
+      problems: [{ id: "p1", point: 3 }],
+    });
+    expect(getText(result)).toContain("변경 1");
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_update[0].attributes.point).toBe(3);
   });
 });
 
