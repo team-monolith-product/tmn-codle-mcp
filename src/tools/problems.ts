@@ -24,7 +24,12 @@ export function registerProblemTools(server: McpServer): void {
         .enum(["quiz", "sheet", "descriptive"])
         .optional()
         .describe("문제 유형 (create 시 필수)"),
-      content: z.string().optional().describe("문제 설명 텍스트"),
+      content: z
+        .string()
+        .optional()
+        .describe(
+          "문제 본문 (markdown). 활동지(sheet) 입력란은 directive 문법 지원 — codle://docs/sheet-directives 참조",
+        ),
       choices: z
         .array(
           z.object({

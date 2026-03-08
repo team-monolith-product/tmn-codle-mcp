@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAllTools } from "./tools/register.js";
+import { registerAllResources } from "./resources/register.js";
 
 const SERVER_INFO = {
   name: "Codle",
@@ -32,5 +33,6 @@ const SERVER_OPTIONS = {
 export function createServer(): McpServer {
   const server = new McpServer(SERVER_INFO, SERVER_OPTIONS);
   registerAllTools(server);
+  registerAllResources(server);
   return server;
 }
