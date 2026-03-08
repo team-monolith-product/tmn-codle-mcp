@@ -39,7 +39,7 @@ export function pascalToSnake(name: string): string {
 export function registerActivityTools(server: McpServer): void {
   server.tool(
     "manage_activities",
-    `활동(Activity) CRUD. QuizActivity, SheetActivity는 생성 후 관리자 화면에서 문제 연결 필요.`,
+    "활동(Activity) CRUD. Quiz/Sheet는 생성 후 manage_problem_collection_problems로 문제 연결.",
     {
       action: z
         .enum(["create", "update", "delete", "duplicate"])
@@ -57,7 +57,7 @@ export function registerActivityTools(server: McpServer): void {
         .string()
         .optional()
         .describe(
-          "활동 유형 (create 시 필수). HtmlActivity, QuizActivity, BoardActivity, SheetActivity, StudioActivity, VideoActivity 등",
+          "활동 유형 (create 시 필수). HtmlActivity, QuizActivity, BoardActivity, SheetActivity, VideoActivity, EmbeddedActivity 등",
         ),
       depth: z
         .number()
@@ -408,7 +408,7 @@ export function registerActivityTools(server: McpServer): void {
 
   server.tool(
     "set_activity_branch",
-    "갈림길 transition을 일괄 설정합니다. mid 필수, low/high 선택 (최소 2개).",
+    "갈림길 transition을 일괄 설정. branch_from의 기존 transition(선형 포함)을 교체. mid 필수, low/high 선택 (최소 2개).",
     {
       material_id: z.string().describe("자료 ID"),
       branch_from: z

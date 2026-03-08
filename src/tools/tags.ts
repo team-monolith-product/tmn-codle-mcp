@@ -20,7 +20,7 @@ const VALID_DOMAINS = [
 export function registerTagTools(server: McpServer): void {
   server.tool(
     "manage_tags",
-    "태그(Tag) 목록을 조회합니다.",
+    "태그(Tag) 검색. domain과 키워드로 필터링 가능.",
     {
       domain: z
         .string()
