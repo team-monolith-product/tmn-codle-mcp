@@ -205,7 +205,7 @@ export function registerProblemTools(server: McpServer): void {
           // Activity → ProblemCollection 조회 후 do_many PCP로 연결.
           if (activity_id) {
             try {
-              const pcId = await getProblemCollectionId(activity_id);
+              const { pcId } = await getActivityPcpState(activity_id);
               await client.doManyPCP({
                 data_to_create: [
                   {
@@ -457,12 +457,142 @@ export function registerProblemTools(server: McpServer): void {
     },
   );
 
+  server.tool(
+    "manage_problem_collection_problems",
+    "활동의 문제 목록을 선언적으로 설정. problem_ids 배열 순서가 최종 상태.",
+    {
+      activity_id: z.string().describe("활동 ID"),
+      problem_ids: z
+        .array(z.string())
+        .describe("최종 문제 ID 목록 (순서대로). 빈 배열이면 전체 제거."),
+    },
+    async ({ activity_id, problem_ids }) => {
+      let state: ActivityPcpState;
+      try {
+        state = await getActivityPcpState(activity_id);
+      } catch (e) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text:
+                e instanceof Error
+                  ? e.message
+                  : `활동 조회 실패: ${String(e)}`,
+            },
+          ],
+        };
+      }
+
+      const { pcId, existingPcps } = state;
+
+      // Build lookup of existing PCPs by problem_id
+      const existingByProblemId = new Map(
+        existingPcps.map((pcp) => [pcp.problemId, pcp]),
+      );
+
+      const dataToCreate: Array<Record<string, unknown>> = [];
+      const dataToUpdate: Array<Record<string, unknown>> = [];
+      const dataToDestroy: Array<Record<string, unknown>> = [];
+
+      // Desired state: problem_ids with 0-based positions
+      const desiredSet = new Set(problem_ids);
+
+      for (let i = 0; i < problem_ids.length; i++) {
+        const problemId = problem_ids[i];
+        const existing = existingByProblemId.get(problemId);
+        if (existing) {
+          // Already exists — update position if changed
+          if (existing.position !== i) {
+            dataToUpdate.push({
+              id: existing.id,
+              attributes: { position: i },
+            });
+          }
+        } else {
+          // New — create
+          dataToCreate.push({
+            attributes: {
+              problem_collection_id: pcId,
+              problem_id: problemId,
+              position: i,
+            },
+          });
+        }
+      }
+
+      // Remove PCPs not in desired set
+      for (const pcp of existingPcps) {
+        if (!desiredSet.has(pcp.problemId)) {
+          dataToDestroy.push({ id: pcp.id });
+        }
+      }
+
+      // Skip API call if nothing to do
+      if (
+        !dataToCreate.length &&
+        !dataToUpdate.length &&
+        !dataToDestroy.length
+      ) {
+        return {
+          content: [{ type: "text" as const, text: "변경 사항 없음." }],
+        };
+      }
+
+      try {
+        await client.doManyPCP({
+          data_to_create: dataToCreate,
+          data_to_update: dataToUpdate,
+          data_to_destroy: dataToDestroy,
+        });
+      } catch (e) {
+        if (e instanceof CodleAPIError) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `PCP 설정 실패: ${e.detail}`,
+              },
+            ],
+          };
+        }
+        throw e;
+      }
+
+      const parts: string[] = [];
+      if (dataToCreate.length) parts.push(`추가 ${dataToCreate.length}`);
+      if (dataToUpdate.length) parts.push(`순서변경 ${dataToUpdate.length}`);
+      if (dataToDestroy.length) parts.push(`제거 ${dataToDestroy.length}`);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `PCP 설정 완료 (${parts.join(", ")}). 최종 문제 수: ${problem_ids.length}`,
+          },
+        ],
+      };
+    },
+  );
+
 }
 
-// AIDEV-NOTE: Activity → ProblemCollection ID를 조회하는 헬퍼.
+// AIDEV-NOTE: Activity → ProblemCollection ID + 기존 PCP 목록을 조회하는 헬퍼.
 // serializer가 lazy_load_data: true이므로 include 파라미터가 있어야 relationship data가 채워진다.
 // controller의 jsonapi_include 화이트리스트는 "problem_collections.pcps"이므로 정확히 맞춰야 한다.
-async function getProblemCollectionId(activityId: string): Promise<string> {
+interface ExistingPcp {
+  id: string;
+  problemId: string;
+  position: number;
+}
+
+interface ActivityPcpState {
+  pcId: string;
+  existingPcps: ExistingPcp[];
+}
+
+async function getActivityPcpState(
+  activityId: string,
+): Promise<ActivityPcpState> {
   const actResp = await client.request(
     "GET",
     `/api/v1/activities/${activityId}`,
@@ -479,5 +609,22 @@ async function getProblemCollectionId(activityId: string): Promise<string> {
       `활동 ${activityId}에 연결된 ProblemCollection이 없습니다.`,
     );
   }
-  return String(pcRelData[0].id);
+  const pcId = String(pcRelData[0].id);
+
+  const included =
+    ((actResp as Record<string, unknown>).included as Array<
+      Record<string, unknown>
+    >) || [];
+  const existingPcps: ExistingPcp[] = included
+    .filter((i) => i.type === "problem_collections_problem")
+    .map((i) => {
+      const attrs = (i.attributes as Record<string, unknown>) || {};
+      return {
+        id: String(i.id),
+        problemId: String(attrs.problem_id),
+        position: Number(attrs.position ?? 0),
+      };
+    });
+
+  return { pcId, existingPcps };
 }

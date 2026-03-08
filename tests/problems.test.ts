@@ -311,6 +311,179 @@ describe("manage_problems create with activity_id", () => {
   });
 });
 
+// ===== manage_problem_collection_problems =====
+
+/** Activity 응답을 PC relationship + PCP included で生成 */
+function makeActivityWithPcps(
+  pcId: string | null,
+  pcps: Array<{
+    id: string;
+    problem_id: string;
+    position: number;
+  }>,
+) {
+  const pcRelData = pcId ? [{ id: pcId, type: "problem_collection" }] : [];
+  const includedItems: Array<Record<string, unknown>> = [];
+  if (pcId) {
+    includedItems.push({
+      id: pcId,
+      type: "problem_collection",
+      attributes: { name: "PC", activity_id: "1" },
+    });
+  }
+  for (const pcp of pcps) {
+    includedItems.push({
+      id: pcp.id,
+      type: "problem_collections_problem",
+      attributes: {
+        problem_id: pcp.problem_id,
+        position: pcp.position,
+        problem_collection_id: pcId,
+      },
+    });
+  }
+  return {
+    data: {
+      id: "1",
+      type: "activity",
+      attributes: {},
+      relationships: {
+        problem_collections: { data: pcRelData },
+      },
+    },
+    included: includedItems,
+  };
+}
+
+describe("manage_problem_collection_problems set", () => {
+  it("빈 상태에서 3개 문제 set → 3개 create", async () => {
+    mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1", []));
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    const result = await toolHandlers.manage_problem_collection_problems({
+      activity_id: "1",
+      problem_ids: ["p1", "p2", "p3"],
+    });
+    expect(getText(result)).toContain("추가 3");
+    expect(getText(result)).toContain("최종 문제 수: 3");
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_create).toHaveLength(3);
+    expect(payload.data_to_update).toHaveLength(0);
+    expect(payload.data_to_destroy).toHaveLength(0);
+    expect(payload.data_to_create[0].attributes.problem_id).toBe("p1");
+    expect(payload.data_to_create[0].attributes.position).toBe(0);
+    expect(payload.data_to_create[2].attributes.position).toBe(2);
+  });
+
+  it("기존 3개에서 순서 변경 → position update", async () => {
+    mockClient.request.mockResolvedValue(
+      makeActivityWithPcps("pc1", [
+        { id: "pcp1", problem_id: "p1", position: 0 },
+        { id: "pcp2", problem_id: "p2", position: 1 },
+        { id: "pcp3", problem_id: "p3", position: 2 },
+      ]),
+    );
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    // Reverse order
+    const result = await toolHandlers.manage_problem_collection_problems({
+      activity_id: "1",
+      problem_ids: ["p3", "p2", "p1"],
+    });
+    expect(getText(result)).toContain("순서변경 2");
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_create).toHaveLength(0);
+    expect(payload.data_to_destroy).toHaveLength(0);
+    // p3: 2→0, p2: 1→1 (no change), p1: 0→2
+    expect(payload.data_to_update).toHaveLength(2);
+    const updateIds = payload.data_to_update.map(
+      (u: Record<string, unknown>) => u.id,
+    );
+    expect(updateIds).toContain("pcp1");
+    expect(updateIds).toContain("pcp3");
+  });
+
+  it("기존 3개에서 1개 제거 + 1개 추가 → create 1 + destroy 1 + update positions", async () => {
+    mockClient.request.mockResolvedValue(
+      makeActivityWithPcps("pc1", [
+        { id: "pcp1", problem_id: "p1", position: 0 },
+        { id: "pcp2", problem_id: "p2", position: 1 },
+        { id: "pcp3", problem_id: "p3", position: 2 },
+      ]),
+    );
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    // Remove p2, add p4, keep p1 and p3
+    const result = await toolHandlers.manage_problem_collection_problems({
+      activity_id: "1",
+      problem_ids: ["p1", "p3", "p4"],
+    });
+    expect(getText(result)).toContain("추가 1");
+    expect(getText(result)).toContain("제거 1");
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_create).toHaveLength(1);
+    expect(payload.data_to_create[0].attributes.problem_id).toBe("p4");
+    expect(payload.data_to_create[0].attributes.position).toBe(2);
+    expect(payload.data_to_destroy).toHaveLength(1);
+    expect(payload.data_to_destroy[0].id).toBe("pcp2");
+    // p1: 0→0 (no change), p3: 2→1 (changed)
+    expect(payload.data_to_update).toHaveLength(1);
+    expect(payload.data_to_update[0].id).toBe("pcp3");
+    expect(payload.data_to_update[0].attributes.position).toBe(1);
+  });
+
+  it("PC 없는 활동 → 에러 메시지", async () => {
+    mockClient.request.mockResolvedValue(makeActivityWithPcps(null, []));
+
+    const result = await toolHandlers.manage_problem_collection_problems({
+      activity_id: "1",
+      problem_ids: ["p1"],
+    });
+    expect(getText(result)).toContain("ProblemCollection이 없습니다");
+  });
+
+  it("problem_ids 빈 배열 → 전체 destroy", async () => {
+    mockClient.request.mockResolvedValue(
+      makeActivityWithPcps("pc1", [
+        { id: "pcp1", problem_id: "p1", position: 0 },
+        { id: "pcp2", problem_id: "p2", position: 1 },
+      ]),
+    );
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    const result = await toolHandlers.manage_problem_collection_problems({
+      activity_id: "1",
+      problem_ids: [],
+    });
+    expect(getText(result)).toContain("제거 2");
+    expect(getText(result)).toContain("최종 문제 수: 0");
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_create).toHaveLength(0);
+    expect(payload.data_to_update).toHaveLength(0);
+    expect(payload.data_to_destroy).toHaveLength(2);
+  });
+
+  it("변경 사항 없으면 API 호출 안 함", async () => {
+    mockClient.request.mockResolvedValue(
+      makeActivityWithPcps("pc1", [
+        { id: "pcp1", problem_id: "p1", position: 0 },
+        { id: "pcp2", problem_id: "p2", position: 1 },
+      ]),
+    );
+
+    const result = await toolHandlers.manage_problem_collection_problems({
+      activity_id: "1",
+      problem_ids: ["p1", "p2"],
+    });
+    expect(getText(result)).toContain("변경 사항 없음");
+    expect(mockClient.doManyPCP).not.toHaveBeenCalled();
+  });
+});
+
 // ===== update_activitiable =====
 
 function makeActivitiableResponse(
