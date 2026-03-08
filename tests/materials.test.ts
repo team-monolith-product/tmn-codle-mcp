@@ -221,52 +221,27 @@ describe("manage_materials", () => {
     expect(getText(result)).toContain("새 자료");
   });
 
-  it("create with body", async () => {
+  it("create with body (markdown → Lexical 변환)", async () => {
     mockClient.createMaterial.mockResolvedValue(
       makeJsonApiResponse("material", "1", { name: "본문 자료" }),
     );
 
-    const lexicalBody = JSON.stringify({
-      root: {
-        type: "root",
-        version: 1,
-        children: [
-          {
-            type: "paragraph",
-            version: 1,
-            children: [
-              {
-                type: "text",
-                text: "본문 내용",
-                mode: "normal",
-                style: "",
-                detail: 0,
-                format: 0,
-                version: 1,
-              },
-            ],
-            direction: "ltr",
-            format: "",
-            indent: 0,
-            textFormat: 0,
-            textStyle: "",
-          },
-        ],
-        direction: "ltr",
-        format: "",
-        indent: 0,
-      },
-    });
-
     const result = await toolHandlers.manage_materials({
       action: "create",
       name: "본문 자료",
-      body: lexicalBody,
+      body: "본문 내용",
     });
     expect(getText(result)).toContain("자료 생성 완료");
 
     const payload = mockClient.createMaterial.mock.calls[0][0];
-    expect(payload.data.attributes.body).toEqual(JSON.parse(lexicalBody));
+    const body = payload.data.attributes.body;
+    expect(body.root).toBeDefined();
+    expect(body.root.type).toBe("root");
+    // Lexical로 변환되어 paragraph > text 구조가 됨
+    const paragraph = body.root.children[0];
+    expect(paragraph.type).toBe("paragraph");
+    const textNode = paragraph.children[0];
+    expect(textNode.text).toBe("본문 내용");
   });
 
   it("create without name", async () => {
@@ -289,24 +264,22 @@ describe("manage_materials", () => {
     expect(getText(result)).toContain("자료 수정 완료");
   });
 
-  it("update with body", async () => {
+  it("update with body (markdown → Lexical 변환)", async () => {
     mockClient.updateMaterial.mockResolvedValue(
       makeJsonApiResponse("material", "1", { name: "기존 자료" }),
     );
 
-    const lexicalBody = JSON.stringify({
-      root: { type: "root", version: 1, children: [] },
-    });
-
     const result = await toolHandlers.manage_materials({
       action: "update",
       material_id: "1",
-      body: lexicalBody,
+      body: "수정된 본문",
     });
     expect(getText(result)).toContain("자료 수정 완료");
 
     const payload = mockClient.updateMaterial.mock.calls[0][1];
-    expect(payload.data.attributes.body).toEqual(JSON.parse(lexicalBody));
+    const body = payload.data.attributes.body;
+    expect(body.root).toBeDefined();
+    expect(body.root.type).toBe("root");
   });
 
   it("update without material_id", async () => {

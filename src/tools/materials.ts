@@ -8,6 +8,7 @@ import {
   formatMaterialSummary,
   snakeToPascal,
 } from "../api/models.js";
+import { convertFromMarkdown } from "../lexical/index.js";
 
 export function registerMaterialTools(server: McpServer): void {
   server.tool(
@@ -199,12 +200,7 @@ export function registerMaterialTools(server: McpServer): void {
         .describe("자료 이름 (create 시 필수, 최대 255자)"),
       is_public: z.boolean().optional().describe("공개 여부 (비가역)"),
       tag_ids: z.array(z.string()).optional().describe("태그 ID 목록"),
-      body: z
-        .string()
-        .optional()
-        .describe(
-          '자료 본문 (Lexical JSON 문자열). 예: {"root":{"type":"root","version":1,"children":[{"type":"paragraph","version":1,"children":[{"type":"text","text":"내용","mode":"normal","style":"","detail":0,"format":0,"version":1}],"direction":"ltr","format":"","indent":0,"textFormat":0,"textStyle":""}],"direction":"ltr","format":"","indent":0}}',
-        ),
+      body: z.string().optional().describe("자료 본문 (markdown)"),
     },
     async ({ action, material_id, name, is_public, tag_ids, body }) => {
       if (action === "create") {
@@ -218,7 +214,7 @@ export function registerMaterialTools(server: McpServer): void {
           is_public: is_public ?? false,
         };
         if (tag_ids?.length) attrs.tag_ids = tag_ids;
-        if (body !== undefined) attrs.body = JSON.parse(body);
+        if (body !== undefined) attrs.body = convertFromMarkdown(body);
 
         const payload = buildJsonApiPayload("materials", attrs);
         const response = await client.createMaterial(
@@ -247,7 +243,7 @@ export function registerMaterialTools(server: McpServer): void {
         if (name !== undefined) attrs.name = name;
         if (is_public !== undefined) attrs.is_public = is_public;
         if (tag_ids !== undefined) attrs.tag_ids = tag_ids;
-        if (body !== undefined) attrs.body = JSON.parse(body);
+        if (body !== undefined) attrs.body = convertFromMarkdown(body);
 
         if (!Object.keys(attrs).length) {
           return {
