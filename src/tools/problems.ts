@@ -12,7 +12,7 @@ import {
 export function registerProblemTools(server: McpServer): void {
   server.tool(
     "manage_problems",
-    "퀴즈/활동지에 연결할 문제 CRUD.",
+    "문제 CRUD. 활동에 연결하려면 manage_problem_collection_problems를 사용.",
     {
       action: z.enum(["create", "update", "delete"]).describe("수행할 작업"),
       problem_id: z
@@ -52,12 +52,6 @@ export function registerProblemTools(server: McpServer): void {
       tag_ids: z.array(z.string()).optional().describe("태그 ID 목록"),
       is_public: z.boolean().optional().describe("공개 여부"),
       commentary: z.string().optional().describe("해설"),
-      activity_id: z
-        .string()
-        .optional()
-        .describe(
-          "활동 ID — create 시 이 활동의 ProblemCollection에 자동 연결",
-        ),
       sample_answer: z
         .string()
         .optional()
@@ -92,7 +86,6 @@ export function registerProblemTools(server: McpServer): void {
       tag_ids,
       is_public,
       commentary,
-      activity_id,
       sample_answer,
       descriptive_criterium,
     }) => {
@@ -201,33 +194,7 @@ export function registerProblemTools(server: McpServer): void {
             }
           }
 
-          // AIDEV-NOTE: activity_id가 주어지면 해당 활동의 ProblemCollection에 자동 연결한다.
-          // Activity → ProblemCollection 조회 후 do_many PCP로 연결.
-          if (activity_id) {
-            try {
-              const { pcId } = await getActivityPcpState(activity_id);
-              await client.doManyPCP({
-                data_to_create: [
-                  {
-                    attributes: {
-                      problem_collection_id: pcId,
-                      problem_id: problemId,
-                    },
-                  },
-                ],
-              });
-            } catch (e) {
-              warnings.push(
-                `활동 연결 실패: ${
-                  e instanceof CodleAPIError ? e.detail : String(e)
-                }`,
-              );
-            }
-          }
-
           let resultText = `문제 생성 완료: [${problemId}] ${problem.title}`;
-          if (activity_id && !warnings.some((w) => w.startsWith("활동 연결")))
-            resultText += ` (activity=${activity_id}에 연결됨)`;
           if (warnings.length) resultText += `\n⚠️ ${warnings.join("\n⚠️ ")}`;
           return {
             content: [{ type: "text" as const, text: resultText }],
@@ -459,7 +426,7 @@ export function registerProblemTools(server: McpServer): void {
 
   server.tool(
     "manage_problem_collection_problems",
-    "활동의 문제 목록을 선언적으로 설정. problem_ids 배열 순서가 최종 상태.",
+    "활동의 문제 목록을 선언적으로 설정. problem_ids 순서가 최종 상태. SheetActivity는 기본 문제가 자동 생성되므로, 문제 추가 후 반드시 이 도구로 최종 목록을 설정할 것.",
     {
       activity_id: z.string().describe("활동 ID"),
       problem_ids: z
