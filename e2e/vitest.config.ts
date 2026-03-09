@@ -8,6 +8,5 @@ export default defineConfig({
     hookTimeout: 60_000,
     fileParallelism: true,
     reporters: ["default", "e2e/lib/stats-reporter.ts"],
-    repeats: Math.max(0, parseInt(process.env.E2E_REPEATS || "1") - 1),
   },
 });

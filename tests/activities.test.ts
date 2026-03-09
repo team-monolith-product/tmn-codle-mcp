@@ -274,32 +274,16 @@ describe("manage_activities create", () => {
     );
   });
 
-  it("defaults to empty attributes when entry_category omitted for EntryActivity", async () => {
-    mockClient.request.mockResolvedValue(
-      makeJsonApiResponse("entry_activity", "88", {}),
-    );
-    mockClient.createActivity.mockResolvedValue(
-      makeJsonApiResponse("activity", "101", {
-        name: "엔트리기본",
-        depth: 0,
-        material_id: "1",
-      }),
-    );
-
-    await toolHandlers.manage_activities({
+  it("returns error when entry_category omitted for EntryActivity", async () => {
+    const result = await toolHandlers.manage_activities({
       action: "create",
       material_id: "1",
       name: "엔트리기본",
       activity_type: "EntryActivity",
     });
 
-    expect(mockClient.request).toHaveBeenCalledWith(
-      "POST",
-      "/api/v1/entry_activities",
-      {
-        json: { data: { type: "entry_activity", attributes: {} } },
-      },
-    );
+    expect(getText(result)).toContain("entry_category");
+    expect(mockClient.request).not.toHaveBeenCalled();
   });
 
   it("activitiable no id in response", async () => {

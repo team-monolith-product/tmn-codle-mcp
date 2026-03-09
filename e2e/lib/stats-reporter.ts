@@ -9,6 +9,8 @@ interface TestMeta {
   toolCallCount?: number;
   inputTokens?: number;
   outputTokens?: number;
+  passCount?: number;
+  runCount?: number;
 }
 
 interface Row {
@@ -33,8 +35,6 @@ export default class CostReporter implements Reporter {
     if (!files?.length) return;
 
     const rows: Row[] = [];
-    const totalRuns = parseInt(process.env.E2E_REPEATS || "1");
-    const showPass = totalRuns > 1;
 
     for (const file of files) {
       for (const task of file.tasks) {
@@ -42,9 +42,9 @@ export default class CostReporter implements Reporter {
         for (const t of task.tasks) {
           if (t.type !== "test") continue;
           const meta = t.meta as unknown as TestMeta;
-          const repeatCount = t.result?.repeatCount ?? 0;
           const passed =
-            t.result?.state === "pass" ? repeatCount + 1 : repeatCount;
+            meta?.passCount ?? (t.result?.state === "pass" ? 1 : 0);
+          const runs = meta?.runCount ?? 1;
           rows.push({
             name: `${task.name} > ${t.name}`,
             cost: meta?.costUsd ?? 0,
@@ -54,7 +54,7 @@ export default class CostReporter implements Reporter {
             inputTokens: meta?.inputTokens ?? 0,
             outputTokens: meta?.outputTokens ?? 0,
             passed,
-            totalRuns,
+            totalRuns: runs,
           });
         }
       }
@@ -62,6 +62,7 @@ export default class CostReporter implements Reporter {
 
     if (!rows.length) return;
 
+    const showPass = rows.some((r) => r.totalRuns > 1);
     const sum = (fn: (r: Row) => number) => rows.reduce((s, r) => s + fn(r), 0);
     const totalCost = sum((r) => r.cost);
     const totalDuration = sum((r) => r.duration);
@@ -73,7 +74,8 @@ export default class CostReporter implements Reporter {
     const header = `│ Cost     Time    Turns  Tools  ${passCol}In/Out Tokens   Test`;
     const sep = "─".repeat(header.length);
 
-    const repeatsLabel = showPass ? `, repeats: ${totalRuns}` : "";
+    const maxRuns = Math.max(...rows.map((r) => r.totalRuns), 1);
+    const repeatsLabel = showPass ? `, repeats: ${maxRuns}` : "";
     console.log(`\n┌${sep}`);
     console.log(
       `│ E2E Stats (model: ${
@@ -136,8 +138,8 @@ export default class CostReporter implements Reporter {
       showPass: boolean;
     },
   ) {
-    const totalRuns = parseInt(process.env.E2E_REPEATS || "1");
-    const repeatsLabel = totals.showPass ? `, repeats: ${totalRuns}` : "";
+    const maxRuns = Math.max(...rows.map((r) => r.totalRuns), 1);
+    const repeatsLabel = totals.showPass ? `, repeats: ${maxRuns}` : "";
     const passHeader = totals.showPass ? " Pass |" : "";
     const passSep = totals.showPass ? "------|" : "";
 

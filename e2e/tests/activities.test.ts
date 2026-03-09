@@ -27,6 +27,28 @@ describe("manage_activities", () => {
     expect(text).toMatch(/활동 생성 완료/);
   });
 
+  test("엔트리 활동 생성 시 카테고리 지정", async ({ claude, factory }) => {
+    const material = await createMaterial(factory);
+
+    const result = await claude.run(
+      `자료 ID "${material.id}"에 "E2E Stage Entry" 엔트리 활동을 stage 카테고리로 추가해줘.`,
+    );
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.toolNames).toContain("mcp__codle__manage_activities");
+
+    const interaction = findToolResult(
+      result.toolInteractions,
+      "mcp__codle__manage_activities",
+    );
+    expect(interaction?.result).toBeDefined();
+    expect(interaction!.result!.isError).toBe(false);
+    expect(interaction!.call.input.activity_type).toBe("EntryActivity");
+    expect(interaction!.call.input.entry_category).toBe("stage");
+    const text = extractText(interaction!.result!);
+    expect(text).toMatch(/활동 생성 완료/);
+  });
+
   test("활동 삭제 호출", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
     const activity = await createActivity(factory, material.id);

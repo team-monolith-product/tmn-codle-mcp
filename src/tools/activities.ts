@@ -79,10 +79,10 @@ export function registerActivityTools(server: McpServer): void {
         .optional()
         .describe("URL (VideoActivity, EmbeddedActivity 전용)"),
       entry_category: z
-        .enum(["project", "mission", "stage"])
+        .enum(["project", "stage"])
         .optional()
         .describe(
-          "엔트리 활동 카테고리 (activity_type이 EntryActivity일 때만 유효). 미지정 시 project",
+          "엔트리 활동 카테고리 (activity_type이 EntryActivity일 때 필수)",
         ),
     },
     async ({
@@ -116,6 +116,17 @@ export function registerActivityTools(server: McpServer): void {
                 text: `유효하지 않은 activity_type: ${activity_type}. 사용 가능: ${ACTIVITIABLE_TYPES.join(
                   ", ",
                 )}`,
+              },
+            ],
+          };
+        }
+
+        if (activity_type === "EntryActivity" && !entry_category) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "EntryActivity 생성 시 entry_category(project 또는 stage)는 필수입니다.",
               },
             ],
           };
