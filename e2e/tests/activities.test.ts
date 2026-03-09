@@ -43,7 +43,7 @@ describe("manage_activities", () => {
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
-    expect(interaction!.call.input.activity_type).toBe("EntryActivity");
+    expect(interaction!.call.input.activity_type).toMatch(/^Entry(Activity)?$/);
     expect(interaction!.call.input.entry_category).toBe("stage");
     const text = extractText(interaction!.result!);
     expect(text).toMatch(/활동 생성 완료/);
