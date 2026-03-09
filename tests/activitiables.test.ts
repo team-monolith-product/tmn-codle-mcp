@@ -305,9 +305,7 @@ describe("update_activitiable — VideoActivity", () => {
           },
         },
       })
-      .mockResolvedValueOnce(
-        makeJsonApiResponse("video_activity", "v1", {}),
-      );
+      .mockResolvedValueOnce(makeJsonApiResponse("video_activity", "v1", {}));
 
     const result = await toolHandlers.update_activitiable({
       activity_id: "act-1",
@@ -339,9 +337,7 @@ describe("update_activitiable — VideoActivity", () => {
           },
         },
       })
-      .mockRejectedValueOnce(
-        new CodleAPIError(422, "Invalid video URL"),
-      );
+      .mockRejectedValueOnce(new CodleAPIError(422, "Invalid video URL"));
 
     const result = await toolHandlers.update_activitiable({
       activity_id: "act-1",
