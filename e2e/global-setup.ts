@@ -120,7 +120,9 @@ export async function setup(): Promise<void> {
   });
   if (!grantRes.ok) {
     throw new Error(
-      `subscription_grant creation failed: ${grantRes.status} ${await grantRes.text()}`,
+      `subscription_grant creation failed: ${
+        grantRes.status
+      } ${await grantRes.text()}`,
     );
   }
 

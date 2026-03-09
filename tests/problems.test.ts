@@ -238,7 +238,6 @@ describe("manage_problems delete", () => {
   });
 });
 
-
 // ===== manage_problem_collection_problems =====
 
 /** Activity 응답을 PC relationship + PCP included で生成 */
@@ -420,11 +419,7 @@ describe("manage_problem_collection_problems set", () => {
 
     const result = await toolHandlers.manage_problem_collection_problems({
       activity_id: "1",
-      problems: [
-        { id: "p1", point: 2 },
-        { id: "p2", point: 0 },
-        { id: "p3" },
-      ],
+      problems: [{ id: "p1", point: 2 }, { id: "p2", point: 0 }, { id: "p3" }],
     });
     expect(getText(result)).toContain("추가 3");
 

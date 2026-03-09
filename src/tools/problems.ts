@@ -272,8 +272,7 @@ export function registerProblemTools(server: McpServer): void {
               "GET",
               `/api/v1/problems/${problem_id}`,
             );
-            const probData =
-              (probResp.data as Record<string, unknown>) || {};
+            const probData = (probResp.data as Record<string, unknown>) || {};
             problem = {
               id: String(probData.id || problem_id),
               title: (probData.attributes as Record<string, unknown>)?.title,
