@@ -10,7 +10,7 @@ MCP E2E 테스트를 실행하고, 결과 통계를 PR 코멘트로 포스팅한
 
 ## 실행 단계
 
-1. **E2E 테스트 실행**: `E2E_REPEATS=10 npm run e2e` 실행 (timeout 30분).
+1. **E2E 테스트 실행**: `E2E_REPEATS=3 npm run e2e` 실행 (timeout 30분).
 2. **결과 파일 읽기**: `e2e/.stats.md` 파일을 Read 도구로 읽는다.
 3. **현재 브랜치 확인**: `git branch --show-current` 실행.
 4. **PR 확인**: `gh pr list --head {branch} --json number --jq '.[0].number'` 로 PR 번호 확인.
