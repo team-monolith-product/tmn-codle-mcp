@@ -431,7 +431,7 @@ export function registerProblemTools(server: McpServer): void {
 
   server.tool(
     "manage_problem_collection_problems",
-    "활동의 문제 목록을 선언적으로 설정. problem_ids 순서가 최종 상태. SheetActivity는 기본 문제가 자동 생성되므로, 문제 추가 후 반드시 이 도구로 최종 목록을 설정할 것.",
+    "활동의 문제 목록을 선언적으로 설정. problems 순서가 최종 상태.",
     {
       activity_id: z.string().describe("활동 ID"),
       problems: z

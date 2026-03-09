@@ -65,7 +65,7 @@ export function registerActivityTools(server: McpServer): void {
         .string()
         .optional()
         .describe(
-          "활동 유형 (create 시 필수). Html, Quiz, Board, Sheet, Video, Embedded 등 (Activity 접미사 생략 가능)",
+          "활동 유형 (create 시 필수). Html, Quiz, Board, Sheet, Video, Embedded 등",
         ),
       depth: z
         .number()
