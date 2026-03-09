@@ -10,6 +10,7 @@ vi.mock("../src/api/client.js", () => {
     updateProblem: vi.fn(),
     deleteProblem: vi.fn(),
     doManyPCP: vi.fn(),
+    doManyProblemAnswers: vi.fn(),
     listBoards: vi.fn(),
     updateBoard: vi.fn(),
     updateSheetActivity: vi.fn(),
@@ -189,6 +190,22 @@ describe("manage_problems update", () => {
       title: "수정됨",
     });
     expect(getText(result)).toContain("문제 수정 완료");
+  });
+
+  it("sample_answer만 수정 시 early return 안 됨", async () => {
+    mockClient.request.mockResolvedValueOnce({
+      data: { id: "10", attributes: { title: "기존 제목" } },
+    });
+    mockClient.request.mockResolvedValueOnce({ data: [] });
+    mockClient.doManyProblemAnswers.mockResolvedValue({});
+
+    const result = await toolHandlers.manage_problems({
+      action: "update",
+      problem_id: "10",
+      sample_answer: "print('hello')",
+    });
+    expect(getText(result)).toContain("문제 수정 완료");
+    expect(getText(result)).not.toContain("수정할 항목이 없습니다");
   });
 });
 

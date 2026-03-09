@@ -247,7 +247,9 @@ export function registerProblemTools(server: McpServer): void {
         if (commentary !== undefined)
           attrs.commentary = convertFromMarkdown(commentary);
 
-        if (!Object.keys(attrs).length) {
+        const hasSideUpdates =
+          sample_answer !== undefined || descriptive_criterium !== undefined;
+        if (!Object.keys(attrs).length && !hasSideUpdates) {
           return {
             content: [
               { type: "text" as const, text: "수정할 항목이 없습니다." },
@@ -255,13 +257,28 @@ export function registerProblemTools(server: McpServer): void {
           };
         }
 
-        const payload = buildJsonApiPayload("problems", attrs, problem_id);
         try {
-          const response = await client.updateProblem(
-            problem_id,
-            payload as Record<string, unknown>,
-          );
-          const problem = extractSingle(response);
+          let problem: Record<string, unknown> = {};
+          if (Object.keys(attrs).length) {
+            const payload = buildJsonApiPayload("problems", attrs, problem_id);
+            const response = await client.updateProblem(
+              problem_id,
+              payload as Record<string, unknown>,
+            );
+            problem = extractSingle(response);
+          } else {
+            // 기본 필드 변경 없이 sample_answer/descriptive_criterium만 수정하는 경우
+            const probResp = await client.request(
+              "GET",
+              `/api/v1/problems/${problem_id}`,
+            );
+            const probData =
+              (probResp.data as Record<string, unknown>) || {};
+            problem = {
+              id: String(probData.id || problem_id),
+              title: (probData.attributes as Record<string, unknown>)?.title,
+            };
+          }
 
           // AIDEV-NOTE: update 시에도 ProblemAnswer/DescriptiveCriterium을 upsert한다.
           // 기존 리소스가 있으면 update, 없으면 create.

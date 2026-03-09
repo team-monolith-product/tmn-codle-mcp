@@ -110,7 +110,7 @@ export async function setup(): Promise<void> {
   // subscription_grant factory의 기본 trait(:active)이 start_at/end_at을 넓게 잡아 항상 active이다.
   const tenantNumber = requireEnv("E2E_TENANT_NUMBER");
   const classRailsUrl = `https://class.${tenantNumber}.e2e.codle.io`;
-  await fetch(`${classRailsUrl}/e2e/factory/create`, {
+  const grantRes = await fetch(`${classRailsUrl}/e2e/factory/create`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -118,6 +118,11 @@ export async function setup(): Promise<void> {
       attributes: { user_id: userId },
     }),
   });
+  if (!grantRes.ok) {
+    throw new Error(
+      `subscription_grant creation failed: ${grantRes.status} ${await grantRes.text()}`,
+    );
+  }
 
   writeFileSync(
     TMP_CONFIG,
