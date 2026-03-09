@@ -121,7 +121,7 @@ export function registerActivityTools(server: McpServer): void {
           };
         }
 
-        if (activity_type === "EntryActivity" && !entry_category) {
+        if (resolvedType === "EntryActivity" && !entry_category) {
           return {
             content: [
               {

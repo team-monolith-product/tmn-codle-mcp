@@ -286,6 +286,18 @@ describe("manage_activities create", () => {
     expect(mockClient.request).not.toHaveBeenCalled();
   });
 
+  it("returns error when entry_category omitted for short Entry type", async () => {
+    const result = await toolHandlers.manage_activities({
+      action: "create",
+      material_id: "1",
+      name: "엔트리축약",
+      activity_type: "Entry",
+    });
+
+    expect(getText(result)).toContain("entry_category");
+    expect(mockClient.request).not.toHaveBeenCalled();
+  });
+
   it("activitiable no id in response", async () => {
     mockClient.request.mockResolvedValue({
       data: { type: "quiz_activity", attributes: {} },
