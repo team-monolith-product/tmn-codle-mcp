@@ -127,7 +127,9 @@ export function parseNdjson(
   // ReadMcpResourceTool 등 Claude Code 플랫폼 도구의 에러(예: server 파라미터 누락)는
   // 우리 코드와 무관하므로 제외한다.
   const codleToolUseIds = new Set(
-    toolCalls.filter((tc) => tc.name.startsWith("mcp__codle__")).map((tc) => tc.id),
+    toolCalls
+      .filter((tc) => tc.name.startsWith("mcp__codle__"))
+      .map((tc) => tc.id),
   );
   const errors = toolResults
     .filter((r) => r.isError && codleToolUseIds.has(r.toolUseId))
