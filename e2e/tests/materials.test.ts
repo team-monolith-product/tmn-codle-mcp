@@ -7,7 +7,7 @@ describe("search_materials", () => {
     const uniqueName = `e2e-mine-${Date.now()}`;
     await createMaterial(factory, { name: uniqueName });
 
-    const result = await claude.run("내 자료 목록을 보여줘.");
+    const result = await claude.run(`내 자료 중 "${uniqueName}"을 검색해줘.`);
 
     expect(result.errors).toHaveLength(0);
     expect(result.toolNames).toContain("mcp__codle__search_materials");
