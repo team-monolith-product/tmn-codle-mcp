@@ -102,11 +102,12 @@ export function registerActivitiableTools(server: McpServer): void {
           };
         }
 
-        // Board는 activity_id로 직접 조회 (boards API의 filter)
+        // Board는 폴리모픽 boardable로 조회
         let boardId: string;
         try {
           const boardsResp = await client.listBoards({
-            "filter[activity_id]": activity_id,
+            "filter[boardable_type]": "Activity",
+            "filter[boardable_id]": activity_id,
           });
           const boards = extractList(boardsResp);
           if (!boards.length) {

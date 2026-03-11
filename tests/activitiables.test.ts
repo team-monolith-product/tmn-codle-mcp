@@ -111,6 +111,10 @@ describe("update_activitiable — BoardActivity", () => {
       content: "안내문",
     });
     expect(getText(result)).toContain("연결된 Board가 없습니다");
+    expect(mockClient.listBoards).toHaveBeenCalledWith({
+      "filter[boardable_type]": "Activity",
+      "filter[boardable_id]": "act-1",
+    });
   });
 
   it("content로 보드 업데이트 성공", async () => {
