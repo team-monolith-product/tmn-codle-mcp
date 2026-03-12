@@ -4,6 +4,7 @@ import { registerMaterialTools } from "./materials.js";
 import { registerActivityTools } from "./activities.js";
 import { registerProblemTools } from "./problems.js";
 import { registerActivitiableTools } from "./activitiables.js";
+import { registerHtmlActivityPageTools } from "./htmlActivityPages.js";
 
 export function registerAllTools(server: McpServer): void {
   registerTagTools(server);
@@ -11,4 +12,5 @@ export function registerAllTools(server: McpServer): void {
   registerActivityTools(server);
   registerProblemTools(server);
   registerActivitiableTools(server);
+  registerHtmlActivityPageTools(server);
 }
