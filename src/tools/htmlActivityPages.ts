@@ -156,8 +156,7 @@ export function registerHtmlActivityPageTools(server: McpServer): void {
       // Match desired pages to existing pages by array order
       for (let i = 0; i < pages.length; i++) {
         const desired = pages[i];
-        const desiredMethod =
-          desired.progress_calculation_method ?? "time";
+        const desiredMethod = desired.progress_calculation_method ?? "time";
         const desiredSeconds =
           desired.completion_seconds ?? (desiredMethod === "time" ? 3 : null);
 

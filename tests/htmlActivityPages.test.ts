@@ -69,8 +69,7 @@ function mockExistingPages(
       position: p.position,
       width: p.width ?? null,
       height: p.height ?? null,
-      progress_calculation_method:
-        p.progress_calculation_method ?? "time",
+      progress_calculation_method: p.progress_calculation_method ?? "time",
       completion_seconds: p.completion_seconds ?? 3,
     },
   }));
@@ -172,9 +171,7 @@ describe("manage_html_activity_pages — 페이지 생성", () => {
     expect(
       payload.data_to_create[0].attributes.progress_calculation_method,
     ).toBe("time");
-    expect(
-      payload.data_to_create[0].attributes.completion_seconds,
-    ).toBe(3);
+    expect(payload.data_to_create[0].attributes.completion_seconds).toBe(3);
   });
 
   it("progress_calculation_method가 no_calculation이면 completion_seconds는 null", async () => {
@@ -184,16 +181,19 @@ describe("manage_html_activity_pages — 페이지 생성", () => {
 
     await toolHandlers.manage_html_activity_pages({
       activity_id: "act-1",
-      pages: [{ url: "https://example.com/page1", progress_calculation_method: "no_calculation" }],
+      pages: [
+        {
+          url: "https://example.com/page1",
+          progress_calculation_method: "no_calculation",
+        },
+      ],
     });
 
     const payload = mockClient.request.mock.calls[2][2].json;
     expect(
       payload.data_to_create[0].attributes.progress_calculation_method,
     ).toBe("no_calculation");
-    expect(
-      payload.data_to_create[0].attributes.completion_seconds,
-    ).toBeNull();
+    expect(payload.data_to_create[0].attributes.completion_seconds).toBeNull();
   });
 });
 
