@@ -97,8 +97,8 @@ export function registerHtmlActivityPageTools(server: McpServer): void {
             height: z.number().optional().describe("높이 (px)"),
             progress_calculation_method: z
               .enum(["time", "no_calculation"])
-              .optional()
-              .describe("진행도 계산 방식 (기본: no_calculation)"),
+              .default("time")
+              .describe("진행도 계산 방식"),
             completion_seconds: z
               .number()
               .optional()
@@ -157,7 +157,9 @@ export function registerHtmlActivityPageTools(server: McpServer): void {
       for (let i = 0; i < pages.length; i++) {
         const desired = pages[i];
         const desiredMethod =
-          desired.progress_calculation_method ?? "no_calculation";
+          desired.progress_calculation_method ?? "time";
+        const desiredSeconds =
+          desired.completion_seconds ?? (desiredMethod === "time" ? 3 : null);
 
         if (i < existingPages.length) {
           // Update existing page if any attribute differs
@@ -175,11 +177,8 @@ export function registerHtmlActivityPageTools(server: McpServer): void {
             attrs.height = desired.height;
           if (existing.progress_calculation_method !== desiredMethod)
             attrs.progress_calculation_method = desiredMethod;
-          if (
-            desired.completion_seconds !== undefined &&
-            existing.completion_seconds !== desired.completion_seconds
-          )
-            attrs.completion_seconds = desired.completion_seconds;
+          if (existing.completion_seconds !== desiredSeconds)
+            attrs.completion_seconds = desiredSeconds;
 
           if (Object.keys(attrs).length) {
             dataToUpdate.push({ id: existing.id, attributes: attrs });
@@ -191,11 +190,10 @@ export function registerHtmlActivityPageTools(server: McpServer): void {
             url: desired.url,
             position: i,
             progress_calculation_method: desiredMethod,
+            completion_seconds: desiredSeconds,
           };
           if (desired.width !== undefined) attrs.width = desired.width;
           if (desired.height !== undefined) attrs.height = desired.height;
-          if (desired.completion_seconds !== undefined)
-            attrs.completion_seconds = desired.completion_seconds;
 
           dataToCreate.push({ attributes: attrs });
         }
