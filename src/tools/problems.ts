@@ -2,12 +2,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { CodleAPIError } from "../api/errors.js";
 import { client } from "../api/client.js";
-import { buildJsonApiPayload, extractSingle } from "../api/models.js";
 import {
-  buildSelectBlock,
-  buildInputBlock,
-  convertFromMarkdown,
-} from "../lexical/index.js";
+  createProblem,
+  updateProblem,
+  deleteProblem,
+  syncProblemCollection,
+} from "../services/problem.service.js";
 
 export function registerProblemTools(server: McpServer): void {
   server.tool(
@@ -105,105 +105,21 @@ export function registerProblemTools(server: McpServer): void {
             ],
           };
         }
-
-        let blocks: unknown | undefined;
-        if (choices?.length) {
-          blocks = buildSelectBlock(choices, content);
-        } else if (solutions?.length) {
-          blocks = buildInputBlock(solutions, input_options, content);
-        } else if (content !== undefined) {
-          // AIDEV-NOTE: Rails Problem 모델은 모든 타입에서 blocks presence를 요구한다.
-          // sheet/descriptive 타입은 choices/solutions가 없으므로 content를 Lexical로 변환하여 blocks에 넣는다.
-          blocks = convertFromMarkdown(content);
-        }
-
-        const attrs: Record<string, unknown> = {
-          title,
-          problem_type,
-        };
-        if (content !== undefined) attrs.content = content;
-        if (blocks !== undefined) attrs.blocks = blocks;
-        if (tag_ids?.length) attrs.tag_ids = tag_ids;
-        if (is_public !== undefined) attrs.is_public = is_public;
-        // AIDEV-NOTE: commentary는 프론트엔드에서 Lexical JSON으로 렌더링하므로 문자열을 변환해야 한다.
-        if (commentary !== undefined)
-          attrs.commentary = convertFromMarkdown(commentary);
-
-        const payload = buildJsonApiPayload("problems", attrs);
         try {
-          const response = await client.createProblem(
-            payload as Record<string, unknown>,
-          );
-          const problem = extractSingle(response);
-          const problemId = String(problem.id);
-
-          const warnings: string[] = [];
-          if (sample_answer !== undefined) {
-            try {
-              await client.doManyProblemAnswers({
-                data_to_create: [
-                  {
-                    attributes: {
-                      code: sample_answer,
-                      problem_id: problemId,
-                    },
-                  },
-                ],
-                data_to_update: [],
-                data_to_destroy: [],
-              });
-            } catch (e) {
-              warnings.push(
-                `모범답안 생성 실패: ${
-                  e instanceof CodleAPIError ? e.detail : String(e)
-                }`,
-              );
-            }
-          }
-          if (descriptive_criterium) {
-            try {
-              const dcAttrs: Record<string, unknown> = {
-                problem_id: problemId,
-              };
-              if (descriptive_criterium.input_size !== undefined)
-                dcAttrs.input_size = descriptive_criterium.input_size;
-              if (descriptive_criterium.placeholder !== undefined)
-                dcAttrs.placeholder = descriptive_criterium.placeholder;
-              if (descriptive_criterium.scoring_element !== undefined)
-                dcAttrs.scoring_element = descriptive_criterium.scoring_element;
-              // AIDEV-NOTE: criteria 배열은 상/중/하 순서. API는 high/mid/low_content, high/mid/low_ratio 개별 필드.
-              const [high, mid, low] = descriptive_criterium.criteria ?? [];
-              if (high) {
-                dcAttrs.high_content = high.content;
-                dcAttrs.high_ratio = high.ratio;
-              }
-              if (mid) {
-                dcAttrs.mid_content = mid.content;
-                dcAttrs.mid_ratio = mid.ratio;
-              }
-              if (low) {
-                dcAttrs.low_content = low.content;
-                dcAttrs.low_ratio = low.ratio;
-              }
-              await client.doManyDescriptiveCriteria({
-                data_to_create: [{ attributes: dcAttrs }],
-                data_to_update: [],
-                data_to_destroy: [],
-              });
-            } catch (e) {
-              warnings.push(
-                `채점기준 생성 실패: ${
-                  e instanceof CodleAPIError ? e.detail : String(e)
-                }`,
-              );
-            }
-          }
-
-          let resultText = `문제 생성 완료: [${problemId}] ${problem.title}`;
-          if (warnings.length) resultText += `\n⚠️ ${warnings.join("\n⚠️ ")}`;
-          return {
-            content: [{ type: "text" as const, text: resultText }],
-          };
+          const result = await createProblem(client, {
+            title,
+            problem_type,
+            content,
+            choices,
+            solutions,
+            input_options,
+            tag_ids,
+            is_public,
+            commentary,
+            sample_answer,
+            descriptive_criterium,
+          });
+          return { content: [{ type: "text" as const, text: result.text }] };
         } catch (e) {
           if (e instanceof CodleAPIError) {
             return {
@@ -227,168 +143,21 @@ export function registerProblemTools(server: McpServer): void {
             ],
           };
         }
-
-        let blocks: unknown | undefined;
-        if (choices?.length) {
-          blocks = buildSelectBlock(choices, content);
-        } else if (solutions?.length) {
-          blocks = buildInputBlock(solutions, input_options, content);
-        } else if (content !== undefined) {
-          blocks = convertFromMarkdown(content);
-        }
-
-        const attrs: Record<string, unknown> = {};
-        if (title !== undefined) attrs.title = title;
-        if (content !== undefined) attrs.content = content;
-        if (blocks !== undefined) attrs.blocks = blocks;
-        if (tag_ids !== undefined) attrs.tag_ids = tag_ids;
-        if (is_public !== undefined) attrs.is_public = is_public;
-        // AIDEV-NOTE: commentary는 프론트엔드에서 Lexical JSON으로 렌더링하므로 문자열을 변환해야 한다.
-        if (commentary !== undefined)
-          attrs.commentary = convertFromMarkdown(commentary);
-
-        const hasSideUpdates =
-          sample_answer !== undefined || descriptive_criterium !== undefined;
-        if (!Object.keys(attrs).length && !hasSideUpdates) {
-          return {
-            content: [
-              { type: "text" as const, text: "수정할 항목이 없습니다." },
-            ],
-          };
-        }
-
         try {
-          let problem: Record<string, unknown> = {};
-          if (Object.keys(attrs).length) {
-            const payload = buildJsonApiPayload("problems", attrs, problem_id);
-            const response = await client.updateProblem(
-              problem_id,
-              payload as Record<string, unknown>,
-            );
-            problem = extractSingle(response);
-          } else {
-            // 기본 필드 변경 없이 sample_answer/descriptive_criterium만 수정하는 경우
-            const probResp = await client.request(
-              "GET",
-              `/api/v1/problems/${problem_id}`,
-            );
-            const probData = (probResp.data as Record<string, unknown>) || {};
-            problem = {
-              id: String(probData.id || problem_id),
-              title: (probData.attributes as Record<string, unknown>)?.title,
-            };
-          }
-
-          // AIDEV-NOTE: update 시에도 ProblemAnswer/DescriptiveCriterium을 upsert한다.
-          // 기존 리소스가 있으면 update, 없으면 create.
-          const warnings: string[] = [];
-          if (sample_answer !== undefined) {
-            try {
-              const paResp = await client.request(
-                "GET",
-                "/api/v1/problem_answers",
-                { params: { "filter[problem_id]": problem_id } },
-              );
-              const paList =
-                (paResp.data as Array<Record<string, unknown>> | undefined) ||
-                [];
-              if (paList.length > 0) {
-                await client.doManyProblemAnswers({
-                  data_to_create: [],
-                  data_to_update: [
-                    {
-                      id: String(paList[0].id),
-                      attributes: { code: sample_answer },
-                    },
-                  ],
-                  data_to_destroy: [],
-                });
-              } else {
-                await client.doManyProblemAnswers({
-                  data_to_create: [
-                    {
-                      attributes: {
-                        code: sample_answer,
-                        problem_id,
-                      },
-                    },
-                  ],
-                  data_to_update: [],
-                  data_to_destroy: [],
-                });
-              }
-            } catch (e) {
-              warnings.push(
-                `모범답안 수정 실패: ${
-                  e instanceof CodleAPIError ? e.detail : String(e)
-                }`,
-              );
-            }
-          }
-          if (descriptive_criterium) {
-            try {
-              const probResp = await client.request(
-                "GET",
-                `/api/v1/problems/${problem_id}`,
-                { params: { include: "descriptive_criterium" } },
-              );
-              const included =
-                ((probResp as Record<string, unknown>).included as Array<
-                  Record<string, unknown>
-                >) || [];
-              const existingDC = included.find(
-                (i) => i.type === "descriptive_criterium",
-              );
-              const dcAttrs: Record<string, unknown> = {};
-              if (descriptive_criterium.input_size !== undefined)
-                dcAttrs.input_size = descriptive_criterium.input_size;
-              if (descriptive_criterium.placeholder !== undefined)
-                dcAttrs.placeholder = descriptive_criterium.placeholder;
-              if (descriptive_criterium.scoring_element !== undefined)
-                dcAttrs.scoring_element = descriptive_criterium.scoring_element;
-              const [high, mid, low] = descriptive_criterium.criteria ?? [];
-              if (high) {
-                dcAttrs.high_content = high.content;
-                dcAttrs.high_ratio = high.ratio;
-              }
-              if (mid) {
-                dcAttrs.mid_content = mid.content;
-                dcAttrs.mid_ratio = mid.ratio;
-              }
-              if (low) {
-                dcAttrs.low_content = low.content;
-                dcAttrs.low_ratio = low.ratio;
-              }
-              if (existingDC) {
-                await client.doManyDescriptiveCriteria({
-                  data_to_create: [],
-                  data_to_update: [
-                    { id: String(existingDC.id), attributes: dcAttrs },
-                  ],
-                  data_to_destroy: [],
-                });
-              } else {
-                dcAttrs.problem_id = problem_id;
-                await client.doManyDescriptiveCriteria({
-                  data_to_create: [{ attributes: dcAttrs }],
-                  data_to_update: [],
-                  data_to_destroy: [],
-                });
-              }
-            } catch (e) {
-              warnings.push(
-                `채점기준 수정 실패: ${
-                  e instanceof CodleAPIError ? e.detail : String(e)
-                }`,
-              );
-            }
-          }
-
-          let resultText = `문제 수정 완료: [${problem.id}] ${problem.title}`;
-          if (warnings.length) resultText += `\n⚠️ ${warnings.join("\n⚠️ ")}`;
-          return {
-            content: [{ type: "text" as const, text: resultText }],
-          };
+          const result = await updateProblem(client, {
+            problem_id,
+            title,
+            content,
+            choices,
+            solutions,
+            input_options,
+            tag_ids,
+            is_public,
+            commentary,
+            sample_answer,
+            descriptive_criterium,
+          });
+          return { content: [{ type: "text" as const, text: result.text }] };
         } catch (e) {
           if (e instanceof CodleAPIError) {
             return {
@@ -413,7 +182,8 @@ export function registerProblemTools(server: McpServer): void {
           };
         }
         try {
-          await client.deleteProblem(problem_id);
+          const result = await deleteProblem(client, problem_id);
+          return { content: [{ type: "text" as const, text: result.text }] };
         } catch (e) {
           if (e instanceof CodleAPIError) {
             return {
@@ -424,14 +194,6 @@ export function registerProblemTools(server: McpServer): void {
           }
           throw e;
         }
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `문제 삭제 완료: ${problem_id}`,
-            },
-          ],
-        };
       }
 
       return {
@@ -463,162 +225,25 @@ export function registerProblemTools(server: McpServer): void {
         .describe("최종 문제 목록 (순서대로). 빈 배열이면 전체 제거."),
     },
     async ({ activity_id, problems }) => {
-      let state: ActivityPcpState;
       try {
-        state = await getActivityPcpState(activity_id);
-      } catch (e) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text:
-                e instanceof Error ? e.message : `활동 조회 실패: ${String(e)}`,
-            },
-          ],
-        };
-      }
-
-      const { pcId, existingPcps } = state;
-
-      // Build lookup of existing PCPs by problem_id
-      const existingByProblemId = new Map(
-        existingPcps.map((pcp) => [pcp.problemId, pcp]),
-      );
-
-      const dataToCreate: Array<Record<string, unknown>> = [];
-      const dataToUpdate: Array<Record<string, unknown>> = [];
-      const dataToDestroy: Array<Record<string, unknown>> = [];
-
-      const desiredSet = new Set(problems.map((p) => p.id));
-
-      for (let i = 0; i < problems.length; i++) {
-        const { id: problemId, point } = problems[i];
-        const desiredPoint = point ?? 1;
-        const existing = existingByProblemId.get(problemId);
-        if (existing) {
-          const attrs: Record<string, unknown> = {};
-          if (existing.position !== i) attrs.position = i;
-          if (existing.point !== desiredPoint) attrs.point = desiredPoint;
-          if (Object.keys(attrs).length) {
-            dataToUpdate.push({ id: existing.id, attributes: attrs });
-          }
-        } else {
-          dataToCreate.push({
-            attributes: {
-              problem_collection_id: pcId,
-              problem_id: problemId,
-              position: i,
-              point: desiredPoint,
-            },
-          });
-        }
-      }
-
-      // Remove PCPs not in desired set
-      for (const pcp of existingPcps) {
-        if (!desiredSet.has(pcp.problemId)) {
-          dataToDestroy.push({ id: pcp.id });
-        }
-      }
-
-      // Skip API call if nothing to do
-      if (
-        !dataToCreate.length &&
-        !dataToUpdate.length &&
-        !dataToDestroy.length
-      ) {
-        return {
-          content: [{ type: "text" as const, text: "변경 사항 없음." }],
-        };
-      }
-
-      try {
-        await client.doManyPCP({
-          data_to_create: dataToCreate,
-          data_to_update: dataToUpdate,
-          data_to_destroy: dataToDestroy,
+        const result = await syncProblemCollection(client, {
+          activity_id,
+          problems,
         });
+        return { content: [{ type: "text" as const, text: result.text }] };
       } catch (e) {
         if (e instanceof CodleAPIError) {
           return {
             content: [
-              {
-                type: "text" as const,
-                text: `PCP 설정 실패: ${e.detail}`,
-              },
+              { type: "text" as const, text: `PCP 설정 실패: ${e.detail}` },
             ],
           };
         }
+        if (e instanceof Error) {
+          return { content: [{ type: "text" as const, text: e.message }] };
+        }
         throw e;
       }
-
-      const parts: string[] = [];
-      if (dataToCreate.length) parts.push(`추가 ${dataToCreate.length}`);
-      if (dataToUpdate.length) parts.push(`변경 ${dataToUpdate.length}`);
-      if (dataToDestroy.length) parts.push(`제거 ${dataToDestroy.length}`);
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `PCP 설정 완료 (${parts.join(", ")}). 최종 문제 수: ${
-              problems.length
-            }`,
-          },
-        ],
-      };
     },
   );
-}
-
-// AIDEV-NOTE: Activity → ProblemCollection ID + 기존 PCP 목록을 조회하는 헬퍼.
-// serializer가 lazy_load_data: true이므로 include 파라미터가 있어야 relationship data가 채워진다.
-// controller의 jsonapi_include 화이트리스트는 "problem_collections.pcps"이므로 정확히 맞춰야 한다.
-interface ExistingPcp {
-  id: string;
-  problemId: string;
-  position: number;
-  point: number;
-}
-
-interface ActivityPcpState {
-  pcId: string;
-  existingPcps: ExistingPcp[];
-}
-
-async function getActivityPcpState(
-  activityId: string,
-): Promise<ActivityPcpState> {
-  const actResp = await client.request(
-    "GET",
-    `/api/v1/activities/${activityId}`,
-    { params: { include: "problem_collections.pcps" } },
-  );
-  const actData = (actResp.data as Record<string, unknown>) || {};
-  const rels = (actData.relationships as Record<string, unknown>) || {};
-  const pcRel = (rels.problem_collections as Record<string, unknown>) || {};
-  const pcRelData = pcRel.data as Array<Record<string, unknown>> | undefined;
-  if (!pcRelData?.length) {
-    throw new Error(
-      `활동 ${activityId}에 연결된 ProblemCollection이 없습니다.`,
-    );
-  }
-  const pcId = String(pcRelData[0].id);
-
-  const included =
-    ((actResp as Record<string, unknown>).included as Array<
-      Record<string, unknown>
-    >) || [];
-  const existingPcps: ExistingPcp[] = included
-    .filter((i) => i.type === "problem_collections_problem")
-    .map((i) => {
-      const attrs = (i.attributes as Record<string, unknown>) || {};
-      return {
-        id: String(i.id),
-        problemId: String(attrs.problem_id),
-        position: Number(attrs.position ?? 0),
-        point: Number(attrs.point ?? 1),
-      };
-    });
-
-  return { pcId, existingPcps };
 }

@@ -2,52 +2,41 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { makeJsonApiResponse, makeJsonApiListResponse } from "./helpers.js";
 
 vi.mock("../src/api/client.js", () => {
-  const mockClient = {
-    userId: "test-user-123",
-    ensureAuth: vi.fn(),
+  const MockCodleClient = vi.fn().mockImplementation(() => ({
     getMe: vi.fn(),
     listMaterials: vi.fn(),
     getMaterial: vi.fn(),
     createMaterial: vi.fn(),
     updateMaterial: vi.fn(),
     duplicateMaterial: vi.fn(),
-  };
-  return { client: mockClient, CodleClient: vi.fn() };
+  }));
+  return { CodleClient: MockCodleClient };
 });
 
-const { client } = await import("../src/api/client.js");
+const { CodleClient } = await import("../src/api/client.js");
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerMaterialTools } from "../src/tools/materials.js";
+import {
+  searchMaterials,
+  getMaterialDetail,
+  createMaterial,
+  updateMaterial,
+  duplicateMaterial,
+} from "../src/services/material.service.js";
 
-const toolHandlers: Record<string, Function> = {};
-const mockServer = {
-  tool: (name: string, _desc: string, _schema: unknown, handler: Function) => {
-    toolHandlers[name] = handler;
-  },
-} as unknown as McpServer;
-registerMaterialTools(mockServer);
-
-const mockClient = client as unknown as Record<
-  string,
-  ReturnType<typeof vi.fn>
->;
-
-function getText(result: {
-  content: Array<{ type: string; text: string }>;
-}): string {
-  return result.content[0].text;
-}
+let mockClient: Record<string, ReturnType<typeof vi.fn>>;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  (client as Record<string, unknown>).userId = "test-user-123";
+  mockClient = new (CodleClient as unknown as new () => Record<
+    string,
+    ReturnType<typeof vi.fn>
+  >)();
   mockClient.getMe.mockResolvedValue({
     data: { id: "test-user-123", type: "user", attributes: {} },
   });
 });
 
-describe("search_materials", () => {
+describe("searchMaterials", () => {
   it("basic search (my materials)", async () => {
     mockClient.listMaterials.mockResolvedValue(
       makeJsonApiListResponse("material", [
@@ -55,12 +44,12 @@ describe("search_materials", () => {
       ]),
     );
 
-    const result = await toolHandlers.search_materials({
+    const result = await searchMaterials(mockClient as any, {
       query: "테스트",
       page_size: 20,
       page_number: 1,
     });
-    expect(getText(result)).toContain("테스트 자료");
+    expect(result.text).toContain("테스트 자료");
 
     expect(mockClient.getMe).toHaveBeenCalled();
     const callParams = mockClient.listMaterials.mock.calls[0][0];
@@ -76,7 +65,7 @@ describe("search_materials", () => {
       ]),
     );
 
-    await toolHandlers.search_materials({
+    await searchMaterials(mockClient as any, {
       is_public: true,
       page_size: 20,
       page_number: 1,
@@ -90,16 +79,16 @@ describe("search_materials", () => {
 
   it("empty results", async () => {
     mockClient.listMaterials.mockResolvedValue({ data: [] });
-    const result = await toolHandlers.search_materials({
+    const result = await searchMaterials(mockClient as any, {
       page_size: 20,
       page_number: 1,
     });
-    expect(getText(result)).toContain("검색 결과가 없습니다");
+    expect(result.text).toContain("검색 결과가 없습니다");
   });
 
   it("tag_ids filter", async () => {
     mockClient.listMaterials.mockResolvedValue({ data: [] });
-    await toolHandlers.search_materials({
+    await searchMaterials(mockClient as any, {
       tag_ids: ["10", "20"],
       page_size: 20,
       page_number: 1,
@@ -115,12 +104,12 @@ describe("search_materials", () => {
       ]),
     );
 
-    const result = await toolHandlers.search_materials({
+    const result = await searchMaterials(mockClient as any, {
       is_public: false,
       page_size: 20,
       page_number: 1,
     });
-    expect(getText(result)).toContain("내 자료");
+    expect(result.text).toContain("내 자료");
 
     expect(mockClient.getMe).toHaveBeenCalledOnce();
     const callParams = mockClient.listMaterials.mock.calls[0][0];
@@ -129,7 +118,7 @@ describe("search_materials", () => {
   });
 });
 
-describe("get_material_detail", () => {
+describe("getMaterialDetail", () => {
   it("basic with activities and transitions", async () => {
     mockClient.getMaterial.mockResolvedValue({
       data: {
@@ -179,15 +168,12 @@ describe("get_material_detail", () => {
       ],
     });
 
-    const result = await toolHandlers.get_material_detail({
-      material_id: "1",
-    });
-    const text = getText(result);
-    expect(text).toContain("테스트 자료");
-    expect(text).toContain("활동1");
-    expect(text).toContain("활동2");
-    expect(text).toContain("AI (category)");
-    expect(text).toContain("코스 흐름");
+    const result = await getMaterialDetail(mockClient as any, "1");
+    expect(result.text).toContain("테스트 자료");
+    expect(result.text).toContain("활동1");
+    expect(result.text).toContain("활동2");
+    expect(result.text).toContain("AI (category)");
+    expect(result.text).toContain("코스 흐름");
   });
 
   it("no activities", async () => {
@@ -200,25 +186,22 @@ describe("get_material_detail", () => {
       included: [],
     });
 
-    const result = await toolHandlers.get_material_detail({
-      material_id: "1",
-    });
-    expect(getText(result)).toContain("활동: 없음");
+    const result = await getMaterialDetail(mockClient as any, "1");
+    expect(result.text).toContain("활동: 없음");
   });
 });
 
-describe("manage_materials", () => {
+describe("createMaterial", () => {
   it("create", async () => {
     mockClient.createMaterial.mockResolvedValue(
       makeJsonApiResponse("material", "1", { name: "새 자료" }),
     );
 
-    const result = await toolHandlers.manage_materials({
-      action: "create",
+    const result = await createMaterial(mockClient as any, {
       name: "새 자료",
     });
-    expect(getText(result)).toContain("자료 생성 완료");
-    expect(getText(result)).toContain("새 자료");
+    expect(result.text).toContain("자료 생성 완료");
+    expect(result.text).toContain("새 자료");
   });
 
   it("create with body (markdown → Lexical 변환)", async () => {
@@ -226,42 +209,34 @@ describe("manage_materials", () => {
       makeJsonApiResponse("material", "1", { name: "본문 자료" }),
     );
 
-    const result = await toolHandlers.manage_materials({
-      action: "create",
+    const result = await createMaterial(mockClient as any, {
       name: "본문 자료",
       body: "본문 내용",
     });
-    expect(getText(result)).toContain("자료 생성 완료");
+    expect(result.text).toContain("자료 생성 완료");
 
     const payload = mockClient.createMaterial.mock.calls[0][0];
     const body = payload.data.attributes.body;
     expect(body.root).toBeDefined();
     expect(body.root.type).toBe("root");
-    // Lexical로 변환되어 paragraph > text 구조가 됨
     const paragraph = body.root.children[0];
     expect(paragraph.type).toBe("paragraph");
     const textNode = paragraph.children[0];
     expect(textNode.text).toBe("본문 내용");
   });
+});
 
-  it("create without name", async () => {
-    const result = await toolHandlers.manage_materials({
-      action: "create",
-    });
-    expect(getText(result)).toContain("name은 필수");
-  });
-
+describe("updateMaterial", () => {
   it("update", async () => {
     mockClient.updateMaterial.mockResolvedValue(
       makeJsonApiResponse("material", "1", { name: "수정됨" }),
     );
 
-    const result = await toolHandlers.manage_materials({
-      action: "update",
+    const result = await updateMaterial(mockClient as any, {
       material_id: "1",
       name: "수정됨",
     });
-    expect(getText(result)).toContain("자료 수정 완료");
+    expect(result.text).toContain("자료 수정 완료");
   });
 
   it("update with body (markdown → Lexical 변환)", async () => {
@@ -269,12 +244,11 @@ describe("manage_materials", () => {
       makeJsonApiResponse("material", "1", { name: "기존 자료" }),
     );
 
-    const result = await toolHandlers.manage_materials({
-      action: "update",
+    const result = await updateMaterial(mockClient as any, {
       material_id: "1",
       body: "수정된 본문",
     });
-    expect(getText(result)).toContain("자료 수정 완료");
+    expect(result.text).toContain("자료 수정 완료");
 
     const payload = mockClient.updateMaterial.mock.calls[0][1];
     const body = payload.data.attributes.body;
@@ -282,46 +256,22 @@ describe("manage_materials", () => {
     expect(body.root.type).toBe("root");
   });
 
-  it("update without material_id", async () => {
-    const result = await toolHandlers.manage_materials({
-      action: "update",
-      name: "수정됨",
-    });
-    expect(getText(result)).toContain("material_id는 필수");
-  });
-
   it("update no changes", async () => {
-    const result = await toolHandlers.manage_materials({
-      action: "update",
+    const result = await updateMaterial(mockClient as any, {
       material_id: "1",
     });
-    expect(getText(result)).toContain("수정할 항목이 없습니다");
+    expect(result.text).toContain("수정할 항목이 없습니다");
   });
+});
 
+describe("duplicateMaterial", () => {
   it("duplicate", async () => {
     mockClient.duplicateMaterial.mockResolvedValue(
       makeJsonApiResponse("material", "2", { name: "복제됨" }),
     );
 
-    const result = await toolHandlers.manage_materials({
-      action: "duplicate",
-      material_id: "1",
-    });
-    expect(getText(result)).toContain("자료 복제 완료");
-    expect(getText(result)).toContain("원본: 1");
-  });
-
-  it("duplicate without material_id", async () => {
-    const result = await toolHandlers.manage_materials({
-      action: "duplicate",
-    });
-    expect(getText(result)).toContain("material_id는 필수");
-  });
-
-  it("invalid action", async () => {
-    const result = await toolHandlers.manage_materials({
-      action: "delete",
-    });
-    expect(getText(result)).toContain("유효하지 않은 action");
+    const result = await duplicateMaterial(mockClient as any, "1");
+    expect(result.text).toContain("자료 복제 완료");
+    expect(result.text).toContain("원본: 1");
   });
 });

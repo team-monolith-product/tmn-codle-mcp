@@ -50,24 +50,24 @@ describe("CodleClient", () => {
     vi.unstubAllGlobals();
   });
 
-  it("ensureAuth throws when no token in context", async () => {
-    // context에 토큰이 없으면 (AsyncLocalStorage 밖) 에러
-    const { CodleClient } = await import("../src/api/client.js");
-    const client = new CodleClient();
-
-    await expect(client.ensureAuth()).rejects.toThrow(
-      "Authorization 헤더에 Bearer 토큰이 필요합니다.",
-    );
-  });
-
-  it("ensureAuth succeeds with token in context", async () => {
-    const { requestContext } = await import("../src/context.js");
-    const { CodleClient } = await import("../src/api/client.js");
-    const client = new CodleClient();
-
-    await requestContext.run({ accessToken: "test-token" }, async () => {
-      await expect(client.ensureAuth()).resolves.toBeUndefined();
+  it("request sends auth header", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => '{"data": {"id": "1"}}',
+      headers: new Headers({ "content-type": "application/vnd.api+json" }),
     });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { CodleClient } = await import("../src/api/client.js");
+    const client = new CodleClient("test-token-123");
+
+    await client.request("GET", "/api/v1/materials");
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const callArgs = mockFetch.mock.calls[0];
+    const headers = callArgs[1].headers;
+    expect(headers.Authorization).toBe("Bearer test-token-123");
   });
 
   it("request does not retry on 401", async () => {
@@ -83,17 +83,13 @@ describe("CodleClient", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const { requestContext } = await import("../src/context.js");
     const { CodleClient } = await import("../src/api/client.js");
-    const client = new CodleClient();
+    const client = new CodleClient("expired-token");
 
-    await requestContext.run({ accessToken: "expired-token" }, async () => {
-      await expect(
-        client.request("GET", "/api/v1/materials"),
-      ).rejects.toThrow();
-    });
+    await expect(
+      client.request("GET", "/api/v1/materials"),
+    ).rejects.toThrow();
 
-    // Should only call the materials endpoint once (no retry)
     expect(callCount).toBe(1);
   });
 });

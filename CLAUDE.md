@@ -1,11 +1,35 @@
-# Codle MCP Server
+# Codle MCP + CLI
+
+## 아키텍처
+
+MCP 서버와 CLI가 공존하는 구조. 비즈니스 로직은 services/에 집중하고, tools/와 commands/는 thin wrapper.
+
+```
+src/
+├── services/       # 비즈니스 로직 (공유)
+├── tools/          # MCP tool wrappers → services 호출
+├── commands/       # oclif CLI commands → services 호출
+├── api/            # CodleClient (이중 모드 인증)
+├── index.ts        # MCP HTTP 서버 엔트리포인트
+└── base-command.ts # CLI base command
+```
+
+### 이중 모드 인증
+
+- **MCP**: AsyncLocalStorage(context.ts)에서 per-request Bearer 토큰 조회
+- **CLI**: `--token` 플래그 또는 `CODLE_TOKEN` 환경변수 → CodleClient 생성자 주입
+
+### 마이그레이션 로드맵
+
+1. (이전) MCP only
+2. **(현재) MCP + CLI 공존** — TASK-5507
+3. (이후) CLI only + repo rename → `tmn-codle-cli`
 
 ## 설계 원칙
 
-- **인터페이스 우선**: MCP 도구의 이름, 파라미터, 반환값 설계를 구현보다 먼저 확정한다.
+- **서비스 레이어 분리**: commands/와 tools/는 thin wrapper. 비즈니스 로직은 services/에 집중.
 - **API 계약 준수**: `/api/v1/*` 엔드포인트만 사용. `/admin/v1/*`은 절대 사용 불가.
-- **인증 흐름 유지**: per-request `Authorization: Bearer` 헤더 방식. 서버에 토큰을 저장하지 않는다.
-- **컨텍스트 절약**: server instructions와 tool description에 중복·내부 구현 정보를 넣지 않는다. AI 에이전트가 소비하는 토큰을 최소화한다.
+- **출력 포맷**: `--output text` (기본) 또는 `--output json`. service 함수는 `{ data, text }` 형태로 반환.
 
 ## 수정 원칙
 
