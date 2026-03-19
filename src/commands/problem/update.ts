@@ -69,8 +69,7 @@ export default class ProblemUpdate extends BaseCommand {
     if (flags.content !== undefined) attrs.content = flags.content;
     if (blocks !== undefined) attrs.blocks = blocks;
     if (flags["tag-ids"]?.length) attrs.tag_ids = flags["tag-ids"];
-    if (flags["is-public"] !== undefined)
-      attrs.is_public = flags["is-public"];
+    if (flags["is-public"] !== undefined) attrs.is_public = flags["is-public"];
     if (flags.commentary !== undefined)
       attrs.commentary = convertFromMarkdown(flags.commentary);
 
@@ -99,8 +98,7 @@ export default class ProblemUpdate extends BaseCommand {
         "GET",
         `/api/v1/problems/${flags["problem-id"]}`,
       );
-      const probData =
-        (probResp.data as Record<string, unknown>) || {};
+      const probData = (probResp.data as Record<string, unknown>) || {};
       problem = {
         id: String(probData.id || flags["problem-id"]),
         title: (probData.attributes as Record<string, unknown>)?.title,
@@ -117,8 +115,7 @@ export default class ProblemUpdate extends BaseCommand {
           { params: { "filter[problem_id]": flags["problem-id"] } },
         );
         const paList =
-          (paResp.data as Array<Record<string, unknown>> | undefined) ||
-          [];
+          (paResp.data as Array<Record<string, unknown>> | undefined) || [];
         if (paList.length > 0) {
           await this.client.doManyProblemAnswers({
             data_to_create: [],
@@ -146,7 +143,9 @@ export default class ProblemUpdate extends BaseCommand {
         }
       } catch (e) {
         warnings.push(
-          `모범답안 수정 실패: ${e instanceof CodleAPIError ? e.detail : String(e)}`,
+          `모범답안 수정 실패: ${
+            e instanceof CodleAPIError ? e.detail : String(e)
+          }`,
         );
       }
     }
@@ -158,10 +157,9 @@ export default class ProblemUpdate extends BaseCommand {
           { params: { include: "descriptive_criterium" } },
         );
         const included =
-          (
-            (probResp2 as Record<string, unknown>)
-              .included as Array<Record<string, unknown>>
-          ) || [];
+          ((probResp2 as Record<string, unknown>).included as Array<
+            Record<string, unknown>
+          >) || [];
         const existingDC = included.find(
           (i) => i.type === "descriptive_criterium",
         );
@@ -206,14 +204,15 @@ export default class ProblemUpdate extends BaseCommand {
         }
       } catch (e) {
         warnings.push(
-          `채점기준 수정 실패: ${e instanceof CodleAPIError ? e.detail : String(e)}`,
+          `채점기준 수정 실패: ${
+            e instanceof CodleAPIError ? e.detail : String(e)
+          }`,
         );
       }
     }
 
     let resultText = `문제 수정 완료: [${problem.id}] ${problem.title}`;
-    if (warnings.length)
-      resultText += `\n⚠️ ${warnings.join("\n⚠️ ")}`;
+    if (warnings.length) resultText += `\n⚠️ ${warnings.join("\n⚠️ ")}`;
     this.log(resultText);
   }
 }

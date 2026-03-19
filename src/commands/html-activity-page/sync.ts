@@ -18,11 +18,9 @@ async function resolveHtmlActivityId(
   client: CodleClient,
   activityId: string,
 ): Promise<string> {
-  const resp = await client.request(
-    "GET",
-    `/api/v1/activities/${activityId}`,
-    { params: { include: "activitiable" } },
-  );
+  const resp = await client.request("GET", `/api/v1/activities/${activityId}`, {
+    params: { include: "activitiable" },
+  });
   const actData = (resp.data as Record<string, unknown>) || {};
   const relationships =
     (actData.relationships as Record<string, unknown>) || {};
@@ -32,9 +30,7 @@ async function resolveHtmlActivityId(
   const id = String(rel.id || "");
   const rawType = String(rel.type || "");
   if (!id || !rawType)
-    throw new Error(
-      `활동 ${activityId}에서 activitiable을 찾을 수 없습니다.`,
-    );
+    throw new Error(`활동 ${activityId}에서 activitiable을 찾을 수 없습니다.`);
   const type = rawType
     .split("_")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -76,9 +72,7 @@ async function getExistingPages(
         p.progress_calculation_method || "no_calculation",
       ),
       completion_seconds:
-        p.completion_seconds != null
-          ? Number(p.completion_seconds)
-          : null,
+        p.completion_seconds != null ? Number(p.completion_seconds) : null,
     }))
     .sort((a, b) => a.position - b.position);
 }
@@ -92,8 +86,7 @@ interface DesiredPage {
 }
 
 export default class HtmlActivityPageSync extends BaseCommand {
-  static description =
-    "HtmlActivity의 페이지 목록을 동기화합니다.";
+  static description = "HtmlActivity의 페이지 목록을 동기화합니다.";
 
   static flags = {
     "activity-id": Flags.string({
@@ -103,7 +96,7 @@ export default class HtmlActivityPageSync extends BaseCommand {
     pages: Flags.string({
       required: true,
       description:
-        '페이지 목록 JSON [{url, width?, height?, progress_calculation_method?, completion_seconds?}]',
+        "페이지 목록 JSON [{url, width?, height?, progress_calculation_method?, completion_seconds?}]",
     }),
   };
 
@@ -115,13 +108,9 @@ export default class HtmlActivityPageSync extends BaseCommand {
       this.client,
       flags["activity-id"],
     );
-    const existingPages = await getExistingPages(
-      this.client,
-      htmlActivityId,
-    );
+    const existingPages = await getExistingPages(this.client, htmlActivityId);
 
-    const dataToCreate: Array<{ attributes: Record<string, unknown> }> =
-      [];
+    const dataToCreate: Array<{ attributes: Record<string, unknown> }> = [];
     const dataToUpdate: Array<{
       id: string;
       attributes: Record<string, unknown>;
@@ -129,11 +118,9 @@ export default class HtmlActivityPageSync extends BaseCommand {
 
     for (let i = 0; i < desiredPages.length; i++) {
       const desired = desiredPages[i];
-      const pcm =
-        desired.progress_calculation_method ?? "time";
+      const pcm = desired.progress_calculation_method ?? "time";
       const completionSeconds =
-        desired.completion_seconds ??
-        (pcm === "time" ? 3 : null);
+        desired.completion_seconds ?? (pcm === "time" ? 3 : null);
 
       const attrs: Record<string, unknown> = {
         url: desired.url,
@@ -153,8 +140,7 @@ export default class HtmlActivityPageSync extends BaseCommand {
           existing.progress_calculation_method !== pcm ||
           existing.completion_seconds !== completionSeconds ||
           (desired.width != null && existing.width !== desired.width) ||
-          (desired.height != null &&
-            existing.height !== desired.height);
+          (desired.height != null && existing.height !== desired.height);
         if (needsUpdate) {
           dataToUpdate.push({ id: existing.id, attributes: attrs });
         }
@@ -169,36 +155,25 @@ export default class HtmlActivityPageSync extends BaseCommand {
       dataToDestroy.push({ id: existingPages[i].id });
     }
 
-    if (
-      !dataToCreate.length &&
-      !dataToUpdate.length &&
-      !dataToDestroy.length
-    ) {
+    if (!dataToCreate.length && !dataToUpdate.length && !dataToDestroy.length) {
       this.log("변경 사항이 없습니다.");
       return;
     }
 
-    await this.client.request(
-      "POST",
-      "/api/v1/html_activity_pages/do_many",
-      {
-        json: {
-          data_to_create: dataToCreate,
-          data_to_update: dataToUpdate,
-          data_to_destroy: dataToDestroy,
-        },
+    await this.client.request("POST", "/api/v1/html_activity_pages/do_many", {
+      json: {
+        data_to_create: dataToCreate,
+        data_to_update: dataToUpdate,
+        data_to_destroy: dataToDestroy,
       },
-    );
+    });
 
     const parts: string[] = [
       `HtmlActivityPages 동기화 완료 (html_activity=${htmlActivityId})`,
     ];
-    if (dataToCreate.length)
-      parts.push(`추가: ${dataToCreate.length}건`);
-    if (dataToUpdate.length)
-      parts.push(`수정: ${dataToUpdate.length}건`);
-    if (dataToDestroy.length)
-      parts.push(`삭제: ${dataToDestroy.length}건`);
+    if (dataToCreate.length) parts.push(`추가: ${dataToCreate.length}건`);
+    if (dataToUpdate.length) parts.push(`수정: ${dataToUpdate.length}건`);
+    if (dataToDestroy.length) parts.push(`삭제: ${dataToDestroy.length}건`);
     this.log(parts.join(" / "));
   }
 }

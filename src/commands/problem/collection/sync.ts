@@ -27,11 +27,8 @@ async function getActivityPcpState(
   );
   const actData = (actResp.data as Record<string, unknown>) || {};
   const rels = (actData.relationships as Record<string, unknown>) || {};
-  const pcRel =
-    (rels.problem_collections as Record<string, unknown>) || {};
-  const pcRelData = pcRel.data as
-    | Array<Record<string, unknown>>
-    | undefined;
+  const pcRel = (rels.problem_collections as Record<string, unknown>) || {};
+  const pcRelData = pcRel.data as Array<Record<string, unknown>> | undefined;
   if (!pcRelData?.length) {
     throw new Error(
       `활동 ${activityId}에 연결된 ProblemCollection이 없습니다.`,
@@ -39,10 +36,9 @@ async function getActivityPcpState(
   }
   const pcId = String(pcRelData[0].id);
   const included =
-    (
-      (actResp as Record<string, unknown>)
-        .included as Array<Record<string, unknown>>
-    ) || [];
+    ((actResp as Record<string, unknown>).included as Array<
+      Record<string, unknown>
+    >) || [];
   const existingPcps: ExistingPcp[] = included
     .filter((i) => i.type === "problem_collections_problem")
     .map((i) => {
@@ -63,8 +59,7 @@ interface DesiredProblem {
 }
 
 export default class ProblemCollectionSync extends BaseCommand {
-  static description =
-    "활동의 ProblemCollection에 문제 목록을 동기화합니다.";
+  static description = "활동의 ProblemCollection에 문제 목록을 동기화합니다.";
 
   static flags = {
     "activity-id": Flags.string({
@@ -73,8 +68,7 @@ export default class ProblemCollectionSync extends BaseCommand {
     }),
     problems: Flags.string({
       required: true,
-      description:
-        '문제 목록 JSON [{id, point?}] (예: [{"id":"1","point":2}])',
+      description: '문제 목록 JSON [{id, point?}] (예: [{"id":"1","point":2}])',
     }),
   };
 
@@ -82,10 +76,7 @@ export default class ProblemCollectionSync extends BaseCommand {
     const { flags } = await this.parse(ProblemCollectionSync);
 
     const desiredProblems: DesiredProblem[] = JSON.parse(flags.problems);
-    const state = await getActivityPcpState(
-      this.client,
-      flags["activity-id"],
-    );
+    const state = await getActivityPcpState(this.client, flags["activity-id"]);
     const { pcId, existingPcps } = state;
 
     const existingByProblemId = new Map<string, ExistingPcp>();
@@ -93,8 +84,7 @@ export default class ProblemCollectionSync extends BaseCommand {
       existingByProblemId.set(pcp.problemId, pcp);
     }
 
-    const dataToCreate: Array<{ attributes: Record<string, unknown> }> =
-      [];
+    const dataToCreate: Array<{ attributes: Record<string, unknown> }> = [];
     const dataToUpdate: Array<{
       id: string;
       attributes: Record<string, unknown>;
@@ -134,11 +124,7 @@ export default class ProblemCollectionSync extends BaseCommand {
       }
     }
 
-    if (
-      !dataToCreate.length &&
-      !dataToUpdate.length &&
-      !dataToDestroy.length
-    ) {
+    if (!dataToCreate.length && !dataToUpdate.length && !dataToDestroy.length) {
       this.log("변경 사항이 없습니다.");
       return;
     }
@@ -149,15 +135,10 @@ export default class ProblemCollectionSync extends BaseCommand {
       data_to_destroy: dataToDestroy,
     });
 
-    const parts: string[] = [
-      `ProblemCollection [${pcId}] 동기화 완료`,
-    ];
-    if (dataToCreate.length)
-      parts.push(`추가: ${dataToCreate.length}건`);
-    if (dataToUpdate.length)
-      parts.push(`수정: ${dataToUpdate.length}건`);
-    if (dataToDestroy.length)
-      parts.push(`삭제: ${dataToDestroy.length}건`);
+    const parts: string[] = [`ProblemCollection [${pcId}] 동기화 완료`];
+    if (dataToCreate.length) parts.push(`추가: ${dataToCreate.length}건`);
+    if (dataToUpdate.length) parts.push(`수정: ${dataToUpdate.length}건`);
+    if (dataToDestroy.length) parts.push(`삭제: ${dataToDestroy.length}건`);
     this.log(parts.join(" / "));
   }
 }

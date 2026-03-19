@@ -60,9 +60,7 @@ export default class TagSearch extends BaseCommand {
     const lines = [`태그 목록 (${tags.length}건):`];
     for (const t of tags) {
       const tagDomain = t.domain ?? "unknown";
-      lines.push(
-        `  [${t.id}] ${t.name ?? "(무제)"} (domain: ${tagDomain})`,
-      );
+      lines.push(`  [${t.id}] ${t.name ?? "(무제)"} (domain: ${tagDomain})`);
     }
     this.log(lines.join("\n"));
   }
