@@ -2,42 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { CodleAPIError } from "../src/api/errors.js";
 import { makeJsonApiResponse, makeJsonApiListResponse } from "./helpers.js";
 
-vi.mock("../src/api/client.js", () => {
-  const mockClient = {
-    userId: "test-user-123",
-    ensureAuth: vi.fn(),
-    request: vi.fn(),
-    listBoards: vi.fn(),
-    updateBoard: vi.fn(),
-    updateSheetActivity: vi.fn(),
-    updateEmbeddedActivity: vi.fn(),
-  };
-  return { client: mockClient, CodleClient: vi.fn() };
-});
+const mockClient = {
+  request: vi.fn(),
+  listBoards: vi.fn(),
+  updateBoard: vi.fn(),
+  updateSheetActivity: vi.fn(),
+  updateEmbeddedActivity: vi.fn(),
+};
+vi.mock("../src/api/client.js", () => ({
+  CodleClient: vi.fn(() => mockClient),
+}));
 
-const { client } = await import("../src/api/client.js");
-
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerActivitiableTools } from "../src/tools/activitiables.js";
-
-const toolHandlers: Record<string, Function> = {};
-const mockServer = {
-  tool: (name: string, _desc: string, _schema: unknown, handler: Function) => {
-    toolHandlers[name] = handler;
-  },
-} as unknown as McpServer;
-registerActivitiableTools(mockServer);
-
-const mockClient = client as unknown as Record<
-  string,
-  ReturnType<typeof vi.fn>
->;
-
-function getText(result: {
-  content: Array<{ type: string; text: string }>;
-}): string {
-  return result.content[0].text;
-}
+import ActivitiableUpdate from "../src/commands/activitiable/update.js";
+import { runCommand } from "./run-command.js";
 
 function mockResolveActivitiable(type: string, id: string) {
   mockClient.request.mockResolvedValue({
@@ -59,7 +36,7 @@ beforeEach(() => {
 });
 
 describe("update_activitiable — resolveActivitiable", () => {
-  it("activitiable이 없으면 에러 메시지 반환", async () => {
+  it("activitiable이 없으면 에러", async () => {
     mockClient.request.mockResolvedValue({
       data: {
         id: "act-1",
@@ -71,23 +48,29 @@ describe("update_activitiable — resolveActivitiable", () => {
       },
     });
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      content: "test",
-    });
-    expect(getText(result)).toContain("activitiable을 찾을 수 없습니다");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--content",
+      "test",
+    ]);
+    // this.error() is called, downstream mocks should not be invoked
+    expect(mockClient.listBoards).not.toHaveBeenCalled();
+    expect(mockClient.updateBoard).not.toHaveBeenCalled();
   });
 
-  it("API 에러 시 에러 메시지 반환", async () => {
+  it("API 에러 시 에러 처리", async () => {
     mockClient.request.mockRejectedValue(
       new CodleAPIError(404, "Activity not found"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "999",
-      content: "test",
-    });
-    expect(getText(result)).toContain("Activity 조회 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "999",
+      "--content",
+      "test",
+    ]);
+    expect(mockClient.listBoards).not.toHaveBeenCalled();
   });
 });
 
@@ -97,24 +80,25 @@ describe("update_activitiable — BoardActivity", () => {
   });
 
   it("content와 name 모두 없으면 에러", async () => {
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-    });
-    expect(getText(result)).toContain("content 또는 name 중 하나 이상 필요");
+    await runCommand(ActivitiableUpdate, ["--activity-id", "act-1"]);
+    expect(mockClient.listBoards).not.toHaveBeenCalled();
+    expect(mockClient.updateBoard).not.toHaveBeenCalled();
   });
 
   it("Board가 없으면 에러", async () => {
     mockClient.listBoards.mockResolvedValue({ data: [] });
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      content: "안내문",
-    });
-    expect(getText(result)).toContain("연결된 Board가 없습니다");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--content",
+      "안내문",
+    ]);
     expect(mockClient.listBoards).toHaveBeenCalledWith({
       "filter[boardable_type]": "Activity",
       "filter[boardable_id]": "act-1",
     });
+    expect(mockClient.updateBoard).not.toHaveBeenCalled();
   });
 
   it("content로 보드 업데이트 성공", async () => {
@@ -125,12 +109,14 @@ describe("update_activitiable — BoardActivity", () => {
       makeJsonApiResponse("board", "b1", {}),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      content: "# 안내문",
-    });
-    expect(getText(result)).toContain("보드 업데이트 완료");
-    expect(getText(result)).toContain("b1");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--content",
+      "# 안내문",
+    ]);
+    expect(output).toContain("보드 업데이트 완료");
+    expect(output).toContain("b1");
 
     const payload = mockClient.updateBoard.mock.calls[0][1];
     expect(payload.data.attributes.lexical).toBeDefined();
@@ -145,11 +131,13 @@ describe("update_activitiable — BoardActivity", () => {
       makeJsonApiResponse("board", "b1", {}),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      name: "새 보드 이름",
-    });
-    expect(getText(result)).toContain("보드 업데이트 완료");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--name",
+      "새 보드 이름",
+    ]);
+    expect(output).toContain("보드 업데이트 완료");
 
     const payload = mockClient.updateBoard.mock.calls[0][1];
     expect(payload.data.attributes.name).toBe("새 보드 이름");
@@ -161,11 +149,13 @@ describe("update_activitiable — BoardActivity", () => {
       new CodleAPIError(500, "Internal error"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      content: "test",
-    });
-    expect(getText(result)).toContain("Board 조회 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--content",
+      "test",
+    ]);
+    expect(mockClient.updateBoard).not.toHaveBeenCalled();
   });
 
   it("보드 업데이트 API 에러", async () => {
@@ -176,11 +166,14 @@ describe("update_activitiable — BoardActivity", () => {
       new CodleAPIError(422, "Validation failed"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      content: "test",
-    });
-    expect(getText(result)).toContain("보드 업데이트 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--content",
+      "test",
+    ]);
+    // The error is caught by BaseCommand.catch()
+    expect(mockClient.updateBoard).toHaveBeenCalled();
   });
 });
 
@@ -190,10 +183,8 @@ describe("update_activitiable — SheetActivity", () => {
   });
 
   it("content 없으면 에러", async () => {
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-    });
-    expect(getText(result)).toContain("content는 필수");
+    await runCommand(ActivitiableUpdate, ["--activity-id", "act-1"]);
+    expect(mockClient.updateSheetActivity).not.toHaveBeenCalled();
   });
 
   it("content로 활동지 설명 업데이트 성공", async () => {
@@ -201,12 +192,14 @@ describe("update_activitiable — SheetActivity", () => {
       makeJsonApiResponse("sheet_activity", "s1", {}),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      content: "활동지 설명입니다",
-    });
-    expect(getText(result)).toContain("활동지 설명 업데이트 완료");
-    expect(getText(result)).toContain("s1");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--content",
+      "활동지 설명입니다",
+    ]);
+    expect(output).toContain("활동지 설명 업데이트 완료");
+    expect(output).toContain("s1");
 
     const payload = mockClient.updateSheetActivity.mock.calls[0][1];
     expect(payload.data.attributes.description).toBeDefined();
@@ -218,11 +211,13 @@ describe("update_activitiable — SheetActivity", () => {
       new CodleAPIError(422, "Invalid"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      content: "test",
-    });
-    expect(getText(result)).toContain("활동지 설명 업데이트 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--content",
+      "test",
+    ]);
+    expect(mockClient.updateSheetActivity).toHaveBeenCalled();
   });
 });
 
@@ -232,10 +227,8 @@ describe("update_activitiable — EmbeddedActivity", () => {
   });
 
   it("url과 goals 모두 없으면 에러", async () => {
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-    });
-    expect(getText(result)).toContain("url 또는 goals 중 하나 이상 필요");
+    await runCommand(ActivitiableUpdate, ["--activity-id", "act-1"]);
+    expect(mockClient.updateEmbeddedActivity).not.toHaveBeenCalled();
   });
 
   it("url로 업데이트 성공", async () => {
@@ -243,11 +236,13 @@ describe("update_activitiable — EmbeddedActivity", () => {
       makeJsonApiResponse("embedded_activity", "e1", {}),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      url: "https://example.com",
-    });
-    expect(getText(result)).toContain("EmbeddedActivity 업데이트 완료");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--url",
+      "https://example.com",
+    ]);
+    expect(output).toContain("EmbeddedActivity 업데이트 완료");
 
     const payload = mockClient.updateEmbeddedActivity.mock.calls[0][1];
     expect(payload.data.attributes.url).toBe("https://example.com");
@@ -258,11 +253,15 @@ describe("update_activitiable — EmbeddedActivity", () => {
       makeJsonApiResponse("embedded_activity", "e1", {}),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      goals: ["목표 1", "목표 2"],
-    });
-    expect(getText(result)).toContain("EmbeddedActivity 업데이트 완료");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--goals",
+      "목표 1",
+      "--goals",
+      "목표 2",
+    ]);
+    expect(output).toContain("EmbeddedActivity 업데이트 완료");
 
     const payload = mockClient.updateEmbeddedActivity.mock.calls[0][1];
     expect(payload.data.attributes.goals).toHaveLength(2);
@@ -275,24 +274,23 @@ describe("update_activitiable — EmbeddedActivity", () => {
       new CodleAPIError(422, "Invalid URL"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      url: "bad-url",
-    });
-    expect(getText(result)).toContain("EmbeddedActivity 업데이트 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--url",
+      "bad-url",
+    ]);
+    expect(mockClient.updateEmbeddedActivity).toHaveBeenCalled();
   });
 });
 
 describe("update_activitiable — VideoActivity", () => {
-  beforeEach(() => {
-    mockResolveActivitiable("video_activity", "v1");
-  });
-
   it("url 없으면 에러", async () => {
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-    });
-    expect(getText(result)).toContain("url은 필수");
+    mockResolveActivitiable("video_activity", "v1");
+
+    await runCommand(ActivitiableUpdate, ["--activity-id", "act-1"]);
+    // Only the resolve request should have been called, no PUT
+    expect(mockClient.request).toHaveBeenCalledTimes(1);
   });
 
   it("url로 업데이트 성공", async () => {
@@ -311,14 +309,15 @@ describe("update_activitiable — VideoActivity", () => {
       })
       .mockResolvedValueOnce(makeJsonApiResponse("video_activity", "v1", {}));
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      url: "https://example.com/video",
-    });
-    expect(getText(result)).toContain("VideoActivity 업데이트 완료");
-    expect(getText(result)).toContain("v1");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--url",
+      "https://example.com/video",
+    ]);
+    expect(output).toContain("VideoActivity 업데이트 완료");
+    expect(output).toContain("v1");
 
-    // 두 번째 request 호출이 PUT video_activities
     const putCall = mockClient.request.mock.calls[1];
     expect(putCall[0]).toBe("PUT");
     expect(putCall[1]).toBe("/api/v1/video_activities/v1");
@@ -343,11 +342,14 @@ describe("update_activitiable — VideoActivity", () => {
       })
       .mockRejectedValueOnce(new CodleAPIError(422, "Invalid video URL"));
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      url: "bad-url",
-    });
-    expect(getText(result)).toContain("VideoActivity 업데이트 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--url",
+      "bad-url",
+    ]);
+    // The error is caught by BaseCommand.catch()
+    expect(mockClient.request).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -355,10 +357,15 @@ describe("update_activitiable — 지원하지 않는 유형", () => {
   it("QuizActivity 등 미지원 유형은 에러", async () => {
     mockResolveActivitiable("quiz_activity", "q1");
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "act-1",
-      content: "test",
-    });
-    expect(getText(result)).toContain("지원하지 않는 유형");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--content",
+      "test",
+    ]);
+    expect(mockClient.listBoards).not.toHaveBeenCalled();
+    expect(mockClient.updateBoard).not.toHaveBeenCalled();
+    expect(mockClient.updateSheetActivity).not.toHaveBeenCalled();
+    expect(mockClient.updateEmbeddedActivity).not.toHaveBeenCalled();
   });
 });
