@@ -1,22 +1,18 @@
 import { config } from "../config.js";
-import { getAccessToken } from "../context.js";
 import { logger } from "../logger.js";
 import { CodleAPIError, extractErrorDetail } from "./errors.js";
 
 export class CodleClient {
   private baseUrl: string;
-  // AIDEV-NOTE: 이중 모드 지원.
-  // CLI: 생성자에서 accessToken을 직접 주입.
-  // MCP: accessToken 없이 생성 → AsyncLocalStorage(context.ts)에서 per-request 토큰 조회.
-  private injectedToken?: string;
+  private accessToken: string;
 
-  constructor(accessToken?: string, apiUrl?: string) {
-    this.injectedToken = accessToken;
+  constructor(accessToken: string, apiUrl?: string) {
+    this.accessToken = accessToken;
     this.baseUrl = apiUrl ?? config.apiUrl;
   }
 
-  private getToken(): string | undefined {
-    return this.injectedToken ?? getAccessToken();
+  private getToken(): string {
+    return this.accessToken;
   }
 
   private authHeaders(): Record<string, string> {
@@ -295,6 +291,3 @@ export class CodleClient {
   }
 }
 
-// AIDEV-NOTE: MCP 모드용 singleton. AsyncLocalStorage에서 per-request 토큰을 조회한다.
-// CLI 모드에서는 사용하지 않고 new CodleClient(token)으로 직접 생성한다.
-export const client = new CodleClient();

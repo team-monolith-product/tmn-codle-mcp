@@ -1,33 +1,30 @@
-# Codle MCP + CLI
+# Codle CLI
 
 ## 아키텍처
 
-MCP 서버와 CLI가 공존하는 구조. 비즈니스 로직은 services/에 집중하고, tools/와 commands/는 thin wrapper.
+oclif 기반 CLI 도구. 비즈니스 로직은 services/에 집중하고, commands/는 thin wrapper.
 
 ```
 src/
-├── services/       # 비즈니스 로직 (공유)
-├── tools/          # MCP tool wrappers → services 호출
+├── services/       # 비즈니스 로직
 ├── commands/       # oclif CLI commands → services 호출
-├── api/            # CodleClient (이중 모드 인증)
-├── index.ts        # MCP HTTP 서버 엔트리포인트
+├── api/            # CodleClient (생성자 토큰 주입)
 └── base-command.ts # CLI base command
 ```
 
-### 이중 모드 인증
+### 인증
 
-- **MCP**: AsyncLocalStorage(context.ts)에서 per-request Bearer 토큰 조회
-- **CLI**: `--token` 플래그 또는 `CODLE_TOKEN` 환경변수 → CodleClient 생성자 주입
+`--token` 플래그 또는 `CODLE_TOKEN` 환경변수 → `CodleClient` 생성자에 직접 주입.
 
-### 마이그레이션 로드맵
+### 설치
 
-1. (이전) MCP only
-2. **(현재) MCP + CLI 공존** — TASK-5507
-3. (이후) CLI only + repo rename → `tmn-codle-cli`
+```bash
+curl -fsSL https://raw.githubusercontent.com/team-monolith-product/tmn-codle-mcp/main/install.sh | bash
+```
 
 ## 설계 원칙
 
-- **서비스 레이어 분리**: commands/와 tools/는 thin wrapper. 비즈니스 로직은 services/에 집중.
+- **서비스 레이어 분리**: commands/는 thin wrapper. 비즈니스 로직은 services/에 집중.
 - **API 계약 준수**: `/api/v1/*` 엔드포인트만 사용. `/admin/v1/*`은 절대 사용 불가.
 - **출력 포맷**: `--output text` (기본) 또는 `--output json`. service 함수는 `{ data, text }` 형태로 반환.
 

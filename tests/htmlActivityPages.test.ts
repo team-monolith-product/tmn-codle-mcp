@@ -7,11 +7,11 @@ vi.mock("../src/api/client.js", () => {
     ensureAuth: vi.fn(),
     request: vi.fn(),
   };
-  return { client: mockClient, CodleClient: vi.fn() };
+  return { CodleClient: vi.fn(() => mockClient), _mockClient: mockClient };
 });
 
-const { client } = await import("../src/api/client.js");
-const mockClient = client as unknown as Record<
+const { _mockClient } = await import("../src/api/client.js") as any;
+const mockClient = _mockClient as Record<
   string,
   ReturnType<typeof vi.fn>
 >;
@@ -89,7 +89,7 @@ describe("manageHtmlActivityPages — resolveHtmlActivityId", () => {
     });
 
     await expect(
-      manageHtmlActivityPages(client as any, {
+      manageHtmlActivityPages(mockClient as any, {
         activity_id: "act-1",
         pages: [{ url: "https://example.com" }],
       }),
@@ -102,7 +102,7 @@ describe("manageHtmlActivityPages — resolveHtmlActivityId", () => {
     );
 
     await expect(
-      manageHtmlActivityPages(client as any, {
+      manageHtmlActivityPages(mockClient as any, {
         activity_id: "999",
         pages: [{ url: "https://example.com" }],
       }),
@@ -116,7 +116,7 @@ describe("manageHtmlActivityPages — 페이지 생성", () => {
     mockExistingPages("h1", []);
     mockClient.request.mockResolvedValueOnce({}); // do_many
 
-    const result = await manageHtmlActivityPages(client as any, {
+    const result = await manageHtmlActivityPages(mockClient as any, {
       activity_id: "act-1",
       pages: [
         { url: "https://example.com/page1" },
@@ -147,7 +147,7 @@ describe("manageHtmlActivityPages — 페이지 생성", () => {
     mockExistingPages("h1", []);
     mockClient.request.mockResolvedValueOnce({});
 
-    await manageHtmlActivityPages(client as any, {
+    await manageHtmlActivityPages(mockClient as any, {
       activity_id: "act-1",
       pages: [{ url: "https://example.com/page1" }],
     });
@@ -164,7 +164,7 @@ describe("manageHtmlActivityPages — 페이지 생성", () => {
     mockExistingPages("h1", []);
     mockClient.request.mockResolvedValueOnce({});
 
-    await manageHtmlActivityPages(client as any, {
+    await manageHtmlActivityPages(mockClient as any, {
       activity_id: "act-1",
       pages: [
         {
@@ -191,7 +191,7 @@ describe("manageHtmlActivityPages — 페이지 수정", () => {
     ]);
     mockClient.request.mockResolvedValueOnce({});
 
-    const result = await manageHtmlActivityPages(client as any, {
+    const result = await manageHtmlActivityPages(mockClient as any, {
       activity_id: "act-1",
       pages: [
         { url: "https://old.com/page1" }, // unchanged
@@ -216,7 +216,7 @@ describe("manageHtmlActivityPages — 페이지 수정", () => {
       { id: "p1", url: "https://example.com/page1", position: 0 },
     ]);
 
-    const result = await manageHtmlActivityPages(client as any, {
+    const result = await manageHtmlActivityPages(mockClient as any, {
       activity_id: "act-1",
       pages: [{ url: "https://example.com/page1" }],
     });
@@ -234,7 +234,7 @@ describe("manageHtmlActivityPages — 페이지 삭제", () => {
     ]);
     mockClient.request.mockResolvedValueOnce({});
 
-    const result = await manageHtmlActivityPages(client as any, {
+    const result = await manageHtmlActivityPages(mockClient as any, {
       activity_id: "act-1",
       pages: [],
     });
@@ -256,7 +256,7 @@ describe("manageHtmlActivityPages — 복합 동작", () => {
     ]);
     mockClient.request.mockResolvedValueOnce({});
 
-    const result = await manageHtmlActivityPages(client as any, {
+    const result = await manageHtmlActivityPages(mockClient as any, {
       activity_id: "act-1",
       pages: [
         { url: "https://old.com/page1" }, // keep p1
@@ -286,7 +286,7 @@ describe("manageHtmlActivityPages — 복합 동작", () => {
     ]);
     mockClient.request.mockResolvedValueOnce({});
 
-    const result = await manageHtmlActivityPages(client as any, {
+    const result = await manageHtmlActivityPages(mockClient as any, {
       activity_id: "act-1",
       pages: [
         { url: "https://new.com/page1" }, // update p1
@@ -320,7 +320,7 @@ describe("manageHtmlActivityPages — do_many 에러", () => {
     );
 
     await expect(
-      manageHtmlActivityPages(client as any, {
+      manageHtmlActivityPages(mockClient as any, {
         activity_id: "act-1",
         pages: [{ url: "https://example.com" }],
       }),

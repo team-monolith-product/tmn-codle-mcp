@@ -29,8 +29,7 @@ function snakecaseKeys(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 interface TmpConfig {
-  mcpServers: { codle: { headers: { Authorization: string } } };
-  e2e: { userId: string };
+  e2e: { userId: string; accessToken: string };
 }
 
 function readConfig(): TmpConfig {

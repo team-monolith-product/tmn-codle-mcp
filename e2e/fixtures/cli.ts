@@ -14,9 +14,9 @@ const PROJECT_DIR = resolve(import.meta.dirname, "..", "..");
 
 function readAccessToken(): string {
   const config = JSON.parse(readFileSync(CONFIG_PATH, "utf-8")) as {
-    mcpServers: { codle: { headers: { Authorization: string } } };
+    e2e: { accessToken: string };
   };
-  return config.mcpServers.codle.headers.Authorization.replace("Bearer ", "");
+  return config.e2e.accessToken;
 }
 
 const E2E_REPEATS = Math.max(0, parseInt(process.env.E2E_REPEATS || "1") - 1);
