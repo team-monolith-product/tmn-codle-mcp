@@ -1,25 +1,22 @@
 import { config } from "../config.js";
-import { getAccessToken } from "../context.js";
 import { logger } from "../logger.js";
 import { CodleAPIError, extractErrorDetail } from "./errors.js";
 
 export class CodleClient {
   private baseUrl: string;
+  private accessToken: string;
 
-  constructor() {
-    this.baseUrl = config.apiUrl;
+  constructor(accessToken: string, apiUrl?: string) {
+    this.accessToken = accessToken;
+    this.baseUrl = apiUrl ?? config.apiUrl;
   }
 
-  private getToken(): string | undefined {
-    return getAccessToken();
+  private getToken(): string {
+    return this.accessToken;
   }
 
   private authHeaders(): Record<string, string> {
-    const token = this.getToken();
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-    return {};
+    return { Authorization: `Bearer ${this.getToken()}` };
   }
 
   async ensureAuth(): Promise<void> {
@@ -289,5 +286,3 @@ export class CodleClient {
     });
   }
 }
-
-export const client = new CodleClient();

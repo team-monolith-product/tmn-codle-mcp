@@ -1,11 +1,34 @@
-# Codle MCP Server
+# Codle CLI
+
+## 아키텍처
+
+oclif 기반 CLI. AI 에이전트(Claude Code)가 bash로 `codle <command>` 를 호출하여 Codle API를 조작한다.
+
+```
+src/
+├── base-command.ts          # 공통 플래그(--token, --api-url, --output), CodleClient 생성, 에러 핸들링
+├── commands/                # oclif 커맨드 (비즈니스 로직 직접 포함)
+│   ├── material/            # 자료 CRUD + 검색
+│   ├── activity/            # 활동 CRUD + 코스흐름/갈림길
+│   ├── activitiable/        # activitiable 속성 업데이트 (Board, Sheet, Embedded, Video)
+│   ├── problem/             # 문제 CRUD + collection sync
+│   ├── tag/                 # 태그 검색
+│   ├── docs/                # 문서 출력
+│   └── html-activity-page/  # 교안 페이지 sync
+├── api/
+│   ├── client.ts            # CodleClient (REST fetch wrapper)
+│   ├── models.ts            # JSON:API 헬퍼
+│   └── errors.ts            # CodleAPIError
+├── lexical/                 # Markdown → Lexical JSON 변환
+├── config.ts                # 환경 변수 설정
+└── logger.ts                # stderr 로거
+```
 
 ## 설계 원칙
 
-- **인터페이스 우선**: MCP 도구의 이름, 파라미터, 반환값 설계를 구현보다 먼저 확정한다.
 - **API 계약 준수**: `/api/v1/*` 엔드포인트만 사용. `/admin/v1/*`은 절대 사용 불가.
-- **인증 흐름 유지**: per-request `Authorization: Bearer` 헤더 방식. 서버에 토큰을 저장하지 않는다.
-- **컨텍스트 절약**: server instructions와 tool description에 중복·내부 구현 정보를 넣지 않는다. AI 에이전트가 소비하는 토큰을 최소화한다.
+- **인증**: `--token` 플래그 또는 `CODLE_TOKEN` 환경변수로 Bearer 토큰 전달.
+- **컨텍스트 절약**: command description에 중복·내부 구현 정보를 넣지 않는다.
 
 ## 수정 원칙
 

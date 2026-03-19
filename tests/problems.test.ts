@@ -2,22 +2,22 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { CodleAPIError } from "../src/api/errors.js";
 import { makeJsonApiResponse, makeJsonApiListResponse } from "./helpers.js";
 
-vi.mock("../src/api/client.js", () => {
-  const mockClient = {
-    ensureAuth: vi.fn(),
-    request: vi.fn(),
-    createProblem: vi.fn(),
-    updateProblem: vi.fn(),
-    deleteProblem: vi.fn(),
-    doManyPCP: vi.fn(),
-    doManyProblemAnswers: vi.fn(),
-    listBoards: vi.fn(),
-    updateBoard: vi.fn(),
-    updateSheetActivity: vi.fn(),
-    updateEmbeddedActivity: vi.fn(),
-  };
-  return { client: mockClient, CodleClient: vi.fn() };
-});
+const mockClient = {
+  request: vi.fn(),
+  createProblem: vi.fn(),
+  updateProblem: vi.fn(),
+  deleteProblem: vi.fn(),
+  doManyPCP: vi.fn(),
+  doManyProblemAnswers: vi.fn(),
+  doManyDescriptiveCriteria: vi.fn(),
+  listBoards: vi.fn(),
+  updateBoard: vi.fn(),
+  updateSheetActivity: vi.fn(),
+  updateEmbeddedActivity: vi.fn(),
+};
+vi.mock("../src/api/client.js", () => ({
+  CodleClient: vi.fn(() => mockClient),
+}));
 
 vi.mock("../src/lexical/index.js", () => ({
   buildSelectBlock: vi.fn(
@@ -39,60 +39,38 @@ vi.mock("../src/lexical/index.js", () => ({
   })),
 }));
 
-const { client } = await import("../src/api/client.js");
-
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerProblemTools } from "../src/tools/problems.js";
-import { registerActivitiableTools } from "../src/tools/activitiables.js";
-
-const toolHandlers: Record<string, Function> = {};
-const mockServer = {
-  tool: (name: string, _desc: string, _schema: unknown, handler: Function) => {
-    toolHandlers[name] = handler;
-  },
-} as unknown as McpServer;
-registerProblemTools(mockServer);
-registerActivitiableTools(mockServer);
-
-const mockClient = client as unknown as Record<
-  string,
-  ReturnType<typeof vi.fn>
->;
-
-function getText(result: {
-  content: Array<{ type: string; text: string }>;
-}): string {
-  return result.content[0].text;
-}
+import ProblemCreate from "../src/commands/problem/create.js";
+import ProblemUpdate from "../src/commands/problem/update.js";
+import ProblemDelete from "../src/commands/problem/delete.js";
+import ProblemCollectionSync from "../src/commands/problem/collection/sync.js";
+import ActivitiableUpdate from "../src/commands/activitiable/update.js";
+import { runCommand } from "./run-command.js";
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-// ===== manage_problems =====
+// ===== problem create =====
 
-describe("manage_problems create", () => {
-  it("missing required params", async () => {
-    const result = await toolHandlers.manage_problems({ action: "create" });
-    expect(getText(result)).toContain("필수");
-  });
-
+describe("problem create", () => {
   it("successful create with choices (quiz)", async () => {
     mockClient.createProblem.mockResolvedValue(
       makeJsonApiResponse("problem", "10", { title: "OX 문제" }),
     );
 
-    const result = await toolHandlers.manage_problems({
-      action: "create",
-      title: "OX 문제",
-      problem_type: "quiz",
-      choices: [
+    const output = await runCommand(ProblemCreate, [
+      "--title",
+      "OX 문제",
+      "--problem-type",
+      "quiz",
+      "--choices",
+      JSON.stringify([
         { text: "O", isAnswer: true },
         { text: "X", isAnswer: false },
-      ],
-    });
-    expect(getText(result)).toContain("문제 생성 완료");
-    expect(getText(result)).toContain("10");
+      ]),
+    ]);
+    expect(output).toContain("문제 생성 완료");
+    expect(output).toContain("10");
 
     const payload = mockClient.createProblem.mock.calls[0][0];
     expect(payload.data.attributes.title).toBe("OX 문제");
@@ -105,13 +83,15 @@ describe("manage_problems create", () => {
       makeJsonApiResponse("problem", "11", { title: "주관식" }),
     );
 
-    const result = await toolHandlers.manage_problems({
-      action: "create",
-      title: "주관식",
-      problem_type: "quiz",
-      solutions: ["42"],
-    });
-    expect(getText(result)).toContain("문제 생성 완료");
+    const output = await runCommand(ProblemCreate, [
+      "--title",
+      "주관식",
+      "--problem-type",
+      "quiz",
+      "--solutions",
+      "42",
+    ]);
+    expect(output).toContain("문제 생성 완료");
   });
 
   it("create descriptive with content converts to blocks", async () => {
@@ -119,13 +99,15 @@ describe("manage_problems create", () => {
       makeJsonApiResponse("problem", "12", { title: "서술형" }),
     );
 
-    const result = await toolHandlers.manage_problems({
-      action: "create",
-      title: "서술형",
-      problem_type: "descriptive",
-      content: "설명을 작성하세요",
-    });
-    expect(getText(result)).toContain("문제 생성 완료");
+    const output = await runCommand(ProblemCreate, [
+      "--title",
+      "서술형",
+      "--problem-type",
+      "descriptive",
+      "--content",
+      "설명을 작성하세요",
+    ]);
+    expect(output).toContain("문제 생성 완료");
 
     const payload = mockClient.createProblem.mock.calls[0][0];
     expect(payload.data.attributes.blocks).toBeDefined();
@@ -138,13 +120,15 @@ describe("manage_problems create", () => {
       makeJsonApiResponse("problem", "13", { title: "활동지" }),
     );
 
-    const result = await toolHandlers.manage_problems({
-      action: "create",
-      title: "활동지",
-      problem_type: "sheet",
-      content: "문제 내용",
-    });
-    expect(getText(result)).toContain("문제 생성 완료");
+    const output = await runCommand(ProblemCreate, [
+      "--title",
+      "활동지",
+      "--problem-type",
+      "sheet",
+      "--content",
+      "문제 내용",
+    ]);
+    expect(output).toContain("문제 생성 완료");
 
     const payload = mockClient.createProblem.mock.calls[0][0];
     expect(payload.data.attributes.blocks).toBeDefined();
@@ -156,27 +140,28 @@ describe("manage_problems create", () => {
       new CodleAPIError(422, "Validation failed"),
     );
 
-    const result = await toolHandlers.manage_problems({
-      action: "create",
-      title: "실패",
-      problem_type: "quiz",
-    });
-    expect(getText(result)).toContain("문제 생성 실패");
+    await runCommand(ProblemCreate, [
+      "--title",
+      "실패",
+      "--problem-type",
+      "quiz",
+    ]);
+    expect(mockClient.createProblem).toHaveBeenCalled();
+  });
+
+  it("missing required params does not call API", async () => {
+    // --title and --problem-type are required by oclif
+    await runCommand(ProblemCreate, []);
+    expect(mockClient.createProblem).not.toHaveBeenCalled();
   });
 });
 
-describe("manage_problems update", () => {
-  it("missing problem_id", async () => {
-    const result = await toolHandlers.manage_problems({ action: "update" });
-    expect(getText(result)).toContain("problem_id는 필수");
-  });
+// ===== problem update =====
 
+describe("problem update", () => {
   it("nothing to update", async () => {
-    const result = await toolHandlers.manage_problems({
-      action: "update",
-      problem_id: "10",
-    });
-    expect(getText(result)).toContain("수정할 항목이 없습니다");
+    const output = await runCommand(ProblemUpdate, ["--problem-id", "10"]);
+    expect(output).toContain("수정할 항목이 없습니다");
   });
 
   it("successful update", async () => {
@@ -184,12 +169,13 @@ describe("manage_problems update", () => {
       makeJsonApiResponse("problem", "10", { title: "수정됨" }),
     );
 
-    const result = await toolHandlers.manage_problems({
-      action: "update",
-      problem_id: "10",
-      title: "수정됨",
-    });
-    expect(getText(result)).toContain("문제 수정 완료");
+    const output = await runCommand(ProblemUpdate, [
+      "--problem-id",
+      "10",
+      "--title",
+      "수정됨",
+    ]);
+    expect(output).toContain("문제 수정 완료");
   });
 
   it("sample_answer만 수정 시 early return 안 됨", async () => {
@@ -199,30 +185,30 @@ describe("manage_problems update", () => {
     mockClient.request.mockResolvedValueOnce({ data: [] });
     mockClient.doManyProblemAnswers.mockResolvedValue({});
 
-    const result = await toolHandlers.manage_problems({
-      action: "update",
-      problem_id: "10",
-      sample_answer: "print('hello')",
-    });
-    expect(getText(result)).toContain("문제 수정 완료");
-    expect(getText(result)).not.toContain("수정할 항목이 없습니다");
+    const output = await runCommand(ProblemUpdate, [
+      "--problem-id",
+      "10",
+      "--sample-answer",
+      "print('hello')",
+    ]);
+    expect(output).toContain("문제 수정 완료");
+    expect(output).not.toContain("수정할 항목이 없습니다");
+  });
+
+  it("missing problem-id does not call API", async () => {
+    await runCommand(ProblemUpdate, ["--title", "수정됨"]);
+    expect(mockClient.updateProblem).not.toHaveBeenCalled();
   });
 });
 
-describe("manage_problems delete", () => {
-  it("missing problem_id", async () => {
-    const result = await toolHandlers.manage_problems({ action: "delete" });
-    expect(getText(result)).toContain("problem_id는 필수");
-  });
+// ===== problem delete =====
 
+describe("problem delete", () => {
   it("successful delete", async () => {
     mockClient.deleteProblem.mockResolvedValue({});
 
-    const result = await toolHandlers.manage_problems({
-      action: "delete",
-      problem_id: "10",
-    });
-    expect(getText(result)).toContain("문제 삭제 완료");
+    const output = await runCommand(ProblemDelete, ["--problem-id", "10"]);
+    expect(output).toContain("문제 삭제 완료");
   });
 
   it("delete API error", async () => {
@@ -230,15 +216,17 @@ describe("manage_problems delete", () => {
       new CodleAPIError(404, "Not found"),
     );
 
-    const result = await toolHandlers.manage_problems({
-      action: "delete",
-      problem_id: "999",
-    });
-    expect(getText(result)).toContain("문제 삭제 실패");
+    await runCommand(ProblemDelete, ["--problem-id", "999"]);
+    expect(mockClient.deleteProblem).toHaveBeenCalled();
+  });
+
+  it("missing problem-id does not call API", async () => {
+    await runCommand(ProblemDelete, []);
+    expect(mockClient.deleteProblem).not.toHaveBeenCalled();
   });
 });
 
-// ===== manage_problem_collection_problems =====
+// ===== problem collection sync =====
 
 /** Activity 응답을 PC relationship + PCP included で生成 */
 function makeActivityWithPcps(
@@ -284,17 +272,19 @@ function makeActivityWithPcps(
   };
 }
 
-describe("manage_problem_collection_problems set", () => {
+describe("problem collection sync", () => {
   it("빈 상태에서 3개 문제 set → 3개 create", async () => {
     mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1", []));
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      activity_id: "1",
-      problems: [{ id: "p1" }, { id: "p2" }, { id: "p3" }],
-    });
-    expect(getText(result)).toContain("추가 3");
-    expect(getText(result)).toContain("최종 문제 수: 3");
+    const output = await runCommand(ProblemCollectionSync, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1" }, { id: "p2" }, { id: "p3" }]),
+    ]);
+    expect(output).toContain("추가");
+    expect(output).toContain("3");
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_create).toHaveLength(3);
@@ -317,11 +307,14 @@ describe("manage_problem_collection_problems set", () => {
     mockClient.doManyPCP.mockResolvedValue({});
 
     // Reverse order
-    const result = await toolHandlers.manage_problem_collection_problems({
-      activity_id: "1",
-      problems: [{ id: "p3" }, { id: "p2" }, { id: "p1" }],
-    });
-    expect(getText(result)).toContain("변경 2");
+    const output = await runCommand(ProblemCollectionSync, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p3" }, { id: "p2" }, { id: "p1" }]),
+    ]);
+    expect(output).toContain("수정");
+    expect(output).toContain("2");
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_create).toHaveLength(0);
@@ -346,12 +339,14 @@ describe("manage_problem_collection_problems set", () => {
     mockClient.doManyPCP.mockResolvedValue({});
 
     // Remove p2, add p4, keep p1 and p3
-    const result = await toolHandlers.manage_problem_collection_problems({
-      activity_id: "1",
-      problems: [{ id: "p1" }, { id: "p3" }, { id: "p4" }],
-    });
-    expect(getText(result)).toContain("추가 1");
-    expect(getText(result)).toContain("제거 1");
+    const output = await runCommand(ProblemCollectionSync, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1" }, { id: "p3" }, { id: "p4" }]),
+    ]);
+    expect(output).toContain("추가");
+    expect(output).toContain("삭제");
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_create).toHaveLength(1);
@@ -365,14 +360,16 @@ describe("manage_problem_collection_problems set", () => {
     expect(payload.data_to_update[0].attributes.position).toBe(1);
   });
 
-  it("PC 없는 활동 → 에러 메시지", async () => {
+  it("PC 없는 활동 → 에러", async () => {
     mockClient.request.mockResolvedValue(makeActivityWithPcps(null, []));
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      activity_id: "1",
-      problems: [{ id: "p1" }],
-    });
-    expect(getText(result)).toContain("ProblemCollection이 없습니다");
+    await runCommand(ProblemCollectionSync, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1" }]),
+    ]);
+    expect(mockClient.doManyPCP).not.toHaveBeenCalled();
   });
 
   it("problem_ids 빈 배열 → 전체 destroy", async () => {
@@ -384,12 +381,14 @@ describe("manage_problem_collection_problems set", () => {
     );
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      activity_id: "1",
-      problems: [],
-    });
-    expect(getText(result)).toContain("제거 2");
-    expect(getText(result)).toContain("최종 문제 수: 0");
+    const output = await runCommand(ProblemCollectionSync, [
+      "--activity-id",
+      "1",
+      "--problems",
+      "[]",
+    ]);
+    expect(output).toContain("삭제");
+    expect(output).toContain("2");
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_create).toHaveLength(0);
@@ -405,11 +404,13 @@ describe("manage_problem_collection_problems set", () => {
       ]),
     );
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      activity_id: "1",
-      problems: [{ id: "p1" }, { id: "p2" }],
-    });
-    expect(getText(result)).toContain("변경 사항 없음");
+    const output = await runCommand(ProblemCollectionSync, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1" }, { id: "p2" }]),
+    ]);
+    expect(output).toContain("변경 사항");
     expect(mockClient.doManyPCP).not.toHaveBeenCalled();
   });
 
@@ -417,11 +418,17 @@ describe("manage_problem_collection_problems set", () => {
     mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1", []));
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      activity_id: "1",
-      problems: [{ id: "p1", point: 2 }, { id: "p2", point: 0 }, { id: "p3" }],
-    });
-    expect(getText(result)).toContain("추가 3");
+    const output = await runCommand(ProblemCollectionSync, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([
+        { id: "p1", point: 2 },
+        { id: "p2", point: 0 },
+        { id: "p3" },
+      ]),
+    ]);
+    expect(output).toContain("추가");
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_create[0].attributes.point).toBe(2);
@@ -437,11 +444,13 @@ describe("manage_problem_collection_problems set", () => {
     );
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const result = await toolHandlers.manage_problem_collection_problems({
-      activity_id: "1",
-      problems: [{ id: "p1", point: 3 }],
-    });
-    expect(getText(result)).toContain("변경 1");
+    const output = await runCommand(ProblemCollectionSync, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1", point: 3 }]),
+    ]);
+    expect(output).toContain("수정");
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_update[0].attributes.point).toBe(3);
@@ -474,10 +483,9 @@ describe("update_activitiable — BoardActivity", () => {
       makeActivitiableResponse("ba1", "board_activity"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-    });
-    expect(getText(result)).toContain("content 또는 name 중 하나 이상 필요");
+    await runCommand(ActivitiableUpdate, ["--activity-id", "1"]);
+    expect(mockClient.listBoards).not.toHaveBeenCalled();
+    expect(mockClient.updateBoard).not.toHaveBeenCalled();
   });
 
   it("no board found", async () => {
@@ -488,11 +496,13 @@ describe("update_activitiable — BoardActivity", () => {
       makeJsonApiListResponse("board", []),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      content: "# Hello",
-    });
-    expect(getText(result)).toContain("Board가 없습니다");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--content",
+      "# Hello",
+    ]);
+    expect(mockClient.updateBoard).not.toHaveBeenCalled();
   });
 
   it("successful update", async () => {
@@ -506,12 +516,15 @@ describe("update_activitiable — BoardActivity", () => {
       makeJsonApiResponse("board", "b1", { name: "보드" }),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      content: "# 안내문",
-      name: "새 보드",
-    });
-    expect(getText(result)).toContain("보드 업데이트 완료");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--content",
+      "# 안내문",
+      "--name",
+      "새 보드",
+    ]);
+    expect(output).toContain("보드 업데이트 완료");
 
     const payload = mockClient.updateBoard.mock.calls[0][1];
     expect(payload.data.attributes.lexical).toBeDefined();
@@ -525,13 +538,17 @@ describe("update_activitiable — BoardActivity", () => {
     mockClient.listBoards.mockResolvedValue(
       makeJsonApiListResponse("board", [{ id: "b1" }]),
     );
-    mockClient.updateBoard.mockRejectedValue(new CodleAPIError(422, "Invalid"));
+    mockClient.updateBoard.mockRejectedValue(
+      new CodleAPIError(422, "Invalid"),
+    );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      content: "# test",
-    });
-    expect(getText(result)).toContain("보드 업데이트 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--content",
+      "# test",
+    ]);
+    expect(mockClient.updateBoard).toHaveBeenCalled();
   });
 });
 
@@ -541,10 +558,8 @@ describe("update_activitiable — SheetActivity", () => {
       makeActivitiableResponse("sa1", "sheet_activity"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-    });
-    expect(getText(result)).toContain("content는 필수");
+    await runCommand(ActivitiableUpdate, ["--activity-id", "1"]);
+    expect(mockClient.updateSheetActivity).not.toHaveBeenCalled();
   });
 
   it("successful update", async () => {
@@ -555,24 +570,30 @@ describe("update_activitiable — SheetActivity", () => {
       makeJsonApiResponse("sheet_activity", "sa1", {}),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      content: "# 활동지 설명",
-    });
-    expect(getText(result)).toContain("활동지 설명 업데이트 완료");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--content",
+      "# 활동지 설명",
+    ]);
+    expect(output).toContain("활동지 설명 업데이트 완료");
 
     const payload = mockClient.updateSheetActivity.mock.calls[0][1];
     expect(payload.data.attributes.description).toBeDefined();
   });
 
   it("API error on activity fetch", async () => {
-    mockClient.request.mockRejectedValue(new CodleAPIError(404, "Not found"));
+    mockClient.request.mockRejectedValue(
+      new CodleAPIError(404, "Not found"),
+    );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "999",
-      content: "# test",
-    });
-    expect(getText(result)).toContain("Activity 조회 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "999",
+      "--content",
+      "# test",
+    ]);
+    expect(mockClient.updateSheetActivity).not.toHaveBeenCalled();
   });
 });
 
@@ -582,10 +603,8 @@ describe("update_activitiable — EmbeddedActivity", () => {
       makeActivitiableResponse("ea1", "embedded_activity"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-    });
-    expect(getText(result)).toContain("url 또는 goals 중 하나 이상 필요");
+    await runCommand(ActivitiableUpdate, ["--activity-id", "1"]);
+    expect(mockClient.updateEmbeddedActivity).not.toHaveBeenCalled();
   });
 
   it("no activitiable found", async () => {
@@ -593,11 +612,13 @@ describe("update_activitiable — EmbeddedActivity", () => {
       makeActivitiableResponse(undefined, "embedded_activity"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      url: "https://example.com",
-    });
-    expect(getText(result)).toContain("activitiable을 찾을 수 없습니다");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--url",
+      "https://example.com",
+    ]);
+    expect(mockClient.updateEmbeddedActivity).not.toHaveBeenCalled();
   });
 
   it("url only", async () => {
@@ -610,11 +631,13 @@ describe("update_activitiable — EmbeddedActivity", () => {
       }),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      url: "https://example.com",
-    });
-    expect(getText(result)).toContain("EmbeddedActivity 업데이트 완료");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--url",
+      "https://example.com",
+    ]);
+    expect(output).toContain("EmbeddedActivity 업데이트 완료");
 
     const payload = mockClient.updateEmbeddedActivity.mock.calls[0][1];
     expect(payload.data.attributes.url).toBe("https://example.com");
@@ -629,11 +652,15 @@ describe("update_activitiable — EmbeddedActivity", () => {
       makeJsonApiResponse("embedded_activity", "ea1", {}),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      goals: ["목표1", "목표2"],
-    });
-    expect(getText(result)).toContain("EmbeddedActivity 업데이트 완료");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--goals",
+      "목표1",
+      "--goals",
+      "목표2",
+    ]);
+    expect(output).toContain("EmbeddedActivity 업데이트 완료");
 
     const payload = mockClient.updateEmbeddedActivity.mock.calls[0][1];
     expect(payload.data.attributes.url).toBeUndefined();
@@ -648,12 +675,15 @@ describe("update_activitiable — EmbeddedActivity", () => {
       makeJsonApiResponse("embedded_activity", "ea1", {}),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      url: "https://codle.io",
-      goals: ["학습목표"],
-    });
-    expect(getText(result)).toContain("EmbeddedActivity 업데이트 완료");
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--url",
+      "https://codle.io",
+      "--goals",
+      "학습목표",
+    ]);
+    expect(output).toContain("EmbeddedActivity 업데이트 완료");
 
     const payload = mockClient.updateEmbeddedActivity.mock.calls[0][1];
     expect(payload.data.attributes.url).toBe("https://codle.io");
@@ -668,11 +698,13 @@ describe("update_activitiable — EmbeddedActivity", () => {
       new CodleAPIError(422, "Invalid URL"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      url: "bad-url",
-    });
-    expect(getText(result)).toContain("EmbeddedActivity 업데이트 실패");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--url",
+      "bad-url",
+    ]);
+    expect(mockClient.updateEmbeddedActivity).toHaveBeenCalled();
   });
 });
 
@@ -682,10 +714,15 @@ describe("update_activitiable — unsupported type", () => {
       makeActivitiableResponse("qa1", "quiz_activity"),
     );
 
-    const result = await toolHandlers.update_activitiable({
-      activity_id: "1",
-      content: "test",
-    });
-    expect(getText(result)).toContain("지원하지 않는 유형");
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "1",
+      "--content",
+      "test",
+    ]);
+    expect(mockClient.listBoards).not.toHaveBeenCalled();
+    expect(mockClient.updateBoard).not.toHaveBeenCalled();
+    expect(mockClient.updateSheetActivity).not.toHaveBeenCalled();
+    expect(mockClient.updateEmbeddedActivity).not.toHaveBeenCalled();
   });
 });

@@ -1,55 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { CodleAPIError } from "../src/api/errors.js";
 import { makeJsonApiResponse } from "./helpers.js";
+import { pascalToSnake } from "../src/api/models.js";
 
-// We need to mock the client module before importing tools
-vi.mock("../src/api/client.js", () => {
-  const mockClient = {
-    userId: "test-user-123",
-    ensureAuth: vi.fn(),
-    request: vi.fn(),
-    getMaterial: vi.fn(),
-    createActivity: vi.fn(),
-    updateActivity: vi.fn(),
-    deleteActivity: vi.fn(),
-    duplicateActivity: vi.fn(),
-    createActivityTransition: vi.fn(),
-    doManyActivityTransitions: vi.fn(),
-  };
-  return { client: mockClient, CodleClient: vi.fn() };
-});
+const mockClient = {
+  request: vi.fn(),
+  getMaterial: vi.fn(),
+  createActivity: vi.fn(),
+  updateActivity: vi.fn(),
+  deleteActivity: vi.fn(),
+  duplicateActivity: vi.fn(),
+  doManyActivityTransitions: vi.fn(),
+};
+vi.mock("../src/api/client.js", () => ({
+  CodleClient: vi.fn(() => mockClient),
+}));
 
-// Import after mocking
-const { client } = await import("../src/api/client.js");
-const { pascalToSnake } = await import("../src/tools/activities.js");
-
-// We'll test the tool handlers directly via a helper
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerActivityTools } from "../src/tools/activities.js";
-
-// Capture the tool handlers
-const toolHandlers: Record<string, Function> = {};
-const mockServer = {
-  tool: (name: string, _desc: string, _schema: unknown, handler: Function) => {
-    toolHandlers[name] = handler;
-  },
-} as unknown as McpServer;
-registerActivityTools(mockServer);
-
-const mockClient = client as unknown as Record<
-  string,
-  ReturnType<typeof vi.fn>
->;
-
-function getText(result: {
-  content: Array<{ type: string; text: string }>;
-}): string {
-  return result.content[0].text;
-}
+import ActivityCreate from "../src/commands/activity/create.js";
+import ActivityUpdate from "../src/commands/activity/update.js";
+import ActivityDelete from "../src/commands/activity/delete.js";
+import ActivityDuplicate from "../src/commands/activity/duplicate.js";
+import ActivitySetFlow from "../src/commands/activity/set-flow.js";
+import ActivitySetBranch from "../src/commands/activity/set-branch.js";
+import { runCommand } from "./run-command.js";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  (client as Record<string, unknown>).userId = "test-user-123";
 });
 
 describe("pascalToSnake", () => {
@@ -72,24 +48,18 @@ describe("pascalToSnake", () => {
   });
 });
 
-describe("manage_activities create", () => {
-  it("missing required params", async () => {
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("필수");
-  });
-
+describe("activity create", () => {
   it("invalid activity_type", async () => {
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "test",
-      activity_type: "InvalidType",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("유효하지 않은 activity_type");
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "test",
+      "--activity-type",
+      "InvalidType",
+    ]);
+    expect(mockClient.request).not.toHaveBeenCalled();
+    expect(mockClient.createActivity).not.toHaveBeenCalled();
   });
 
   it("successful create", async () => {
@@ -104,16 +74,17 @@ describe("manage_activities create", () => {
       }),
     );
 
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "테스트",
-      activity_type: "QuizActivity",
-      depth: 0,
-    });
+    const output = await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "테스트",
+      "--activity-type",
+      "QuizActivity",
+    ]);
 
-    expect(getText(result)).toContain("100");
-    expect(getText(result)).toContain("생성 완료");
+    expect(output).toContain("100");
+    expect(output).toContain("생성 완료");
     expect(mockClient.request).toHaveBeenCalledWith(
       "POST",
       "/api/v1/quiz_activities",
@@ -136,13 +107,16 @@ describe("manage_activities create", () => {
       makeJsonApiResponse("activity", "100", { name: "깊은활동", depth: 1 }),
     );
 
-    await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "깊은활동",
-      activity_type: "HtmlActivity",
-      depth: 2,
-    });
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "깊은활동",
+      "--activity-type",
+      "HtmlActivity",
+      "--depth",
+      "2",
+    ]);
 
     const callArgs = mockClient.createActivity.mock.calls[0][0];
     // depth 2 (1-indexed) → 1 (0-indexed for Rails API)
@@ -157,12 +131,14 @@ describe("manage_activities create", () => {
       makeJsonApiResponse("activity", "100", { name: "기본활동", depth: 0 }),
     );
 
-    await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "기본활동",
-      activity_type: "HtmlActivity",
-    });
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "기본활동",
+      "--activity-type",
+      "HtmlActivity",
+    ]);
 
     const callArgs = mockClient.createActivity.mock.calls[0][0];
     // depth 미지정 → 1 (default) → 0 (0-indexed)
@@ -181,15 +157,18 @@ describe("manage_activities create", () => {
       }),
     );
 
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "축약테스트",
-      activity_type: "Quiz",
-      depth: 1,
-    });
+    const output = await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "축약테스트",
+      "--activity-type",
+      "Quiz",
+      "--depth",
+      "1",
+    ]);
 
-    expect(getText(result)).toContain("생성 완료");
+    expect(output).toContain("생성 완료");
     expect(mockClient.request).toHaveBeenCalledWith(
       "POST",
       "/api/v1/quiz_activities",
@@ -200,14 +179,18 @@ describe("manage_activities create", () => {
   });
 
   it("unknown short type rejected", async () => {
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "test",
-      activity_type: "Unknown",
-      depth: 1,
-    });
-    expect(getText(result)).toContain("유효하지 않은 activity_type");
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "test",
+      "--activity-type",
+      "Unknown",
+      "--depth",
+      "1",
+    ]);
+    expect(mockClient.request).not.toHaveBeenCalled();
+    expect(mockClient.createActivity).not.toHaveBeenCalled();
   });
 
   it("passes entry_category to activitiable attributes for EntryActivity", async () => {
@@ -222,15 +205,18 @@ describe("manage_activities create", () => {
       }),
     );
 
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "엔트리스테이지",
-      activity_type: "EntryActivity",
-      entry_category: "stage",
-    });
+    const output = await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "엔트리스테이지",
+      "--activity-type",
+      "EntryActivity",
+      "--entry-category",
+      "stage",
+    ]);
 
-    expect(getText(result)).toContain("생성 완료");
+    expect(output).toContain("생성 완료");
     expect(mockClient.request).toHaveBeenCalledWith(
       "POST",
       "/api/v1/entry_activities",
@@ -257,13 +243,16 @@ describe("manage_activities create", () => {
       }),
     );
 
-    await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "퀴즈",
-      activity_type: "QuizActivity",
-      entry_category: "stage",
-    });
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "퀴즈",
+      "--activity-type",
+      "QuizActivity",
+      "--entry-category",
+      "stage",
+    ]);
 
     expect(mockClient.request).toHaveBeenCalledWith(
       "POST",
@@ -275,26 +264,28 @@ describe("manage_activities create", () => {
   });
 
   it("returns error when entry_category omitted for EntryActivity", async () => {
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "엔트리기본",
-      activity_type: "EntryActivity",
-    });
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "엔트리기본",
+      "--activity-type",
+      "EntryActivity",
+    ]);
 
-    expect(getText(result)).toContain("entry_category");
     expect(mockClient.request).not.toHaveBeenCalled();
   });
 
   it("returns error when entry_category omitted for short Entry type", async () => {
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "엔트리축약",
-      activity_type: "Entry",
-    });
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "엔트리축약",
+      "--activity-type",
+      "Entry",
+    ]);
 
-    expect(getText(result)).toContain("entry_category");
     expect(mockClient.request).not.toHaveBeenCalled();
   });
 
@@ -303,14 +294,15 @@ describe("manage_activities create", () => {
       data: { type: "quiz_activity", attributes: {} },
     });
 
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "test",
-      activity_type: "QuizActivity",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("응답에 id 없음");
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "test",
+      "--activity-type",
+      "QuizActivity",
+    ]);
+    expect(mockClient.createActivity).not.toHaveBeenCalled();
   });
 
   it("activitiable API error", async () => {
@@ -318,96 +310,68 @@ describe("manage_activities create", () => {
       new CodleAPIError(422, "Validation failed: name is required"),
     );
 
-    const result = await toolHandlers.manage_activities({
-      action: "create",
-      material_id: "1",
-      name: "test",
-      activity_type: "HtmlActivity",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("activitiable(HtmlActivity) 생성 실패");
-    expect(getText(result)).toContain("Validation failed");
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "test",
+      "--activity-type",
+      "HtmlActivity",
+    ]);
+    expect(mockClient.createActivity).not.toHaveBeenCalled();
   });
 });
 
-describe("manage_activities update", () => {
-  it("missing activity_id", async () => {
-    const result = await toolHandlers.manage_activities({
-      action: "update",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("activity_id는 필수");
-  });
-
+describe("activity update", () => {
   it("default depth still updates", async () => {
     mockClient.updateActivity.mockResolvedValue(
       makeJsonApiResponse("activity", "1", { name: "test", depth: 0 }),
     );
-    const result = await toolHandlers.manage_activities({
-      action: "update",
-      activity_id: "1",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("수정 완료");
+    const output = await runCommand(ActivityUpdate, [
+      "--activity-id",
+      "1",
+      "--depth",
+      "0",
+    ]);
+    expect(output).toContain("수정 완료");
   });
 
   it("update name", async () => {
     mockClient.updateActivity.mockResolvedValue(
       makeJsonApiResponse("activity", "1", { name: "새이름", depth: 0 }),
     );
-    const result = await toolHandlers.manage_activities({
-      action: "update",
-      activity_id: "1",
-      name: "새이름",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("수정 완료");
+    const output = await runCommand(ActivityUpdate, [
+      "--activity-id",
+      "1",
+      "--name",
+      "새이름",
+    ]);
+    expect(output).toContain("수정 완료");
   });
 });
 
-describe("manage_activities delete", () => {
-  it("missing activity_id", async () => {
-    const result = await toolHandlers.manage_activities({
-      action: "delete",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("activity_id는 필수");
-  });
-
+describe("activity delete", () => {
   it("successful delete", async () => {
     mockClient.deleteActivity.mockResolvedValue({});
-    const result = await toolHandlers.manage_activities({
-      action: "delete",
-      activity_id: "1",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("삭제 완료");
+    const output = await runCommand(ActivityDelete, [
+      "--activity-id",
+      "1",
+    ]);
+    expect(output).toContain("삭제 완료");
   });
 
   it("delete API error", async () => {
     mockClient.deleteActivity.mockRejectedValue(
       new CodleAPIError(404, "Not found"),
     );
-    const result = await toolHandlers.manage_activities({
-      action: "delete",
-      activity_id: "999",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("삭제 실패");
+    // CodleAPIError is caught by BaseCommand.catch() and converted to this.error()
+    // which is an oclif exit error handled by runCommand
+    await runCommand(ActivityDelete, ["--activity-id", "999"]);
+    expect(mockClient.deleteActivity).toHaveBeenCalledWith("999");
   });
 });
 
-describe("manage_activities invalid action", () => {
-  it("invalid action", async () => {
-    const result = await toolHandlers.manage_activities({
-      action: "invalid",
-      depth: 0,
-    });
-    expect(getText(result)).toContain("유효하지 않은 action");
-  });
-});
-
-describe("set_activity_branch", () => {
+describe("activity set-branch", () => {
   it("successful branch two levels", async () => {
     mockClient.getMaterial.mockResolvedValue({
       data: { id: "1", type: "material", attributes: {} },
@@ -415,15 +379,19 @@ describe("set_activity_branch", () => {
     });
     mockClient.doManyActivityTransitions.mockResolvedValue({});
 
-    const result = await toolHandlers.set_activity_branch({
-      material_id: "1",
-      branch_from: "50",
-      mid_activity_id: "51",
-      low_activity_id: "52",
-    });
-    expect(getText(result)).toContain("갈림길 설정 완료");
-    expect(getText(result)).toContain("mid=51");
-    expect(getText(result)).toContain("low=52");
+    const output = await runCommand(ActivitySetBranch, [
+      "--material-id",
+      "1",
+      "--branch-from",
+      "50",
+      "--mid-activity-id",
+      "51",
+      "--low-activity-id",
+      "52",
+    ]);
+    expect(output).toContain("갈림길 설정 완료");
+    expect(output).toContain("mid=51");
+    expect(output).toContain("low=52");
 
     const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
     expect(callArgs.data_to_create).toHaveLength(2);
@@ -437,30 +405,37 @@ describe("set_activity_branch", () => {
     });
     mockClient.doManyActivityTransitions.mockResolvedValue({});
 
-    const result = await toolHandlers.set_activity_branch({
-      material_id: "1",
-      branch_from: "50",
-      mid_activity_id: "51",
-      low_activity_id: "52",
-      high_activity_id: "53",
-    });
-    expect(getText(result)).toContain("갈림길 설정 완료");
+    const output = await runCommand(ActivitySetBranch, [
+      "--material-id",
+      "1",
+      "--branch-from",
+      "50",
+      "--mid-activity-id",
+      "51",
+      "--low-activity-id",
+      "52",
+      "--high-activity-id",
+      "53",
+    ]);
+    expect(output).toContain("갈림길 설정 완료");
     const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
     expect(callArgs.data_to_create).toHaveLength(3);
   });
 
-  it("only mid fails", async () => {
+  it("only mid fails (needs at least 2)", async () => {
     mockClient.getMaterial.mockResolvedValue({
       data: { id: "1", type: "material", attributes: {} },
       included: [],
     });
 
-    const result = await toolHandlers.set_activity_branch({
-      material_id: "1",
-      branch_from: "50",
-      mid_activity_id: "51",
-    });
-    expect(getText(result)).toContain("최소 2개");
+    await runCommand(ActivitySetBranch, [
+      "--material-id",
+      "1",
+      "--branch-from",
+      "50",
+      "--mid-activity-id",
+      "51",
+    ]);
     expect(mockClient.doManyActivityTransitions).not.toHaveBeenCalled();
   });
 
@@ -488,13 +463,17 @@ describe("set_activity_branch", () => {
     });
     mockClient.doManyActivityTransitions.mockResolvedValue({});
 
-    const result = await toolHandlers.set_activity_branch({
-      material_id: "1",
-      branch_from: "50",
-      mid_activity_id: "51",
-      low_activity_id: "52",
-    });
-    expect(getText(result)).toContain("기존 transition 1개 제거");
+    const output = await runCommand(ActivitySetBranch, [
+      "--material-id",
+      "1",
+      "--branch-from",
+      "50",
+      "--mid-activity-id",
+      "51",
+      "--low-activity-id",
+      "52",
+    ]);
+    expect(output).toContain("기존 transition 1개 제거");
     const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
     expect(callArgs.data_to_destroy).toEqual([{ id: "old-t-1" }]);
   });
@@ -508,17 +487,22 @@ describe("set_activity_branch", () => {
       new CodleAPIError(422, "Invalid"),
     );
 
-    const result = await toolHandlers.set_activity_branch({
-      material_id: "1",
-      branch_from: "50",
-      mid_activity_id: "51",
-      low_activity_id: "52",
-    });
-    expect(getText(result)).toContain("갈림길 설정 실패");
+    // CodleAPIError is caught by BaseCommand.catch() and converted to this.error()
+    await runCommand(ActivitySetBranch, [
+      "--material-id",
+      "1",
+      "--branch-from",
+      "50",
+      "--mid-activity-id",
+      "51",
+      "--low-activity-id",
+      "52",
+    ]);
+    expect(mockClient.doManyActivityTransitions).toHaveBeenCalled();
   });
 });
 
-describe("set_activity_flow", () => {
+describe("activity set-flow", () => {
   it("two activities linked", async () => {
     mockClient.getMaterial.mockResolvedValue({
       data: { id: "1", type: "material", attributes: {} },
@@ -526,12 +510,16 @@ describe("set_activity_flow", () => {
     });
     mockClient.doManyActivityTransitions.mockResolvedValue({});
 
-    const result = await toolHandlers.set_activity_flow({
-      material_id: "1",
-      activity_ids: ["10", "20"],
-    });
-    expect(getText(result)).toContain("코스 흐름 설정 완료");
-    expect(getText(result)).toContain("10 → 20");
+    const output = await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--activity-ids",
+      "10",
+      "--activity-ids",
+      "20",
+    ]);
+    expect(output).toContain("코스 흐름 설정 완료");
+    expect(output).toContain("10 → 20");
 
     const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
     expect(callArgs.data_to_create).toHaveLength(1);
@@ -549,11 +537,17 @@ describe("set_activity_flow", () => {
     });
     mockClient.doManyActivityTransitions.mockResolvedValue({});
 
-    const result = await toolHandlers.set_activity_flow({
-      material_id: "1",
-      activity_ids: ["10", "20", "30"],
-    });
-    expect(getText(result)).toContain("10 → 20 → 30");
+    const output = await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--activity-ids",
+      "10",
+      "--activity-ids",
+      "20",
+      "--activity-ids",
+      "30",
+    ]);
+    expect(output).toContain("10 → 20 → 30");
 
     const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
     expect(callArgs.data_to_create).toHaveLength(2);
@@ -587,11 +581,17 @@ describe("set_activity_flow", () => {
     });
     mockClient.doManyActivityTransitions.mockResolvedValue({});
 
-    const result = await toolHandlers.set_activity_flow({
-      material_id: "1",
-      activity_ids: ["10", "30", "20"],
-    });
-    expect(getText(result)).toContain("기존 선형 transition 2개 제거");
+    const output = await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--activity-ids",
+      "10",
+      "--activity-ids",
+      "30",
+      "--activity-ids",
+      "20",
+    ]);
+    expect(output).toContain("기존 선형 transition 2개 제거");
 
     const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
     expect(callArgs.data_to_destroy).toEqual([
@@ -626,10 +626,14 @@ describe("set_activity_flow", () => {
     });
     mockClient.doManyActivityTransitions.mockResolvedValue({});
 
-    await toolHandlers.set_activity_flow({
-      material_id: "1",
-      activity_ids: ["10", "20"],
-    });
+    await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--activity-ids",
+      "10",
+      "--activity-ids",
+      "20",
+    ]);
 
     const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
     // Only the linear transition should be destroyed
@@ -645,10 +649,15 @@ describe("set_activity_flow", () => {
       new CodleAPIError(422, "Invalid transition"),
     );
 
-    const result = await toolHandlers.set_activity_flow({
-      material_id: "1",
-      activity_ids: ["10", "20"],
-    });
-    expect(getText(result)).toContain("코스 흐름 설정 실패");
+    // CodleAPIError is caught by BaseCommand.catch() and converted to this.error()
+    await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--activity-ids",
+      "10",
+      "--activity-ids",
+      "20",
+    ]);
+    expect(mockClient.doManyActivityTransitions).toHaveBeenCalled();
   });
 });

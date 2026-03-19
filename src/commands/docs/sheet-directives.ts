@@ -1,8 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-
-// AIDEV-NOTE: 활동지 directive 문법 문서를 MCP Resource로 제공한다.
-// tool description에 전체 문서를 넣으면 매 대화마다 토큰이 소비되므로,
-// Resource로 분리하여 AI 에이전트가 필요할 때만 읽도록 한다.
+import { BaseCommand } from "../../base-command.js";
 
 const SHEET_DIRECTIVES_DOC = `# 활동지(sheet) 입력란 Directive 문법
 
@@ -101,22 +97,11 @@ const SHEET_DIRECTIVES_DOC = `# 활동지(sheet) 입력란 Directive 문법
 \`\`\`
 `;
 
-export function registerAllResources(server: McpServer): void {
-  server.resource(
-    "sheet-directives",
-    "codle://docs/sheet-directives",
-    {
-      description: "활동지 입력란 directive 문법 가이드",
-      mimeType: "text/markdown",
-    },
-    async () => ({
-      contents: [
-        {
-          uri: "codle://docs/sheet-directives",
-          mimeType: "text/markdown",
-          text: SHEET_DIRECTIVES_DOC,
-        },
-      ],
-    }),
-  );
+export default class DocsSheetDirectives extends BaseCommand {
+  static description =
+    "활동지 입력란 directive 문법 가이드를 출력합니다.";
+
+  async run(): Promise<void> {
+    this.log(SHEET_DIRECTIVES_DOC);
+  }
 }
