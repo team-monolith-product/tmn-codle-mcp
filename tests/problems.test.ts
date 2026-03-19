@@ -538,9 +538,7 @@ describe("update_activitiable — BoardActivity", () => {
     mockClient.listBoards.mockResolvedValue(
       makeJsonApiListResponse("board", [{ id: "b1" }]),
     );
-    mockClient.updateBoard.mockRejectedValue(
-      new CodleAPIError(422, "Invalid"),
-    );
+    mockClient.updateBoard.mockRejectedValue(new CodleAPIError(422, "Invalid"));
 
     await runCommand(ActivitiableUpdate, [
       "--activity-id",
@@ -583,9 +581,7 @@ describe("update_activitiable — SheetActivity", () => {
   });
 
   it("API error on activity fetch", async () => {
-    mockClient.request.mockRejectedValue(
-      new CodleAPIError(404, "Not found"),
-    );
+    mockClient.request.mockRejectedValue(new CodleAPIError(404, "Not found"));
 
     await runCommand(ActivitiableUpdate, [
       "--activity-id",

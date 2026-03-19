@@ -19,11 +19,9 @@ async function resolveActivitiable(
   client: CodleClient,
   activityId: string,
 ): Promise<ActivitiableInfo> {
-  const resp = await client.request(
-    "GET",
-    `/api/v1/activities/${activityId}`,
-    { params: { include: "activitiable" } },
-  );
+  const resp = await client.request("GET", `/api/v1/activities/${activityId}`, {
+    params: { include: "activitiable" },
+  });
   const actData = (resp.data as Record<string, unknown>) || {};
   const relationships =
     (actData.relationships as Record<string, unknown>) || {};
@@ -33,9 +31,7 @@ async function resolveActivitiable(
   const id = String(rel.id || "");
   const rawType = String(rel.type || "");
   if (!id || !rawType) {
-    throw new Error(
-      `활동 ${activityId}에서 activitiable을 찾을 수 없습니다.`,
-    );
+    throw new Error(`활동 ${activityId}에서 activitiable을 찾을 수 없습니다.`);
   }
   // snake_case → PascalCase
   const type = rawType
@@ -92,10 +88,9 @@ export default class ActivitiableUpdate extends BaseCommand {
       });
       const boards = extractList(boardsResp);
       if (!boards.length) {
-        this.error(
-          `활동 ${flags["activity-id"]}에 연결된 Board가 없습니다.`,
-          { exit: 1 },
-        );
+        this.error(`활동 ${flags["activity-id"]}에 연결된 Board가 없습니다.`, {
+          exit: 1,
+        });
       }
       const boardId = String(boards[0].id);
       const attrs: Record<string, unknown> = {};
@@ -172,11 +167,9 @@ export default class ActivitiableUpdate extends BaseCommand {
         { url: flags.url },
         info.id,
       );
-      await this.client.request(
-        "PUT",
-        `/api/v1/video_activities/${info.id}`,
-        { json: payload },
-      );
+      await this.client.request("PUT", `/api/v1/video_activities/${info.id}`, {
+        json: payload,
+      });
       this.log(
         `VideoActivity 업데이트 완료: [${info.id}] (activity=${flags["activity-id"]})`,
       );
