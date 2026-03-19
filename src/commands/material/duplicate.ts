@@ -16,9 +16,7 @@ export default class MaterialDuplicate extends BaseCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(MaterialDuplicate);
 
-    const response = await this.client.duplicateMaterial(
-      flags["material-id"],
-    );
+    const response = await this.client.duplicateMaterial(flags["material-id"]);
     const mat = extractSingle(response);
 
     this.log(

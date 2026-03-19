@@ -291,10 +291,7 @@ describe("material duplicate", () => {
       makeJsonApiResponse("material", "2", { name: "복제됨" }),
     );
 
-    const output = await runCommand(MaterialDuplicate, [
-      "--material-id",
-      "1",
-    ]);
+    const output = await runCommand(MaterialDuplicate, ["--material-id", "1"]);
     expect(output).toContain("자료 복제 완료");
     expect(output).toContain("원본: 1");
   });

@@ -17,8 +17,7 @@ export default class MaterialGet extends BaseCommand {
     const { flags } = await this.parse(MaterialGet);
 
     const params = {
-      include:
-        "activities,activities.activitiable,tags,activity_transitions",
+      include: "activities,activities.activitiable,tags,activity_transitions",
     };
     const response = await this.client.getMaterial(
       flags["material-id"],
@@ -104,7 +103,9 @@ export default class MaterialGet extends BaseCommand {
           : "";
         const displayDepth = depthVal + 1;
         lines.push(
-          `  ${depthPrefix}[${a.id}] ${a.name ?? "(무제)"} (type: ${actType}, depth: ${displayDepth}${activitiableInfo}${problemInfo})`,
+          `  ${depthPrefix}[${a.id}] ${
+            a.name ?? "(무제)"
+          } (type: ${actType}, depth: ${displayDepth}${activitiableInfo}${problemInfo})`,
         );
       }
     } else {

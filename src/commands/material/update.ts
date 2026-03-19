@@ -1,10 +1,7 @@
 import { Flags } from "@oclif/core";
 
 import { BaseCommand } from "../../base-command.js";
-import {
-  extractSingle,
-  buildJsonApiPayload,
-} from "../../api/models.js";
+import { extractSingle, buildJsonApiPayload } from "../../api/models.js";
 import { convertFromMarkdown } from "../../lexical/index.js";
 
 export default class MaterialUpdate extends BaseCommand {
