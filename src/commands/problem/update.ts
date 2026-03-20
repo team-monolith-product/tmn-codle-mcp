@@ -32,7 +32,7 @@ export default class ProblemUpdate extends BaseCommand {
       description: "주관식 옵션 JSON {caseSensitive?, placeholder?}",
     }),
     "tag-ids": Flags.string({ description: "태그 ID", multiple: true }),
-    "is-public": Flags.boolean({ description: "공개 여부" }),
+    "is-public": Flags.boolean({ description: "공개 여부", allowNo: true }),
     commentary: Flags.string({ description: "해설" }),
     "sample-answer": Flags.string({
       description: "모범답안 (descriptive 타입)",

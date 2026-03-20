@@ -1,5 +1,8 @@
 import { BaseCommand } from "../../base-command.js";
 
+// AIDEV-NOTE: 활동지 directive 문법 문서를 별도 커맨드로 제공한다.
+// tool description에 전체 문서를 넣으면 매 호출마다 토큰이 소비되므로,
+// 별도 커맨드로 분리하여 AI 에이전트가 필요할 때만 실행하도록 한다.
 const SHEET_DIRECTIVES_DOC = `# 활동지(sheet) 입력란 Directive 문법
 
 활동지(sheet) 문제의 \`content\`에 아래 directive를 사용하면 입력란 노드가 자동 생성된다.
