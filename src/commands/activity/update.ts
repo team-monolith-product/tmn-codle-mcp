@@ -29,7 +29,11 @@ export default class ActivityUpdate extends BaseCommand {
 
     if (flags.name !== undefined) attrs.name = flags.name;
     if (flags.depth !== undefined) attrs.depth = Math.max(0, flags.depth - 1);
-    if (flags["tag-ids"] !== undefined) attrs.tag_ids = flags["tag-ids"];
+    if (flags["tag-ids"] !== undefined) {
+      // AIDEV-NOTE: --tag-ids "" (빈 문자열)은 태그 전체 삭제를 의미.
+      // oclif multiple flag는 빈 배열을 표현할 수 없으므로 빈 문자열을 빈 배열로 변환.
+      attrs.tag_ids = flags["tag-ids"].filter((id) => id !== "");
+    }
 
     if (!Object.keys(attrs).length) {
       this.output({ message: "수정할 항목이 없습니다." });

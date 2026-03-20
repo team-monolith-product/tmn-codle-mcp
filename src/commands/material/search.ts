@@ -13,7 +13,7 @@ export default class MaterialSearch extends BaseCommand {
       multiple: true,
     }),
     "is-public": Flags.boolean({
-      description: "공개 여부 필터 (설정 시 공개 자료, 미설정 시 내 자료만)",
+      description: "공개 자료 검색 (미설정 시 내 자료)",
       allowNo: false,
     }),
     "page-size": Flags.integer({

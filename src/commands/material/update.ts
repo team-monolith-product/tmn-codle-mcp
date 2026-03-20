@@ -30,7 +30,11 @@ export default class MaterialUpdate extends BaseCommand {
     const attrs: Record<string, unknown> = {};
     if (flags.name !== undefined) attrs.name = flags.name;
     if (flags["is-public"] !== undefined) attrs.is_public = flags["is-public"];
-    if (flags["tag-ids"] !== undefined) attrs.tag_ids = flags["tag-ids"];
+    if (flags["tag-ids"] !== undefined) {
+      // AIDEV-NOTE: --tag-ids "" (빈 문자열)은 태그 전체 삭제를 의미.
+      // oclif multiple flag는 빈 배열을 표현할 수 없으므로 빈 문자열을 빈 배열로 변환.
+      attrs.tag_ids = flags["tag-ids"].filter((id) => id !== "");
+    }
     if (flags.body !== undefined) attrs.body = convertFromMarkdown(flags.body);
 
     if (!Object.keys(attrs).length) {

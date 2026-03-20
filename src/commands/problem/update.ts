@@ -172,6 +172,7 @@ export default class ProblemUpdate extends BaseCommand {
           dcAttrs.placeholder = descriptiveCriterium.placeholder;
         if (descriptiveCriterium.scoring_element !== undefined)
           dcAttrs.scoring_element = descriptiveCriterium.scoring_element;
+        // AIDEV-NOTE: criteria 배열은 상/중/하 순서. API는 high/mid/low_content, high/mid/low_ratio 개별 필드.
         const [high, mid, low] = descriptiveCriterium.criteria ?? [];
         if (high) {
           dcAttrs.high_content = high.content;
