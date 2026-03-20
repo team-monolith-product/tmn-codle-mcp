@@ -1,7 +1,7 @@
 import { Flags } from "@oclif/core";
 
 import { BaseCommand } from "../../base-command.js";
-import { extractSingle } from "../../api/models.js";
+import { extractSingle, snakeToPascal } from "../../api/models.js";
 
 export default class MaterialGet extends BaseCommand {
   static description = "자료(Material) 상세 정보를 조회합니다.";
@@ -31,12 +31,24 @@ export default class MaterialGet extends BaseCommand {
       >) || [];
 
     // Parse activities from included
-    const activities = included
-      .filter((i) => i.type === "activity")
-      .map((i) => ({
-        id: i.id,
-        ...((i.attributes as Record<string, unknown>) || {}),
-      }));
+    const activities: Record<string, unknown>[] = [];
+    for (const i of included) {
+      if (i.type !== "activity") continue;
+      const attrs = (i.attributes as Record<string, unknown>) || {};
+      const a: Record<string, unknown> = { id: i.id, ...attrs };
+      if (!a.activitiable_type) {
+        const relationships =
+          (i.relationships as Record<string, unknown>) || {};
+        const activitiable =
+          (relationships.activitiable as Record<string, unknown>) || {};
+        const rel = (activitiable.data as Record<string, unknown>) || {};
+        if (rel.id) {
+          a.activitiable_id = rel.id;
+          a.activitiable_type = snakeToPascal(String(rel.type || ""));
+        }
+      }
+      activities.push(a);
+    }
 
     // Parse tags from included
     const tags = included
