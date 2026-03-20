@@ -125,7 +125,10 @@ export default class ProblemCollectionSync extends BaseCommand {
     }
 
     if (!dataToCreate.length && !dataToUpdate.length && !dataToDestroy.length) {
-      this.output({ message: "변경 사항 없음.", total: desiredProblems.length });
+      this.output({
+        message: "변경 사항 없음.",
+        total: desiredProblems.length,
+      });
       return;
     }
 
