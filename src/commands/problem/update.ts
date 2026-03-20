@@ -70,6 +70,7 @@ export default class ProblemUpdate extends BaseCommand {
     if (blocks !== undefined) attrs.blocks = blocks;
     if (flags["tag-ids"]?.length) attrs.tag_ids = flags["tag-ids"];
     if (flags["is-public"] !== undefined) attrs.is_public = flags["is-public"];
+    // AIDEV-NOTE: commentary는 프론트엔드에서 Lexical JSON으로 렌더링하므로 문자열을 변환해야 한다.
     if (flags.commentary !== undefined)
       attrs.commentary = convertFromMarkdown(flags.commentary);
 

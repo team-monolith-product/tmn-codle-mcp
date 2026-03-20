@@ -90,7 +90,7 @@ export default class ActivityCreate extends BaseCommand {
     const activitiableAttrs: Record<string, unknown> = {};
 
     // AIDEV-NOTE: entry_category는 Rails EntryActivity에 validates_immutable :category가 있어
-    // 생성 후 변경 불가. 따라서 create 시에만 설정.
+    // 생성 후 변경 불가. 따라서 create 시에만 설정하며, activitiable update로 이관하지 않는다.
     if (resolvedType === "EntryActivity" && flags["entry-category"]) {
       activitiableAttrs.category = flags["entry-category"];
     }
