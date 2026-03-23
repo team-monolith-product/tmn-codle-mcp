@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="team-monolith-product/tmn-codle-mcp"
-BRANCH="main"
+BRANCH="${1:-main}"
 INSTALL_DIR="${HOME}/.codle-cli"
 
 echo "Installing codle-cli..."
