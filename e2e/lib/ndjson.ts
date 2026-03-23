@@ -70,19 +70,18 @@ export function findCodleInteraction(
   });
 }
 
-/** Find all bash tool interactions matching a codle subcommand. */
+/** Find all bash tool interactions matching a codle subcommand.
+ *  Excludes --help calls to avoid matching exploration commands. */
 export function findAllCodleInteractions(
   interactions: ToolInteraction[],
   subcommand: string,
 ): ToolInteraction[] {
-  return interactions.filter(
-    (i) =>
-      i.call.name === "Bash" &&
-      matchesCodleSubcommand(
-        (i.call.input.command as string) ?? "",
-        subcommand,
-      ),
-  );
+  return interactions.filter((i) => {
+    if (i.call.name !== "Bash") return false;
+    const cmd = (i.call.input.command as string) ?? "";
+    if (cmd.includes("--help")) return false;
+    return matchesCodleSubcommand(cmd, subcommand);
+  });
 }
 
 /** Parse JSON output from a codle CLI result. */
