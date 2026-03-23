@@ -4,7 +4,12 @@ import { BaseCommand } from "../../base-command.js";
 import { extractSingle, snakeToPascal } from "../../api/models.js";
 
 export default class MaterialGet extends BaseCommand {
-  static description = "자료(Material) 상세 정보를 조회합니다.";
+  static description =
+    "자료(Material)의 활동, 태그, 코스 흐름을 포함한 상세 정보를 조회합니다.";
+
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --material-id 123",
+  ];
 
   static flags = {
     "material-id": Flags.string({

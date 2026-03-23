@@ -7,6 +7,12 @@ import { convertFromMarkdown } from "../../lexical/index.js";
 export default class MaterialUpdate extends BaseCommand {
   static description = "자료(Material)를 수정합니다.";
 
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --material-id 123 --name '수정된 이름'",
+    "<%= config.bin %> <%= command.id %> --material-id 123 --is-public",
+    "<%= config.bin %> <%= command.id %> --material-id 123 --tag-ids ''  # 태그 전체 삭제",
+  ];
+
   static flags = {
     "material-id": Flags.string({
       description: "수정할 자료 ID",

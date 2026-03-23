@@ -5,6 +5,10 @@ import { BaseCommand } from "../../base-command.js";
 export default class ProblemDelete extends BaseCommand {
   static description = "문제를 삭제합니다.";
 
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --problem-id 789",
+  ];
+
   static flags = {
     "problem-id": Flags.string({
       required: true,

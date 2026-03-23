@@ -7,6 +7,11 @@ import { convertFromMarkdown } from "../../lexical/index.js";
 export default class MaterialCreate extends BaseCommand {
   static description = "새 자료(Material)를 생성합니다.";
 
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --name '파이썬 기초'",
+    "<%= config.bin %> <%= command.id %> --name '파이썬 기초' --body '# 학습 안내' --tag-ids 10",
+  ];
+
   static flags = {
     name: Flags.string({ description: "자료 이름", required: true }),
     "is-public": Flags.boolean({

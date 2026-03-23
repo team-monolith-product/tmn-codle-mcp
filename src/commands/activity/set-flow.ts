@@ -3,7 +3,13 @@ import { Flags } from "@oclif/core";
 import { BaseCommand } from "../../base-command.js";
 
 export default class ActivitySetFlow extends BaseCommand {
-  static description = "활동들의 선형 코스 흐름(transition)을 설정합니다.";
+  static description =
+    "코스 흐름(선형 연결)을 설정합니다. 기존 선형 transition을 교체하며 갈림길은 유지.";
+
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --material-id 1 --activity-ids 10 --activity-ids 20",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --activity-ids 10 --activity-ids 20 --activity-ids 30",
+  ];
 
   static flags = {
     "material-id": Flags.string({

@@ -6,6 +6,12 @@ import { BaseCommand } from "../../base-command.js";
 export default class TagSearch extends BaseCommand {
   static description = "태그를 검색합니다.";
 
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --domain material",
+    "<%= config.bin %> <%= command.id %> --query 파이썬",
+    "<%= config.bin %> <%= command.id %> --domain difficulty --page-size 100",
+  ];
+
   static flags = {
     domain: Flags.string({
       description: "태그 도메인",

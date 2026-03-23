@@ -6,6 +6,12 @@ import { extractList } from "../../api/models.js";
 export default class MaterialSearch extends BaseCommand {
   static description = "자료(Material)를 검색합니다.";
 
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --query 파이썬",
+    "<%= config.bin %> <%= command.id %> --tag-ids 10 --tag-ids 20",
+    "<%= config.bin %> <%= command.id %> --is-public",
+  ];
+
   static flags = {
     query: Flags.string({ description: "검색 키워드 (자료 이름에서 검색)" }),
     "tag-ids": Flags.string({

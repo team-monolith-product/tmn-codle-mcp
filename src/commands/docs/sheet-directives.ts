@@ -103,6 +103,8 @@ const SHEET_DIRECTIVES_DOC = `# 활동지(sheet) 입력란 Directive 문법
 export default class DocsSheetDirectives extends Command {
   static description = "활동지 입력란 directive 문법 가이드를 출력합니다.";
 
+  static examples = ["<%= config.bin %> <%= command.id %>"];
+
   async run(): Promise<void> {
     this.log(JSON.stringify({ content: SHEET_DIRECTIVES_DOC }));
   }

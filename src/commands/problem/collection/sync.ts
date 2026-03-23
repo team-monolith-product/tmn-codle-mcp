@@ -61,7 +61,13 @@ interface DesiredProblem {
 }
 
 export default class ProblemCollectionSync extends BaseCommand {
-  static description = "활동의 ProblemCollection에 문제 목록을 동기화합니다.";
+  static description =
+    "활동의 ProblemCollection에 문제 목록을 선언적으로 동기화합니다. problems 배열이 최종 상태.";
+
+  static examples = [
+    '<%= config.bin %> <%= command.id %> --activity-id 456 --problems \'[{"id":"p1"},{"id":"p2","point":2}]\'',
+    "<%= config.bin %> <%= command.id %> --activity-id 456 --problems '[]'  # 문제 전체 제거",
+  ];
 
   static flags = {
     "activity-id": Flags.string({

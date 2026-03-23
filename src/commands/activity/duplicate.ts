@@ -6,6 +6,10 @@ import { BaseCommand } from "../../base-command.js";
 export default class ActivityDuplicate extends BaseCommand {
   static description = "활동(Activity)을 복제합니다.";
 
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --activity-id 456",
+  ];
+
   static flags = {
     "activity-id": Flags.string({
       required: true,

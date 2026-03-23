@@ -6,6 +6,12 @@ import { BaseCommand } from "../../base-command.js";
 export default class ActivityUpdate extends BaseCommand {
   static description = "활동(Activity)을 수정합니다.";
 
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --activity-id 456 --name '수정된 활동명'",
+    "<%= config.bin %> <%= command.id %> --activity-id 456 --depth 2",
+    "<%= config.bin %> <%= command.id %> --activity-id 456 --tag-ids ''  # 태그 전체 삭제",
+  ];
+
   static flags = {
     "activity-id": Flags.string({
       required: true,

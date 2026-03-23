@@ -12,6 +12,11 @@ import {
 export default class ProblemUpdate extends BaseCommand {
   static description = "문제를 수정합니다.";
 
+  static examples = [
+    "<%= config.bin %> <%= command.id %> --problem-id 789 --title '수정된 제목'",
+    "<%= config.bin %> <%= command.id %> --problem-id 789 --content '새 본문'",
+  ];
+
   static flags = {
     "problem-id": Flags.string({
       required: true,
