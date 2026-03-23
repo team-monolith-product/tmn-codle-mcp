@@ -22,7 +22,10 @@ export default class ProblemUpdate extends BaseCommand {
       description: "문제 유형",
       options: ["quiz", "sheet", "descriptive"],
     }),
-    content: Flags.string({ description: "문제 본문 (markdown)" }),
+    content: Flags.string({
+      description:
+        "문제 본문 (markdown). sheet 타입은 directive 문법 지원 — codle docs sheet-directives 참조",
+    }),
     choices: Flags.string({
       description:
         "객관식 선택지 JSON [{text, isAnswer, imageUrl?, imageAlt?}]",
