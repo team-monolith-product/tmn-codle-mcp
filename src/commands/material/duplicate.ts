@@ -6,9 +6,7 @@ import { extractSingle } from "../../api/models.js";
 export default class MaterialDuplicate extends BaseCommand {
   static description = "자료(Material)를 복제합니다.";
 
-  static examples = [
-    "<%= config.bin %> <%= command.id %> --material-id 123",
-  ];
+  static examples = ["<%= config.bin %> <%= command.id %> --material-id 123"];
 
   static flags = {
     "material-id": Flags.string({

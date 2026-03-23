@@ -90,7 +90,7 @@ export default class HtmlActivityPageSync extends BaseCommand {
     "교안(HtmlActivity)의 페이지 목록을 선언적으로 동기화합니다. pages 배열이 최종 상태이며, 순서가 position.";
 
   static examples = [
-    "<%= config.bin %> <%= command.id %> --activity-id 456 --pages '[{\"url\":\"https://example.com/p1\"},{\"url\":\"https://example.com/p2\"}]'",
+    '<%= config.bin %> <%= command.id %> --activity-id 456 --pages \'[{"url":"https://example.com/p1"},{"url":"https://example.com/p2"}]\'',
     "<%= config.bin %> <%= command.id %> --activity-id 456 --pages '[]'  # 페이지 전체 제거",
   ];
 

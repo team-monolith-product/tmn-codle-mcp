@@ -5,9 +5,7 @@ import { BaseCommand } from "../../base-command.js";
 export default class ActivityDelete extends BaseCommand {
   static description = "활동(Activity)을 삭제합니다.";
 
-  static examples = [
-    "<%= config.bin %> <%= command.id %> --activity-id 456",
-  ];
+  static examples = ["<%= config.bin %> <%= command.id %> --activity-id 456"];
 
   static flags = {
     "activity-id": Flags.string({
