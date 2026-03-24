@@ -1,6 +1,10 @@
 import { logger } from "../logger.js";
 import { startCallbackServer } from "./callback-server.js";
-import { generateCodeChallenge, generateCodeVerifier, generateState } from "./crypto.js";
+import {
+  generateCodeChallenge,
+  generateCodeVerifier,
+  generateState,
+} from "./crypto.js";
 import { fetchMetadata } from "./metadata.js";
 import { save, type StoredCredentials } from "./token-manager.js";
 
@@ -65,7 +69,10 @@ export async function login(authServerUrl: string): Promise<StoredCredentials> {
   logger.debug("콜백 서버 시작: %s", server.redirectUri);
 
   try {
-    const clientId = await registerClient(metadata.registration_endpoint, server.redirectUri);
+    const clientId = await registerClient(
+      metadata.registration_endpoint,
+      server.redirectUri,
+    );
     logger.debug("클라이언트 등록 완료: %s", clientId);
 
     const codeVerifier = generateCodeVerifier();
@@ -83,13 +90,17 @@ export async function login(authServerUrl: string): Promise<StoredCredentials> {
 
     const { default: open } = await import("open");
     console.error(`브라우저에서 로그인 페이지를 열고 있습니다...`);
-    console.error(`브라우저가 자동으로 열리지 않으면 아래 URL을 직접 열어주세요:\n${authorizeUrl.toString()}\n`);
+    console.error(
+      `브라우저가 자동으로 열리지 않으면 아래 URL을 직접 열어주세요:\n${authorizeUrl.toString()}\n`,
+    );
     await open(authorizeUrl.toString());
 
     const callback = await server.waitForCallback();
 
     if (callback.state !== state) {
-      throw new Error("OAuth state 불일치. 보안 위험이 있을 수 있습니다. 다시 시도해주세요.");
+      throw new Error(
+        "OAuth state 불일치. 보안 위험이 있을 수 있습니다. 다시 시도해주세요.",
+      );
     }
 
     const tokenData = await exchangeCode(
@@ -106,7 +117,8 @@ export async function login(authServerUrl: string): Promise<StoredCredentials> {
       access_token: tokenData.access_token as string,
       refresh_token: tokenData.refresh_token as string,
       scope: (tokenData.scope as string) ?? "public",
-      created_at: (tokenData.created_at as number) ?? Math.floor(Date.now() / 1000),
+      created_at:
+        (tokenData.created_at as number) ?? Math.floor(Date.now() / 1000),
       expires_in: (tokenData.expires_in as number) ?? 7200,
     };
 

@@ -32,7 +32,9 @@ export abstract class BaseCommand extends Command {
     if (!token) {
       const credentials = load();
       if (!credentials) {
-        this.error("인증 정보가 없습니다. `codle auth login`을 실행하세요.", { exit: 1 });
+        this.error("인증 정보가 없습니다. `codle auth login`을 실행하세요.", {
+          exit: 1,
+        });
         return; // unreachable, but satisfies TS null check
       }
       token = credentials.access_token;
@@ -52,7 +54,9 @@ export abstract class BaseCommand extends Command {
       throw new Error("세션 만료. `codle auth login`으로 다시 로그인하세요.");
     }
 
-    const metadata = await fetchMetadata(this.storedCredentials.auth_server_url);
+    const metadata = await fetchMetadata(
+      this.storedCredentials.auth_server_url,
+    );
     const updated = await refresh(
       metadata.token_endpoint,
       this.storedCredentials.client_id,

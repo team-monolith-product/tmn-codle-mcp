@@ -1,4 +1,10 @@
-import { createCipheriv, createDecipheriv, createHash, pbkdf2Sync, randomBytes } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  pbkdf2Sync,
+  randomBytes,
+} from "node:crypto";
 import { hostname, userInfo } from "node:os";
 
 const ALGORITHM = "aes-256-gcm";
@@ -20,7 +26,13 @@ export function getMachineId(): string {
 }
 
 export function deriveKey(password: string, salt: Buffer): Buffer {
-  return pbkdf2Sync(password, salt, PBKDF2_ITERATIONS, KEY_LENGTH, PBKDF2_DIGEST);
+  return pbkdf2Sync(
+    password,
+    salt,
+    PBKDF2_ITERATIONS,
+    KEY_LENGTH,
+    PBKDF2_DIGEST,
+  );
 }
 
 export function encrypt(plaintext: string): EncryptedData {
@@ -28,8 +40,13 @@ export function encrypt(plaintext: string): EncryptedData {
   const key = deriveKey(getMachineId(), salt);
   const iv = randomBytes(IV_LENGTH);
 
-  const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: TAG_LENGTH });
-  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const cipher = createCipheriv(ALGORITHM, key, iv, {
+    authTagLength: TAG_LENGTH,
+  });
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
 
   return {
@@ -47,14 +64,17 @@ export function decrypt(data: EncryptedData): string {
   const tag = Buffer.from(data.tag, "base64");
   const ciphertext = Buffer.from(data.ciphertext, "base64");
 
-  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: TAG_LENGTH });
+  const decipher = createDecipheriv(ALGORITHM, key, iv, {
+    authTagLength: TAG_LENGTH,
+  });
   decipher.setAuthTag(tag);
   return decipher.update(ciphertext) + decipher.final("utf8");
 }
 
 // AIDEV-NOTE: PKCE S256 유틸리티. OAuth 플로우에서 code_verifier/code_challenge 생성에 사용.
 export function generateCodeVerifier(): string {
-  const unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+  const unreserved =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
   const bytes = randomBytes(32);
   return Array.from(bytes)
     .map((b) => unreserved[b % unreserved.length])

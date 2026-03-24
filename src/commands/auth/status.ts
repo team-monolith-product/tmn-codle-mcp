@@ -15,10 +15,14 @@ export default class AuthStatus extends Command {
     }
 
     const expired = isExpired(credentials);
-    const expiresAt = new Date((credentials.created_at + credentials.expires_in) * 1000);
+    const expiresAt = new Date(
+      (credentials.created_at + credentials.expires_in) * 1000,
+    );
 
     this.log(`인증 서버: ${credentials.auth_server_url}`);
     this.log(`스코프: ${credentials.scope}`);
-    this.log(`만료: ${expiresAt.toLocaleString()} ${expired ? "(만료됨)" : "(유효)"}`);
+    this.log(
+      `만료: ${expiresAt.toLocaleString()} ${expired ? "(만료됨)" : "(유효)"}`,
+    );
   }
 }
