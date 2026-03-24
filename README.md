@@ -1,48 +1,30 @@
-# Codle CLI 설치 가이드
+# Contributing
 
-## 설치
+개발자를 위한 가이드. 사용자 설치/설정은 [README.md](README.md) 참조.
+
+## 개발 환경 설정
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/team-monolith-product/tmn-codle-mcp/main/install.sh" | bash
+git clone https://github.com/team-monolith-product/tmn-codle-mcp.git
+cd tmn-codle-mcp
+npm ci
+npm run build
 ```
 
-`~/.codle-cli/`에 설치되고, `~/.local/bin/codle`에 symlink가 생성된다.
+## E2E 테스트
 
-## 설정
+자연어 프롬프트 → CLI bash 호출 계약을 검증한다.
+커맨드 인터페이스(flags, description, examples) 변경 시 실행.
 
 ```bash
-export CODLE_TOKEN="your-token"
+cp .env.e2e.example .env.e2e
+npm run e2e
 ```
 
-토큰 발급은 인프라팀에 문의. `~/.bashrc` 또는 `~/.zshrc`에 추가하면 영구 설정.
+> 상세 가이드: [e2e/README.md](e2e/README.md)
 
-### API URL (선택)
-
-기본값은 `https://class.codle.io`. 다른 환경을 사용하려면:
+## 디버깅
 
 ```bash
-export CODLE_API_URL="https://class.dev.codle.io"
-```
-
-## 사용 예시
-
-```bash
-codle tag search 파이썬
-codle material search --query "React"
-codle material get 123
-codle activity create --material-id 1 --name "퀴즈" --activity-type Quiz
-```
-
-## 문제 해결
-
-| 증상                       | 원인           | 해결                                   |
-| -------------------------- | -------------- | -------------------------------------- |
-| `command not found: codle` | PATH 미설정    | `export PATH="$HOME/.local/bin:$PATH"` |
-| `API 에러 (401)`           | 토큰 누락/만료 | `CODLE_TOKEN` 확인                     |
-| `API 에러 (404)`           | URL 오류       | `CODLE_API_URL` 확인                   |
-
-## 업데이트
-
-```bash
-~/.codle-cli/install.sh
+CODLE_LOG_LEVEL=DEBUG codle tag search 파이썬 2>debug.log
 ```
