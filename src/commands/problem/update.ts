@@ -27,10 +27,8 @@ export default class ProblemUpdate extends BaseCommand {
       description: "문제 ID (또는 첫 번째 인자로 전달)",
     }),
     title: Flags.string({ description: "문제 제목" }),
-    "problem-type": Flags.string({
-      description: "문제 유형",
-      options: ["quiz", "sheet", "descriptive"],
-    }),
+    // AIDEV-NOTE: problem_type은 Rails에서 validates_immutable이므로 update 시 전송하면 422 에러.
+    // create 전용 필드이므로 update 커맨드에서 제거.
     content: Flags.string({
       description:
         "문제 본문 (markdown). sheet 타입은 directive 문법 지원 — codle docs sheet-directives 참조",
@@ -61,12 +59,17 @@ export default class ProblemUpdate extends BaseCommand {
       this.error("문제 ID를 인자 또는 --problem-id로 지정하세요.", { exit: 1 });
     }
 
-    const choices = flags.choices ? JSON.parse(flags.choices) : undefined;
-    const inputOptions = flags["input-options"]
-      ? JSON.parse(flags["input-options"])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const choices: any = flags.choices
+      ? this.parseJsonFlag("choices", flags.choices)
       : undefined;
-    const descriptiveCriterium = flags["descriptive-criterium"]
-      ? JSON.parse(flags["descriptive-criterium"])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inputOptions: any = flags["input-options"]
+      ? this.parseJsonFlag("input-options", flags["input-options"])
+      : undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const descriptiveCriterium: any = flags["descriptive-criterium"]
+      ? this.parseJsonFlag("descriptive-criterium", flags["descriptive-criterium"])
       : undefined;
 
     let blocks: unknown | undefined;
@@ -80,8 +83,6 @@ export default class ProblemUpdate extends BaseCommand {
 
     const attrs: Record<string, unknown> = {};
     if (flags.title !== undefined) attrs.title = flags.title;
-    if (flags["problem-type"] !== undefined)
-      attrs.problem_type = flags["problem-type"];
     if (flags.content !== undefined) attrs.content = flags.content;
     if (blocks !== undefined) attrs.blocks = blocks;
     if (flags["tag-ids"] !== undefined) {

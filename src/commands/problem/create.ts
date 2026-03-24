@@ -52,12 +52,17 @@ export default class ProblemCreate extends BaseCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(ProblemCreate);
 
-    const choices = flags.choices ? JSON.parse(flags.choices) : undefined;
-    const inputOptions = flags["input-options"]
-      ? JSON.parse(flags["input-options"])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const choices: any = flags.choices
+      ? this.parseJsonFlag("choices", flags.choices)
       : undefined;
-    const descriptiveCriterium = flags["descriptive-criterium"]
-      ? JSON.parse(flags["descriptive-criterium"])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inputOptions: any = flags["input-options"]
+      ? this.parseJsonFlag("input-options", flags["input-options"])
+      : undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const descriptiveCriterium: any = flags["descriptive-criterium"]
+      ? this.parseJsonFlag("descriptive-criterium", flags["descriptive-criterium"])
       : undefined;
 
     let blocks: unknown | undefined;

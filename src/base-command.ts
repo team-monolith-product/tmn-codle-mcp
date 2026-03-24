@@ -32,6 +32,14 @@ export abstract class BaseCommand extends Command {
     this.log(JSON.stringify(data));
   }
 
+  protected parseJsonFlag<T>(flagName: string, value: string): T {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      this.error(`--${flagName}의 JSON 형식이 올바르지 않습니다: ${value.slice(0, 100)}`, { exit: 1 });
+    }
+  }
+
   async catch(
     err: Error & { exitCode?: number; code?: string },
   ): Promise<void> {

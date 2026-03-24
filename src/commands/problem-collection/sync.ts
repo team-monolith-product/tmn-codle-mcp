@@ -83,7 +83,10 @@ export default class ProblemCollectionSync extends BaseCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(ProblemCollectionSync);
 
-    const desiredProblems: DesiredProblem[] = JSON.parse(flags.problems);
+    const desiredProblems: DesiredProblem[] = this.parseJsonFlag(
+      "problems",
+      flags.problems,
+    );
     const state = await getActivityPcpState(this.client, flags["activity-id"]);
     const { pcId, existingPcps } = state;
 
