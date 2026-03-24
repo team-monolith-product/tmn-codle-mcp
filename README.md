@@ -1,53 +1,48 @@
-# Codle CLI
-
-사내 이용자(고객팀, 컨텐츠팀)를 위한 Codle CLI.
-AI 에이전트(Claude Code 등)가 bash로 자료를 조회/생성/수정할 수 있다.
+# Codle CLI 설치 가이드
 
 ## 설치
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/team-monolith-product/tmn-codle-mcp/main/install.sh" | bash
+```
+
+`~/.codle-cli/`에 설치되고, `~/.local/bin/codle`에 symlink가 생성된다.
+
+## 설정
+
+```bash
 export CODLE_TOKEN="your-token"
 ```
 
-## 아키텍처
+토큰 발급은 인프라팀에 문의. `~/.bashrc` 또는 `~/.zshrc`에 추가하면 영구 설정.
 
-```
-AI Agent (Claude Code 등)
-  └─ bash: codle <command> [flags]
-       └─ HTTP/fetch (JSON:API)
-            └─ jce-class-rails (/api/v1/*)
-                 └─ user-rails (토큰 검증)
-```
+### API URL (선택)
 
-## 커맨드 목록
+기본값은 `https://class.codle.io`. 다른 환경을 사용하려면:
 
 ```bash
-codle --help
+export CODLE_API_URL="https://class.dev.codle.io"
 ```
 
-| Topic                | 설명                                                      |
-| -------------------- | --------------------------------------------------------- |
-| `material`           | 자료 검색, 조회, 생성, 수정, 복제                         |
-| `activity`           | 활동 CRUD, 코스 흐름, 갈림길 설정                         |
-| `activitiable`       | 활동 유형별 속성 업데이트 (Board, Sheet, Embedded, Video) |
-| `problem`            | 문제 CRUD                                                 |
-| `problem-collection` | ProblemCollection 문제 목록 동기화                        |
-| `tag`                | 태그 검색                                                 |
-| `html-activity-page` | 교안 페이지 동기화                                        |
-| `docs`               | 문서 및 가이드 출력                                       |
-
-## E2E 테스트
-
-자연어 프롬프트가 올바른 CLI bash 호출을 트리거하는지 검증하는 테스트.
-커맨드 인터페이스(flags, description, examples) 변경 시 실행한다.
-
-> 상세 가이드: [e2e/README.md](e2e/README.md)
-
-## 디버깅
-
-CLI 로그는 stderr로 출력된다:
+## 사용 예시
 
 ```bash
-CODLE_LOG_LEVEL=DEBUG codle tag search 파이썬 2>debug.log
+codle tag search 파이썬
+codle material search --query "React"
+codle material get 123
+codle activity create --material-id 1 --name "퀴즈" --activity-type Quiz
+```
+
+## 문제 해결
+
+| 증상                       | 원인           | 해결                                   |
+| -------------------------- | -------------- | -------------------------------------- |
+| `command not found: codle` | PATH 미설정    | `export PATH="$HOME/.local/bin:$PATH"` |
+| `API 에러 (401)`           | 토큰 누락/만료 | `CODLE_TOKEN` 확인                     |
+| `API 에러 (404)`           | URL 오류       | `CODLE_API_URL` 확인                   |
+
+## 업데이트
+
+```bash
+~/.codle-cli/install.sh
 ```

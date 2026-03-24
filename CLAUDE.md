@@ -1,28 +1,6 @@
 # Codle CLI
 
-## 아키텍처
-
 oclif 기반 CLI. AI 에이전트(Claude Code)가 bash로 `codle <command>` 를 호출하여 Codle API를 조작한다.
-
-```
-src/
-├── base-command.ts          # 공통 플래그(--token, --api-url), CodleClient 생성, JSON 출력, 에러 핸들링
-├── commands/                # oclif 커맨드 (비즈니스 로직 직접 포함)
-│   ├── material/            # 자료 CRUD + 검색
-│   ├── activity/            # 활동 CRUD + 코스흐름/갈림길
-│   ├── activitiable/        # activitiable 속성 업데이트 (Board, Sheet, Embedded, Video)
-│   ├── problem/             # 문제 CRUD + collection sync
-│   ├── tag/                 # 태그 검색
-│   ├── docs/                # 문서 출력
-│   └── html-activity-page/  # 교안 페이지 sync
-├── api/
-│   ├── client.ts            # CodleClient (REST fetch wrapper)
-│   ├── models.ts            # JSON:API 헬퍼
-│   └── errors.ts            # CodleAPIError
-├── lexical/                 # Markdown → Lexical JSON 변환
-├── config.ts                # 환경 변수 설정
-└── logger.ts                # stderr 로거
-```
 
 ## 설계 원칙
 
