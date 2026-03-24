@@ -69,7 +69,10 @@ export default class ProblemUpdate extends BaseCommand {
       : undefined;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const descriptiveCriterium: any = flags["descriptive-criterium"]
-      ? this.parseJsonFlag("descriptive-criterium", flags["descriptive-criterium"])
+      ? this.parseJsonFlag(
+          "descriptive-criterium",
+          flags["descriptive-criterium"],
+        )
       : undefined;
 
     let blocks: unknown | undefined;

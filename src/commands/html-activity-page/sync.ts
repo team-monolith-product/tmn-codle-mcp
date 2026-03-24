@@ -109,7 +109,10 @@ export default class HtmlActivityPageSync extends BaseCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(HtmlActivityPageSync);
 
-    const desiredPages: DesiredPage[] = this.parseJsonFlag("pages", flags.pages);
+    const desiredPages: DesiredPage[] = this.parseJsonFlag(
+      "pages",
+      flags.pages,
+    );
     const htmlActivityId = await resolveHtmlActivityId(
       this.client,
       flags["activity-id"],
