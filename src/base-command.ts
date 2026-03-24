@@ -7,11 +7,6 @@ import { config } from "./config.js";
 
 export abstract class BaseCommand extends Command {
   static baseFlags = {
-    token: Flags.string({
-      env: "CODLE_TOKEN",
-      required: false,
-      description: "API 접근 토큰 (미설정 시 저장된 인증 정보 사용)",
-    }),
     "api-url": Flags.string({
       env: "CODLE_API_URL",
       default: config.apiUrl,
@@ -26,26 +21,20 @@ export abstract class BaseCommand extends Command {
     await super.init();
     const { flags } = await this.parse();
 
-    let token = flags.token as string | undefined;
-    let onUnauthorized: (() => Promise<string>) | undefined;
-
-    if (!token) {
-      const credentials = load();
-      if (!credentials) {
-        this.error("인증 정보가 없습니다. `codle auth login`을 실행하세요.", {
-          exit: 1,
-        });
-        return; // unreachable, but satisfies TS null check
-      }
-      token = credentials.access_token;
-      this.storedCredentials = credentials;
-      onUnauthorized = () => this.refreshToken();
+    const credentials = load();
+    if (!credentials) {
+      this.error("인증 정보가 없습니다. `codle auth login`을 실행하세요.", {
+        exit: 1,
+      });
+      return; // unreachable, but satisfies TS null check
     }
 
+    this.storedCredentials = credentials;
+
     this.client = new CodleClient(
-      token,
+      credentials.access_token,
       flags["api-url"] as string,
-      onUnauthorized,
+      () => this.refreshToken(),
     );
   }
 
