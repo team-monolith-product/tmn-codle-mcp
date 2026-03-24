@@ -6,7 +6,7 @@ type Config = {
 };
 
 const defaults: Config = {
-  apiUrl: "https://class.dev.codle.io",
+  apiUrl: "https://class.codle.io",
   logLevel: "INFO",
 };
 
