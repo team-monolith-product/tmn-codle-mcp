@@ -238,7 +238,6 @@ describe("activitiable update", () => {
         `학습목표를 "목표 1: 개념 이해", "목표 2: 실습"으로 설정해줘.`,
     );
 
-
     // url may be passed via activity create or activitiable update
     const allInteractions = [
       ...result.toolInteractions.filter(
