@@ -63,6 +63,7 @@ describe("activity delete", () => {
 
     const result = await claude.run(`활동 ID "${activity.id}"를 삭제해줘.`);
 
+    expect(result.errors).toHaveLength(0);
     expectCodleCommand(result, "activity delete");
 
     const deleteInteractions = findAllCodleInteractions(
