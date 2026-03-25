@@ -13,6 +13,7 @@ describe("material search", () => {
 
     const result = await claude.run(`내 자료 중 "${uniqueName}"을 검색해줘.`);
 
+    expect(result.errors).toHaveLength(0);
     expectCodleCommand(result, "material search");
 
     const interaction = findCodleInteraction(
@@ -31,6 +32,7 @@ describe("material search", () => {
 
     const result = await claude.run("공개된 자료를 검색해줘.");
 
+    expect(result.errors).toHaveLength(0);
     expectCodleCommand(result, "material search");
 
     const interaction = findCodleInteraction(
@@ -55,6 +57,7 @@ describe("material get", () => {
       `자료 ID "${material.id}"의 상세 정보를 조회해줘.`,
     );
 
+    expect(result.errors).toHaveLength(0);
     expectCodleCommand(result, "material get");
 
     const interaction = findCodleInteraction(
@@ -76,6 +79,7 @@ describe("material create", () => {
       `"${materialName}" 이름으로 새 자료를 만들어줘. 본문은 "# 학습 안내\n이 자료는 AI 기초를 다룹니다."로 해줘.`,
     );
 
+    expect(result.errors).toHaveLength(0);
     expectCodleCommand(result, "material create");
 
     const interaction = findCodleInteraction(
@@ -96,6 +100,7 @@ describe("material create", () => {
       `"${materialName}" 이름으로 새 자료를 만들어줘.`,
     );
 
+    expect(result.errors).toHaveLength(0);
     expectCodleCommand(result, "material create");
 
     const interaction = findCodleInteraction(
