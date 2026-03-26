@@ -43,12 +43,16 @@ export abstract class BaseCommand extends Command {
     }
   }
 
+  // AIDEV-NOTE: 에러를 JSON으로 출력하고 exit 0으로 종료한다.
+  // MCP는 에러를 isError: false + 텍스트로 반환하여 AI가 컨텍스트를 유지한 채 재시도 가능.
+  // CLI도 동일하게 에러를 stdout JSON으로 반환하여 AI가 에러 내용을 읽고 대응할 수 있게 한다.
   async catch(
     err: Error & { exitCode?: number; code?: string },
   ): Promise<void> {
-    if (err instanceof CodleAPIError) {
-      this.error(`API 에러 (${err.statusCode}): ${err.detail}`, { exit: 1 });
-    }
-    this.error(err.message, { exit: 1 });
+    const message =
+      err instanceof CodleAPIError
+        ? `API 에러 (${err.statusCode}): ${err.detail}`
+        : err.message;
+    this.log(JSON.stringify({ error: true, message }));
   }
 }
