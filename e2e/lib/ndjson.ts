@@ -56,13 +56,16 @@ function matchesCodleSubcommand(command: string, subcommand: string): boolean {
   return command.includes(spaced) || command.includes(coloned);
 }
 
-/** Find first bash tool interaction where the command contains the given codle subcommand.
- *  Excludes --help calls to avoid matching exploration commands. */
+/** Find last bash tool interaction where the command contains the given codle subcommand.
+ *  Excludes --help calls to avoid matching exploration commands.
+ *  AIDEV-NOTE: 마지막 호출을 반환한다. CLI는 자유 형식 bash 명령이므로
+ *  첫 시도에서 잘못된 플래그를 사용하고 재시도하는 패턴이 발생할 수 있다.
+ *  최종 시도의 결과를 검증해야 의미 있는 테스트가 된다. */
 export function findCodleInteraction(
   interactions: ToolInteraction[],
   subcommand: string,
 ): ToolInteraction | undefined {
-  return interactions.find((i) => {
+  return interactions.findLast((i) => {
     if (i.call.name !== "Bash") return false;
     const cmd = (i.call.input.command as string) ?? "";
     if (cmd.includes("--help")) return false;

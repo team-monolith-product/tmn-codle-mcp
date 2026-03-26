@@ -68,7 +68,8 @@ describe("activity delete", () => {
       "activity delete",
     );
     expect(deleteInteractions.length).toBeGreaterThanOrEqual(1);
-    expect(deleteInteractions[0]!.result!.isError).toBe(false);
+    const lastDelete = deleteInteractions[deleteInteractions.length - 1]!;
+    expect(lastDelete.result!.isError).toBe(false);
   });
 });
 
