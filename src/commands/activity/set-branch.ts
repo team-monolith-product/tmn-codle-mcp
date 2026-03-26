@@ -7,8 +7,8 @@ export default class ActivitySetBranch extends BaseCommand {
     "갈림길을 설정합니다. 분기점 활동에서 레벨별(mid 필수, low/high 선택) 활동으로 분기합니다.";
 
   static examples = [
-    "<%= config.bin %> <%= command.id %> --material-id 1 --branch-from 50 --mid-activity-id 51 --low-activity-id 52",
-    "<%= config.bin %> <%= command.id %> --material-id 1 --branch-from 50 --mid-activity-id 51 --low-activity-id 52 --high-activity-id 53",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --from 50 --mid 51 --low 52",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --from 50 --mid 51 --low 52 --high 53",
   ];
 
   static flags = {
@@ -16,18 +16,18 @@ export default class ActivitySetBranch extends BaseCommand {
       required: true,
       description: "자료 ID",
     }),
-    "branch-from": Flags.string({
+    from: Flags.string({
       required: true,
       description: "갈림길 시작 활동 ID",
     }),
-    "mid-activity-id": Flags.string({
+    mid: Flags.string({
       required: true,
       description: "중급 레벨 활동 ID",
     }),
-    "low-activity-id": Flags.string({
+    low: Flags.string({
       description: "하급 레벨 활동 ID",
     }),
-    "high-activity-id": Flags.string({
+    high: Flags.string({
       description: "상급 레벨 활동 ID",
     }),
   };
@@ -53,23 +53,23 @@ export default class ActivitySetBranch extends BaseCommand {
     const dataToDestroy: { id: string }[] = [];
     for (const t of existingTransitions) {
       const attrs = (t.attributes as Record<string, unknown>) || {};
-      if (String(attrs.before_activity_id) === String(flags["branch-from"])) {
+      if (String(attrs.before_activity_id) === String(flags.from)) {
         dataToDestroy.push({ id: String(t.id) });
       }
     }
 
     // Step 2: transitions to create
     const levelMap: Record<string, string | undefined> = {
-      mid: flags["mid-activity-id"],
-      low: flags["low-activity-id"],
-      high: flags["high-activity-id"],
+      mid: flags.mid,
+      low: flags.low,
+      high: flags.high,
     };
     const dataToCreate: Record<string, unknown>[] = [];
     for (const [level, afterId] of Object.entries(levelMap)) {
       if (afterId) {
         dataToCreate.push({
           attributes: {
-            before_activity_id: flags["branch-from"],
+            before_activity_id: flags.from,
             after_activity_id: afterId,
             level,
           },
@@ -79,7 +79,7 @@ export default class ActivitySetBranch extends BaseCommand {
 
     if (dataToCreate.length < 2) {
       this.error(
-        "갈림길은 최소 2개 이상의 활동이 필요합니다. mid-activity-id와 low-activity-id 또는 high-activity-id를 지정하세요.",
+        "갈림길은 최소 2개 이상의 활동이 필요합니다. --mid와 --low 또는 --high를 지정하세요.",
         { exit: 1 },
       );
     }
@@ -93,7 +93,7 @@ export default class ActivitySetBranch extends BaseCommand {
     await this.client.doManyActivityTransitions(payload);
 
     this.output({
-      branch_from: flags["branch-from"],
+      branch_from: flags.from,
       levels: Object.fromEntries(Object.entries(levelMap).filter(([, v]) => v)),
       created: dataToCreate.length,
       destroyed: dataToDestroy.length,

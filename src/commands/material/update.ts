@@ -1,4 +1,4 @@
-import { Flags } from "@oclif/core";
+import { Args, Flags } from "@oclif/core";
 
 import { BaseCommand } from "../../base-command.js";
 import { extractSingle, buildJsonApiPayload } from "../../api/models.js";
@@ -8,16 +8,16 @@ export default class MaterialUpdate extends BaseCommand {
   static description = "자료(Material)를 수정합니다.";
 
   static examples = [
-    "<%= config.bin %> <%= command.id %> --material-id 123 --name '수정된 이름'",
-    "<%= config.bin %> <%= command.id %> --material-id 123 --is-public",
-    "<%= config.bin %> <%= command.id %> --material-id 123 --tag-ids ''  # 태그 전체 삭제",
+    "<%= config.bin %> <%= command.id %> 123 --name '수정된 이름'",
+    "<%= config.bin %> <%= command.id %> 123 --is-public",
+    "<%= config.bin %> <%= command.id %> 123 --tag-ids ''  # 태그 전체 삭제",
   ];
 
+  static args = {
+    id: Args.string({ description: "자료 ID", required: true }),
+  };
+
   static flags = {
-    "material-id": Flags.string({
-      description: "수정할 자료 ID",
-      required: true,
-    }),
     name: Flags.string({ description: "자료 이름" }),
     "is-public": Flags.boolean({
       description: "공개 여부",
@@ -31,7 +31,7 @@ export default class MaterialUpdate extends BaseCommand {
   };
 
   async run(): Promise<void> {
-    const { flags } = await this.parse(MaterialUpdate);
+    const { args, flags } = await this.parse(MaterialUpdate);
 
     const attrs: Record<string, unknown> = {};
     if (flags.name !== undefined) attrs.name = flags.name;
@@ -48,13 +48,9 @@ export default class MaterialUpdate extends BaseCommand {
       return;
     }
 
-    const payload = buildJsonApiPayload(
-      "materials",
-      attrs,
-      flags["material-id"],
-    );
+    const payload = buildJsonApiPayload("materials", attrs, args.id);
     const response = await this.client.updateMaterial(
-      flags["material-id"],
+      args.id,
       payload as Record<string, unknown>,
     );
     const mat = extractSingle(response);

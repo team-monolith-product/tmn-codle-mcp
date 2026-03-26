@@ -55,7 +55,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "test",
-      "--activity-type",
+      "--type",
       "InvalidType",
     ]);
     expect(mockClient.request).not.toHaveBeenCalled();
@@ -79,7 +79,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "테스트",
-      "--activity-type",
+      "--type",
       "QuizActivity",
     ]);
 
@@ -112,7 +112,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "깊은활동",
-      "--activity-type",
+      "--type",
       "HtmlActivity",
       "--depth",
       "2",
@@ -136,7 +136,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "기본활동",
-      "--activity-type",
+      "--type",
       "HtmlActivity",
     ]);
 
@@ -162,7 +162,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "축약테스트",
-      "--activity-type",
+      "--type",
       "Quiz",
       "--depth",
       "1",
@@ -185,7 +185,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "test",
-      "--activity-type",
+      "--type",
       "Unknown",
       "--depth",
       "1",
@@ -211,7 +211,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "엔트리스테이지",
-      "--activity-type",
+      "--type",
       "EntryActivity",
       "--entry-category",
       "stage",
@@ -250,7 +250,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "퀴즈",
-      "--activity-type",
+      "--type",
       "QuizActivity",
       "--entry-category",
       "stage",
@@ -271,7 +271,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "엔트리기본",
-      "--activity-type",
+      "--type",
       "EntryActivity",
     ]);
 
@@ -284,7 +284,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "엔트리축약",
-      "--activity-type",
+      "--type",
       "Entry",
     ]);
 
@@ -301,7 +301,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "test",
-      "--activity-type",
+      "--type",
       "QuizActivity",
     ]);
     expect(mockClient.createActivity).not.toHaveBeenCalled();
@@ -317,7 +317,7 @@ describe("activity create", () => {
       "1",
       "--name",
       "test",
-      "--activity-type",
+      "--type",
       "HtmlActivity",
     ]);
     expect(mockClient.createActivity).not.toHaveBeenCalled();
@@ -330,7 +330,6 @@ describe("activity update", () => {
       makeJsonApiResponse("activity", "1", { name: "test", depth: 0 }),
     );
     const output = await runCommand(ActivityUpdate, [
-      "--activity-id",
       "1",
       "--depth",
       "0",
@@ -344,7 +343,6 @@ describe("activity update", () => {
       makeJsonApiResponse("activity", "1", { name: "새이름", depth: 0 }),
     );
     const output = await runCommand(ActivityUpdate, [
-      "--activity-id",
       "1",
       "--name",
       "새이름",
@@ -357,7 +355,7 @@ describe("activity update", () => {
 describe("activity delete", () => {
   it("successful delete", async () => {
     mockClient.deleteActivity.mockResolvedValue({});
-    const output = await runCommand(ActivityDelete, ["--activity-id", "1"]);
+    const output = await runCommand(ActivityDelete, ["1"]);
     const parsed = JSON.parse(output);
     expect(parsed.id).toBe("1");
     expect(parsed.deleted).toBe(true);
@@ -369,7 +367,7 @@ describe("activity delete", () => {
     );
     // CodleAPIError is caught by BaseCommand.catch() and converted to this.error()
     // which is an oclif exit error handled by runCommand
-    await runCommand(ActivityDelete, ["--activity-id", "999"]);
+    await runCommand(ActivityDelete, ["999"]);
     expect(mockClient.deleteActivity).toHaveBeenCalledWith("999");
   });
 });
@@ -385,11 +383,11 @@ describe("activity set-branch", () => {
     const output = await runCommand(ActivitySetBranch, [
       "--material-id",
       "1",
-      "--branch-from",
+      "--from",
       "50",
-      "--mid-activity-id",
+      "--mid",
       "51",
-      "--low-activity-id",
+      "--low",
       "52",
     ]);
     const parsed = JSON.parse(output);
@@ -414,13 +412,13 @@ describe("activity set-branch", () => {
     const output = await runCommand(ActivitySetBranch, [
       "--material-id",
       "1",
-      "--branch-from",
+      "--from",
       "50",
-      "--mid-activity-id",
+      "--mid",
       "51",
-      "--low-activity-id",
+      "--low",
       "52",
-      "--high-activity-id",
+      "--high",
       "53",
     ]);
     const parsed = JSON.parse(output);
@@ -438,9 +436,9 @@ describe("activity set-branch", () => {
     await runCommand(ActivitySetBranch, [
       "--material-id",
       "1",
-      "--branch-from",
+      "--from",
       "50",
-      "--mid-activity-id",
+      "--mid",
       "51",
     ]);
     expect(mockClient.doManyActivityTransitions).not.toHaveBeenCalled();
@@ -473,11 +471,11 @@ describe("activity set-branch", () => {
     const output = await runCommand(ActivitySetBranch, [
       "--material-id",
       "1",
-      "--branch-from",
+      "--from",
       "50",
-      "--mid-activity-id",
+      "--mid",
       "51",
-      "--low-activity-id",
+      "--low",
       "52",
     ]);
     const parsed = JSON.parse(output);
@@ -499,11 +497,11 @@ describe("activity set-branch", () => {
     await runCommand(ActivitySetBranch, [
       "--material-id",
       "1",
-      "--branch-from",
+      "--from",
       "50",
-      "--mid-activity-id",
+      "--mid",
       "51",
-      "--low-activity-id",
+      "--low",
       "52",
     ]);
     expect(mockClient.doManyActivityTransitions).toHaveBeenCalled();
@@ -521,9 +519,9 @@ describe("activity set-flow", () => {
     const output = await runCommand(ActivitySetFlow, [
       "--material-id",
       "1",
-      "--activity-ids",
+      "--ids",
       "10",
-      "--activity-ids",
+      "--ids",
       "20",
     ]);
     const parsed = JSON.parse(output);
@@ -549,11 +547,11 @@ describe("activity set-flow", () => {
     const output = await runCommand(ActivitySetFlow, [
       "--material-id",
       "1",
-      "--activity-ids",
+      "--ids",
       "10",
-      "--activity-ids",
+      "--ids",
       "20",
-      "--activity-ids",
+      "--ids",
       "30",
     ]);
     const parsed = JSON.parse(output);
@@ -594,11 +592,11 @@ describe("activity set-flow", () => {
     const output = await runCommand(ActivitySetFlow, [
       "--material-id",
       "1",
-      "--activity-ids",
+      "--ids",
       "10",
-      "--activity-ids",
+      "--ids",
       "30",
-      "--activity-ids",
+      "--ids",
       "20",
     ]);
     const parsed = JSON.parse(output);
@@ -640,9 +638,9 @@ describe("activity set-flow", () => {
     await runCommand(ActivitySetFlow, [
       "--material-id",
       "1",
-      "--activity-ids",
+      "--ids",
       "10",
-      "--activity-ids",
+      "--ids",
       "20",
     ]);
 
@@ -664,9 +662,9 @@ describe("activity set-flow", () => {
     await runCommand(ActivitySetFlow, [
       "--material-id",
       "1",
-      "--activity-ids",
+      "--ids",
       "10",
-      "--activity-ids",
+      "--ids",
       "20",
     ]);
     expect(mockClient.doManyActivityTransitions).toHaveBeenCalled();

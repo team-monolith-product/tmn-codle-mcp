@@ -61,7 +61,7 @@ describe("problem create", () => {
     const output = await runCommand(ProblemCreate, [
       "--title",
       "OX 문제",
-      "--problem-type",
+      "--type",
       "quiz",
       "--choices",
       JSON.stringify([
@@ -86,7 +86,7 @@ describe("problem create", () => {
     const output = await runCommand(ProblemCreate, [
       "--title",
       "주관식",
-      "--problem-type",
+      "--type",
       "quiz",
       "--solutions",
       "42",
@@ -103,7 +103,7 @@ describe("problem create", () => {
     const output = await runCommand(ProblemCreate, [
       "--title",
       "서술형",
-      "--problem-type",
+      "--type",
       "descriptive",
       "--content",
       "설명을 작성하세요",
@@ -125,7 +125,7 @@ describe("problem create", () => {
     const output = await runCommand(ProblemCreate, [
       "--title",
       "활동지",
-      "--problem-type",
+      "--type",
       "sheet",
       "--content",
       "문제 내용",
@@ -146,14 +146,14 @@ describe("problem create", () => {
     await runCommand(ProblemCreate, [
       "--title",
       "실패",
-      "--problem-type",
+      "--type",
       "quiz",
     ]);
     expect(mockClient.createProblem).toHaveBeenCalled();
   });
 
   it("missing required params does not call API", async () => {
-    // --title and --problem-type are required by oclif
+    // --title and --type are required by oclif
     await runCommand(ProblemCreate, []);
     expect(mockClient.createProblem).not.toHaveBeenCalled();
   });
@@ -163,7 +163,7 @@ describe("problem create", () => {
 
 describe("problem update", () => {
   it("nothing to update", async () => {
-    const output = await runCommand(ProblemUpdate, ["--problem-id", "10"]);
+    const output = await runCommand(ProblemUpdate, ["10"]);
     expect(output).toContain("수정할 항목이 없습니다");
   });
 
@@ -173,7 +173,6 @@ describe("problem update", () => {
     );
 
     const output = await runCommand(ProblemUpdate, [
-      "--problem-id",
       "10",
       "--title",
       "수정됨",
@@ -190,7 +189,6 @@ describe("problem update", () => {
     mockClient.doManyProblemAnswers.mockResolvedValue({});
 
     const output = await runCommand(ProblemUpdate, [
-      "--problem-id",
       "10",
       "--sample-answer",
       "print('hello')",
@@ -200,7 +198,7 @@ describe("problem update", () => {
     expect(parsed.message).toBeUndefined();
   });
 
-  it("missing problem-id does not call API", async () => {
+  it("missing id does not call API", async () => {
     await runCommand(ProblemUpdate, ["--title", "수정됨"]);
     expect(mockClient.updateProblem).not.toHaveBeenCalled();
   });
@@ -212,7 +210,7 @@ describe("problem delete", () => {
   it("successful delete", async () => {
     mockClient.deleteProblem.mockResolvedValue({});
 
-    const output = await runCommand(ProblemDelete, ["--problem-id", "10"]);
+    const output = await runCommand(ProblemDelete, ["10"]);
     const parsed = JSON.parse(output);
     expect(parsed.id).toBe("10");
     expect(parsed.deleted).toBe(true);
@@ -223,11 +221,11 @@ describe("problem delete", () => {
       new CodleAPIError(404, "Not found"),
     );
 
-    await runCommand(ProblemDelete, ["--problem-id", "999"]);
+    await runCommand(ProblemDelete, ["999"]);
     expect(mockClient.deleteProblem).toHaveBeenCalled();
   });
 
-  it("missing problem-id does not call API", async () => {
+  it("missing id does not call API", async () => {
     await runCommand(ProblemDelete, []);
     expect(mockClient.deleteProblem).not.toHaveBeenCalled();
   });

@@ -175,7 +175,7 @@ describe("material get", () => {
       ],
     });
 
-    const output = await runCommand(MaterialGet, ["--material-id", "1"]);
+    const output = await runCommand(MaterialGet, ["1"]);
     const parsed = JSON.parse(output);
     expect(parsed.material.name).toBe("테스트 자료");
     expect(parsed.activities).toHaveLength(2);
@@ -194,7 +194,7 @@ describe("material get", () => {
       included: [],
     });
 
-    const output = await runCommand(MaterialGet, ["--material-id", "1"]);
+    const output = await runCommand(MaterialGet, ["1"]);
     const parsed = JSON.parse(output);
     expect(parsed.activities).toHaveLength(0);
   });
@@ -250,7 +250,6 @@ describe("material update", () => {
     );
 
     const output = await runCommand(MaterialUpdate, [
-      "--material-id",
       "1",
       "--name",
       "수정됨",
@@ -265,7 +264,6 @@ describe("material update", () => {
     );
 
     const output = await runCommand(MaterialUpdate, [
-      "--material-id",
       "1",
       "--body",
       "수정된 본문",
@@ -279,14 +277,14 @@ describe("material update", () => {
     expect(body.root.type).toBe("root");
   });
 
-  it("update without material-id errors", async () => {
-    // --material-id is required by oclif, so the command will fail before calling updateMaterial
+  it("update without id errors", async () => {
+    // id is a required positional arg, so the command will fail before calling updateMaterial
     await runCommand(MaterialUpdate, ["--name", "수정됨"]);
     expect(mockClient.updateMaterial).not.toHaveBeenCalled();
   });
 
   it("update no changes", async () => {
-    const output = await runCommand(MaterialUpdate, ["--material-id", "1"]);
+    const output = await runCommand(MaterialUpdate, ["1"]);
     expect(output).toContain("수정할 항목이 없습니다");
   });
 });
@@ -297,14 +295,14 @@ describe("material duplicate", () => {
       makeJsonApiResponse("material", "2", { name: "복제됨" }),
     );
 
-    const output = await runCommand(MaterialDuplicate, ["--material-id", "1"]);
+    const output = await runCommand(MaterialDuplicate, ["1"]);
     const parsed = JSON.parse(output);
     expect(parsed.id).toBe("2");
     expect(parsed.name).toBe("복제됨");
   });
 
-  it("duplicate without material-id errors", async () => {
-    // --material-id is required by oclif, so the command will fail before calling duplicateMaterial
+  it("duplicate without id errors", async () => {
+    // id is a required positional arg, so the command will fail before calling duplicateMaterial
     await runCommand(MaterialDuplicate, []);
     expect(mockClient.duplicateMaterial).not.toHaveBeenCalled();
   });

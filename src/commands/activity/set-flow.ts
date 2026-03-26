@@ -7,8 +7,8 @@ export default class ActivitySetFlow extends BaseCommand {
     "코스 흐름(선형 연결)을 설정합니다. 기존 흐름을 교체하며 갈림길은 유지.";
 
   static examples = [
-    "<%= config.bin %> <%= command.id %> --material-id 1 --activity-ids 10 --activity-ids 20",
-    "<%= config.bin %> <%= command.id %> --material-id 1 --activity-ids 10 --activity-ids 20 --activity-ids 30",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --ids 10 --ids 20",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --ids 10 --ids 20 --ids 30",
   ];
 
   static flags = {
@@ -16,7 +16,7 @@ export default class ActivitySetFlow extends BaseCommand {
       required: true,
       description: "자료 ID",
     }),
-    "activity-ids": Flags.string({
+    ids: Flags.string({
       required: true,
       multiple: true,
       description: "순서대로 연결할 활동 ID 목록 (최소 2개)",
@@ -25,10 +25,10 @@ export default class ActivitySetFlow extends BaseCommand {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(ActivitySetFlow);
-    const activityIds = flags["activity-ids"];
+    const activityIds = flags.ids;
 
     if (activityIds.length < 2) {
-      this.error("activity-ids는 최소 2개 이상이어야 합니다.", { exit: 1 });
+      this.error("--ids는 최소 2개 이상이어야 합니다.", { exit: 1 });
     }
 
     // Step 1: get existing transitions

@@ -40,9 +40,9 @@ export default class ActivityCreate extends BaseCommand {
     "활동(Activity)을 생성합니다. 유형: 퀴즈=Quiz, 교안=Html, 보드=Board, 활동지=Sheet, 영상=Video, 외부URL=Embedded, 엔트리=Entry 등";
 
   static examples = [
-    "<%= config.bin %> <%= command.id %> --material-id 1 --name '1단원 퀴즈' --activity-type Quiz",
-    "<%= config.bin %> <%= command.id %> --material-id 1 --name '교안 활동' --activity-type Html --depth 2",
-    "<%= config.bin %> <%= command.id %> --material-id 1 --name '엔트리' --activity-type Entry --entry-category stage",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --name '1단원 퀴즈' --type Quiz",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --name '교안 활동' --type Html --depth 2",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --name '엔트리' --type Entry --entry-category stage",
   ];
 
   static flags = {
@@ -54,7 +54,7 @@ export default class ActivityCreate extends BaseCommand {
       required: true,
       description: "활동 이름 (최대 64자)",
     }),
-    "activity-type": Flags.string({
+    type: Flags.string({
       required: true,
       description: "활동 유형. Html, Quiz, Board, Sheet, Video, Embedded 등",
     }),
@@ -73,12 +73,12 @@ export default class ActivityCreate extends BaseCommand {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(ActivityCreate);
-    const resolvedType = normalizeActivityType(flags["activity-type"]);
+    const resolvedType = normalizeActivityType(flags.type);
 
     if (!ACTIVITIABLE_TYPES.includes(resolvedType)) {
       this.error(
         `유효하지 않은 activity_type: ${
-          flags["activity-type"]
+          flags.type
         }. 사용 가능: ${ACTIVITIABLE_TYPES.join(", ")}`,
         { exit: 1 },
       );

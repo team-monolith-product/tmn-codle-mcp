@@ -13,15 +13,15 @@ export default class ProblemCreate extends BaseCommand {
   static description = "문제를 생성합니다.";
 
   static examples = [
-    '<%= config.bin %> <%= command.id %> --title \'OX 문제\' --problem-type quiz --choices \'[{"text":"O","isAnswer":true},{"text":"X","isAnswer":false}]\'',
-    "<%= config.bin %> <%= command.id %> --title '주관식' --problem-type quiz --solutions '비지도학습'",
-    "<%= config.bin %> <%= command.id %> --title '서술형' --problem-type descriptive --content '설명하세요' --sample-answer '모범답안'",
-    "<%= config.bin %> <%= command.id %> --title '활동지' --problem-type sheet --content ':::short-answer{placeholder=\"답\"}\\n:::'",
+    '<%= config.bin %> <%= command.id %> --title \'OX 문제\' --type quiz --choices \'[{"text":"O","isAnswer":true},{"text":"X","isAnswer":false}]\'',
+    "<%= config.bin %> <%= command.id %> --title '주관식' --type quiz --solutions '비지도학습'",
+    "<%= config.bin %> <%= command.id %> --title '서술형' --type descriptive --content '설명하세요' --sample-answer '모범답안'",
+    "<%= config.bin %> <%= command.id %> --title '활동지' --type sheet --content ':::short-answer{placeholder=\"답\"}\\n:::'",
   ];
 
   static flags = {
     title: Flags.string({ required: true, description: "문제 제목" }),
-    "problem-type": Flags.string({
+    type: Flags.string({
       required: true,
       description: "문제 유형",
       options: ["quiz", "sheet", "descriptive"],
@@ -44,7 +44,7 @@ export default class ProblemCreate extends BaseCommand {
     "sample-answer": Flags.string({
       description: "모범답안 (descriptive 타입)",
     }),
-    "descriptive-criterium": Flags.string({
+    criteria: Flags.string({
       description: "서술형 채점기준 JSON",
     }),
   };
@@ -61,11 +61,8 @@ export default class ProblemCreate extends BaseCommand {
       ? this.parseJsonFlag("input-options", flags["input-options"])
       : undefined;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const descriptiveCriterium: any = flags["descriptive-criterium"]
-      ? this.parseJsonFlag(
-          "descriptive-criterium",
-          flags["descriptive-criterium"],
-        )
+    const descriptiveCriterium: any = flags.criteria
+      ? this.parseJsonFlag("criteria", flags.criteria)
       : undefined;
 
     let blocks: unknown | undefined;
@@ -81,7 +78,7 @@ export default class ProblemCreate extends BaseCommand {
 
     const attrs: Record<string, unknown> = {
       title: flags.title,
-      problem_type: flags["problem-type"],
+      problem_type: flags.type,
     };
     if (flags.content !== undefined) attrs.content = flags.content;
     if (blocks !== undefined) attrs.blocks = blocks;
