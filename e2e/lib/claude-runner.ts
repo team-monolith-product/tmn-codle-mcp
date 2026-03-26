@@ -56,6 +56,7 @@ export class ClaudeRunner {
           "--output-format",
           "stream-json",
           "--verbose",
+          "--strict-mcp-config",
           "--allowed-tools",
           "Bash",
           "--max-budget-usd",
@@ -95,6 +96,13 @@ export class ClaudeRunner {
         clearTimeout(timer);
         const stdout = Buffer.concat(stdoutChunks).toString("utf-8");
         const stderr = Buffer.concat(stderrChunks).toString("utf-8");
+        // DEBUG: raw ndjson dump
+        if (process.env.E2E_DEBUG) {
+          const fs = require("fs");
+          const debugPath = `/tmp/e2e-debug-${Date.now()}.ndjson`;
+          fs.writeFileSync(debugPath, stdout);
+          console.error(`[DEBUG] raw ndjson saved to ${debugPath}`);
+        }
         const result = parseNdjson(stdout, code ?? 1, stderr);
         this.lastCostUsd = result.costUsd;
         this.lastDurationMs = result.durationMs;

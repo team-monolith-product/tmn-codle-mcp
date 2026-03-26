@@ -30,7 +30,7 @@ CODLE_API_URL="https://class.dev.codle.io" CODLE_AUTH_SERVER_URL="https://user.d
 codle tag search 파이썬
 codle material search --query "React"
 codle material get 123
-codle activity create --material-id 1 --name "퀴즈" --activity-type Quiz
+codle activity create --material-id 1 --name "퀴즈" --type Quiz
 ```
 
 ## 문제 해결

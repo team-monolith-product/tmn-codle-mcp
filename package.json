@@ -57,9 +57,6 @@
       "problem": {
         "description": "문제(Problem) CRUD"
       },
-      "problem-collection": {
-        "description": "활동의 ProblemCollection 문제 목록 동기화"
-      },
       "tag": {
         "description": "태그(Tag) 검색"
       },
