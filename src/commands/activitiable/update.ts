@@ -42,8 +42,7 @@ async function resolveActivitiable(
 }
 
 export default class ActivitiableUpdate extends BaseCommand {
-  static description =
-    "활동의 유형별 속성을 업데이트합니다. Board(content,name), Sheet(content→description), Embedded(url,goals), Video(url) 지원. 유형은 자동 감지.";
+  static description = "활동의 유형별 속성을 업데이트합니다. 유형은 자동 감지.";
 
   static examples = [
     "<%= config.bin %> <%= command.id %> --activity-id 456 --content '# 안내문'  # Board",

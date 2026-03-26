@@ -60,9 +60,9 @@ interface DesiredProblem {
   point?: number;
 }
 
-export default class ProblemCollectionSync extends BaseCommand {
+export default class ActivitySetProblems extends BaseCommand {
   static description =
-    "활동의 ProblemCollection에 문제 목록을 선언적으로 동기화합니다. problems 배열이 최종 상태.";
+    "활동에 문제 목록을 설정합니다. problems 배열이 최종 상태.";
 
   static examples = [
     '<%= config.bin %> <%= command.id %> --activity-id 456 --problems \'[{"id":"p1"},{"id":"p2","point":2}]\'',
@@ -81,9 +81,12 @@ export default class ProblemCollectionSync extends BaseCommand {
   };
 
   async run(): Promise<void> {
-    const { flags } = await this.parse(ProblemCollectionSync);
+    const { flags } = await this.parse(ActivitySetProblems);
 
-    const desiredProblems: DesiredProblem[] = JSON.parse(flags.problems);
+    const desiredProblems: DesiredProblem[] = this.parseJsonFlag(
+      "problems",
+      flags.problems,
+    );
     const state = await getActivityPcpState(this.client, flags["activity-id"]);
     const { pcId, existingPcps } = state;
 

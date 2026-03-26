@@ -53,7 +53,7 @@ vi.mock("../src/lexical/index.js", () => ({
 import ProblemCreate from "../src/commands/problem/create.js";
 import ProblemUpdate from "../src/commands/problem/update.js";
 import ProblemDelete from "../src/commands/problem/delete.js";
-import ProblemCollectionSync from "../src/commands/problem-collection/sync.js";
+import ActivitySetProblems from "../src/commands/activity/set-problems.js";
 import ActivitiableUpdate from "../src/commands/activitiable/update.js";
 import { runCommand } from "./run-command.js";
 
@@ -72,7 +72,7 @@ describe("problem create", () => {
     const output = await runCommand(ProblemCreate, [
       "--title",
       "OX 문제",
-      "--problem-type",
+      "--type",
       "quiz",
       "--choices",
       JSON.stringify([
@@ -97,7 +97,7 @@ describe("problem create", () => {
     const output = await runCommand(ProblemCreate, [
       "--title",
       "주관식",
-      "--problem-type",
+      "--type",
       "quiz",
       "--solutions",
       "42",
@@ -114,7 +114,7 @@ describe("problem create", () => {
     const output = await runCommand(ProblemCreate, [
       "--title",
       "서술형",
-      "--problem-type",
+      "--type",
       "descriptive",
       "--content",
       "설명을 작성하세요",
@@ -136,7 +136,7 @@ describe("problem create", () => {
     const output = await runCommand(ProblemCreate, [
       "--title",
       "활동지",
-      "--problem-type",
+      "--type",
       "sheet",
       "--content",
       "문제 내용",
@@ -154,17 +154,12 @@ describe("problem create", () => {
       new CodleAPIError(422, "Validation failed"),
     );
 
-    await runCommand(ProblemCreate, [
-      "--title",
-      "실패",
-      "--problem-type",
-      "quiz",
-    ]);
+    await runCommand(ProblemCreate, ["--title", "실패", "--type", "quiz"]);
     expect(mockClient.createProblem).toHaveBeenCalled();
   });
 
   it("missing required params does not call API", async () => {
-    // --title and --problem-type are required by oclif
+    // --title and --type are required by oclif
     await runCommand(ProblemCreate, []);
     expect(mockClient.createProblem).not.toHaveBeenCalled();
   });
@@ -174,7 +169,7 @@ describe("problem create", () => {
 
 describe("problem update", () => {
   it("nothing to update", async () => {
-    const output = await runCommand(ProblemUpdate, ["--problem-id", "10"]);
+    const output = await runCommand(ProblemUpdate, ["10"]);
     expect(output).toContain("수정할 항목이 없습니다");
   });
 
@@ -183,12 +178,7 @@ describe("problem update", () => {
       makeJsonApiResponse("problem", "10", { title: "수정됨" }),
     );
 
-    const output = await runCommand(ProblemUpdate, [
-      "--problem-id",
-      "10",
-      "--title",
-      "수정됨",
-    ]);
+    const output = await runCommand(ProblemUpdate, ["10", "--title", "수정됨"]);
     const parsed = JSON.parse(output);
     expect(parsed.title).toBe("수정됨");
   });
@@ -201,7 +191,6 @@ describe("problem update", () => {
     mockClient.doManyProblemAnswers.mockResolvedValue({});
 
     const output = await runCommand(ProblemUpdate, [
-      "--problem-id",
       "10",
       "--sample-answer",
       "print('hello')",
@@ -211,7 +200,7 @@ describe("problem update", () => {
     expect(parsed.message).toBeUndefined();
   });
 
-  it("missing problem-id does not call API", async () => {
+  it("missing id does not call API", async () => {
     await runCommand(ProblemUpdate, ["--title", "수정됨"]);
     expect(mockClient.updateProblem).not.toHaveBeenCalled();
   });
@@ -223,7 +212,7 @@ describe("problem delete", () => {
   it("successful delete", async () => {
     mockClient.deleteProblem.mockResolvedValue({});
 
-    const output = await runCommand(ProblemDelete, ["--problem-id", "10"]);
+    const output = await runCommand(ProblemDelete, ["10"]);
     const parsed = JSON.parse(output);
     expect(parsed.id).toBe("10");
     expect(parsed.deleted).toBe(true);
@@ -234,11 +223,11 @@ describe("problem delete", () => {
       new CodleAPIError(404, "Not found"),
     );
 
-    await runCommand(ProblemDelete, ["--problem-id", "999"]);
+    await runCommand(ProblemDelete, ["999"]);
     expect(mockClient.deleteProblem).toHaveBeenCalled();
   });
 
-  it("missing problem-id does not call API", async () => {
+  it("missing id does not call API", async () => {
     await runCommand(ProblemDelete, []);
     expect(mockClient.deleteProblem).not.toHaveBeenCalled();
   });
@@ -295,7 +284,7 @@ describe("problem collection sync", () => {
     mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1", []));
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const output = await runCommand(ProblemCollectionSync, [
+    const output = await runCommand(ActivitySetProblems, [
       "--activity-id",
       "1",
       "--problems",
@@ -326,7 +315,7 @@ describe("problem collection sync", () => {
     mockClient.doManyPCP.mockResolvedValue({});
 
     // Reverse order
-    const output = await runCommand(ProblemCollectionSync, [
+    const output = await runCommand(ActivitySetProblems, [
       "--activity-id",
       "1",
       "--problems",
@@ -358,7 +347,7 @@ describe("problem collection sync", () => {
     mockClient.doManyPCP.mockResolvedValue({});
 
     // Remove p2, add p4, keep p1 and p3
-    const output = await runCommand(ProblemCollectionSync, [
+    const output = await runCommand(ActivitySetProblems, [
       "--activity-id",
       "1",
       "--problems",
@@ -383,7 +372,7 @@ describe("problem collection sync", () => {
   it("PC 없는 활동 → 에러", async () => {
     mockClient.request.mockResolvedValue(makeActivityWithPcps(null, []));
 
-    await runCommand(ProblemCollectionSync, [
+    await runCommand(ActivitySetProblems, [
       "--activity-id",
       "1",
       "--problems",
@@ -401,7 +390,7 @@ describe("problem collection sync", () => {
     );
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const output = await runCommand(ProblemCollectionSync, [
+    const output = await runCommand(ActivitySetProblems, [
       "--activity-id",
       "1",
       "--problems",
@@ -424,7 +413,7 @@ describe("problem collection sync", () => {
       ]),
     );
 
-    const output = await runCommand(ProblemCollectionSync, [
+    const output = await runCommand(ActivitySetProblems, [
       "--activity-id",
       "1",
       "--problems",
@@ -438,7 +427,7 @@ describe("problem collection sync", () => {
     mockClient.request.mockResolvedValue(makeActivityWithPcps("pc1", []));
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const output = await runCommand(ProblemCollectionSync, [
+    const output = await runCommand(ActivitySetProblems, [
       "--activity-id",
       "1",
       "--problems",
@@ -465,7 +454,7 @@ describe("problem collection sync", () => {
     );
     mockClient.doManyPCP.mockResolvedValue({});
 
-    const output = await runCommand(ProblemCollectionSync, [
+    const output = await runCommand(ActivitySetProblems, [
       "--activity-id",
       "1",
       "--problems",

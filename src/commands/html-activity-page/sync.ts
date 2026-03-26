@@ -109,7 +109,10 @@ export default class HtmlActivityPageSync extends BaseCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(HtmlActivityPageSync);
 
-    const desiredPages: DesiredPage[] = JSON.parse(flags.pages);
+    const desiredPages: DesiredPage[] = this.parseJsonFlag(
+      "pages",
+      flags.pages,
+    );
     const htmlActivityId = await resolveHtmlActivityId(
       this.client,
       flags["activity-id"],
@@ -128,30 +131,36 @@ export default class HtmlActivityPageSync extends BaseCommand {
       const completionSeconds =
         desired.completion_seconds ?? (pcm === "time" ? 3 : null);
 
-      const attrs: Record<string, unknown> = {
-        url: desired.url,
-        position: i,
-        progress_calculation_method: pcm,
-      };
-      if (desired.width != null) attrs.width = desired.width;
-      if (desired.height != null) attrs.height = desired.height;
-      if (completionSeconds != null)
-        attrs.completion_seconds = completionSeconds;
-
       if (i < existingPages.length) {
+        // Update: only send changed fields (sparse diff)
         const existing = existingPages[i];
-        const needsUpdate =
-          existing.url !== desired.url ||
-          existing.position !== i ||
-          existing.progress_calculation_method !== pcm ||
-          existing.completion_seconds !== completionSeconds ||
-          (desired.width != null && existing.width !== desired.width) ||
-          (desired.height != null && existing.height !== desired.height);
-        if (needsUpdate) {
+        const attrs: Record<string, unknown> = {};
+        if (existing.url !== desired.url) attrs.url = desired.url;
+        if (existing.position !== i) attrs.position = i;
+        if (desired.width != null && existing.width !== desired.width)
+          attrs.width = desired.width;
+        if (desired.height != null && existing.height !== desired.height)
+          attrs.height = desired.height;
+        if (existing.progress_calculation_method !== pcm)
+          attrs.progress_calculation_method = pcm;
+        if (existing.completion_seconds !== completionSeconds)
+          attrs.completion_seconds = completionSeconds;
+
+        if (Object.keys(attrs).length) {
           dataToUpdate.push({ id: existing.id, attributes: attrs });
         }
       } else {
-        attrs.html_activity_id = htmlActivityId;
+        // Create: send all fields
+        const attrs: Record<string, unknown> = {
+          html_activity_id: htmlActivityId,
+          url: desired.url,
+          position: i,
+          progress_calculation_method: pcm,
+        };
+        if (desired.width != null) attrs.width = desired.width;
+        if (desired.height != null) attrs.height = desired.height;
+        if (completionSeconds != null)
+          attrs.completion_seconds = completionSeconds;
         dataToCreate.push({ attributes: attrs });
       }
     }

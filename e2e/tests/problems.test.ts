@@ -1,6 +1,11 @@
 import { describe, expect, test } from "../fixtures/claude.js";
 import { createActivity, createMaterial } from "../lib/factory.js";
-import { expectCodleCommand, findCodleInteraction } from "../lib/ndjson.js";
+import {
+  expectCodleCommand,
+  findAllCodleInteractions,
+  findCodleInteraction,
+  parseCodleOutput,
+} from "../lib/ndjson.js";
 
 // ===== problem create =====
 
@@ -22,6 +27,9 @@ describe("problem create", () => {
     const command = interaction!.call.input.command as string;
     expect(command).toContain("quiz");
     expect(command).toMatch(/--choices/);
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 
   test("객관식 퀴즈 문제 생성 (4지선다)", async ({ claude }) => {
@@ -42,6 +50,9 @@ describe("problem create", () => {
     const command = interaction!.call.input.command as string;
     expect(command).toContain("quiz");
     expect(command).toMatch(/--choices/);
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 
   test("주관식 퀴즈 문제 생성", async ({ claude }) => {
@@ -60,6 +71,9 @@ describe("problem create", () => {
 
     const command = interaction!.call.input.command as string;
     expect(command).toContain("비지도학습");
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 
   test("서술형 문제 생성 (모범답안 + 채점기준)", async ({ claude }) => {
@@ -84,6 +98,9 @@ describe("problem create", () => {
     const command = interaction!.call.input.command as string;
     expect(command).toContain("descriptive");
     expect(command).toMatch(/--sample-answer/);
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 
   test("활동지(sheet) 문제 생성", async ({ claude }) => {
@@ -101,106 +118,90 @@ describe("problem create", () => {
 
     const command = interaction!.call.input.command as string;
     expect(command).toContain("sheet");
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 });
 
-// ===== problem-collection sync =====
-// AIDEV-NOTE: factory로 활동과 문제를 미리 생성하고, AI에게는 sync만 요청한다.
-// multi-step(활동 생성 + 문제 생성 + sync)을 하나의 프롬프트에 넣으면 haiku가 실패한다.
+// ===== activity set-problems =====
 
-describe("problem-collection sync", () => {
+describe("activity set-problems", () => {
   test("퀴즈 활동에 문제 연결", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
-    const quizActivitiable = await factory.create<{ id: string }>(
-      "quiz_activity",
-    );
-    const activity = await createActivity(factory, material.id, {
-      name: "E2E Quiz",
-      activitiableType: "QuizActivity",
-      activitiableId: quizActivitiable.id,
-    });
-    await factory.create("problem_collection", { activityId: activity.id });
-    const problem = await factory.create<{ id: string }>("problem", {
-      title: "E2E OX",
-      problemType: "quiz",
-    });
 
     const result = await claude.run(
-      `활동 ID "${activity.id}"에 문제 ID "${problem.id}"를 연결해줘.`,
+      `자료 ID "${material.id}"에 퀴즈 활동 "E2E Quiz"를 만들고, ` +
+        `"E2E OX" 제목의 O/X 문제(O가 정답)를 만들어서 그 퀴즈 활동에 연결해줘.`,
     );
 
-    expectCodleCommand(result, "problem-collection sync");
+    expectCodleCommand(result, "activity create");
+    expectCodleCommand(result, "problem create");
+    expectCodleCommand(result, "activity set-problems");
 
     const interaction = findCodleInteraction(
       result.toolInteractions,
-      "problem-collection sync",
+      "activity set-problems",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 
   test("여러 문제를 퀴즈에 순서대로 연결", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
-    const quizActivitiable = await factory.create<{ id: string }>(
-      "quiz_activity",
-    );
-    const activity = await createActivity(factory, material.id, {
-      name: "E2E Multi",
-      activitiableType: "QuizActivity",
-      activitiableId: quizActivitiable.id,
-    });
-    await factory.create("problem_collection", { activityId: activity.id });
-    const p1 = await factory.create<{ id: string }>("problem", {
-      title: "E2E Q1",
-      problemType: "quiz",
-    });
-    const p2 = await factory.create<{ id: string }>("problem", {
-      title: "E2E Q2",
-      problemType: "quiz",
-    });
 
     const result = await claude.run(
-      `활동 ID "${activity.id}"에 문제 "${p1.id}"와 "${p2.id}"를 순서대로 연결해줘.`,
+      `자료 ID "${material.id}"에 퀴즈 활동 "E2E Multi"를 만들고, ` +
+        `다음 2개 문제를 만들어서 순서대로 연결해줘:\n` +
+        `1번: "E2E Q1" (O/X, O가 정답)\n` +
+        `2번: "E2E Q2" (객관식, 선택지: A정답/B/C/D)`,
     );
 
-    expectCodleCommand(result, "problem-collection sync");
+    expectCodleCommand(result, "activity create");
+    expectCodleCommand(result, "problem create");
+    expectCodleCommand(result, "activity set-problems");
+
+    const problemCreates = findAllCodleInteractions(
+      result.toolInteractions,
+      "problem create",
+    );
+    expect(problemCreates.length).toBeGreaterThanOrEqual(2);
 
     const interaction = findCodleInteraction(
       result.toolInteractions,
-      "problem-collection sync",
+      "activity set-problems",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 
   test("활동지에 문제 연결", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
-    const sheetActivitiable = await factory.create<{ id: string }>(
-      "sheet_activity",
-    );
-    const activity = await createActivity(factory, material.id, {
-      name: "E2E Sheet",
-      activitiableType: "SheetActivity",
-      activitiableId: sheetActivitiable.id,
-    });
-    await factory.create("problem_collection", { activityId: activity.id });
-    const problem = await factory.create<{ id: string }>("problem", {
-      title: "E2E Sheet Problem",
-      problemType: "sheet",
-    });
 
     const result = await claude.run(
-      `활동 ID "${activity.id}"에 문제 ID "${problem.id}"를 연결해줘.`,
+      `자료 ID "${material.id}"에 활동지 활동 "E2E Sheet"를 만들고, ` +
+        `"E2E Sheet Problem" 제목의 활동지(sheet) 문제를 만들어서 연결해줘.`,
     );
 
-    expectCodleCommand(result, "problem-collection sync");
+    expectCodleCommand(result, "activity create");
+    expectCodleCommand(result, "problem create");
+    expectCodleCommand(result, "activity set-problems");
 
     const interaction = findCodleInteraction(
       result.toolInteractions,
-      "problem-collection sync",
+      "activity set-problems",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 });
 
@@ -223,6 +224,9 @@ describe("activitiable update", () => {
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 
   test("EmbeddedActivity URL 및 학습목표 설정", async ({ claude, factory }) => {
@@ -259,6 +263,9 @@ describe("activitiable update", () => {
 
     expect(activitiableInteraction!.result).toBeDefined();
     expect(activitiableInteraction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<unknown>(activitiableInteraction!.result!);
+    expect(output).toBeDefined();
   });
 
   test("활동지 설명 설정", async ({ claude, factory }) => {
@@ -277,5 +284,8 @@ describe("activitiable update", () => {
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 });

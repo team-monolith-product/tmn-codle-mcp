@@ -14,23 +14,17 @@ export default class ProblemUpdate extends BaseCommand {
 
   static examples = [
     "<%= config.bin %> <%= command.id %> 789 --title '수정된 제목'",
-    "<%= config.bin %> <%= command.id %> --problem-id 789 --title '수정된 제목'",
     "<%= config.bin %> <%= command.id %> 789 --content '새 본문'",
   ];
 
   static args = {
-    id: Args.string({ description: "문제 ID" }),
+    id: Args.string({ description: "문제 ID", required: true }),
   };
 
   static flags = {
-    "problem-id": Flags.string({
-      description: "문제 ID (또는 첫 번째 인자로 전달)",
-    }),
     title: Flags.string({ description: "문제 제목" }),
-    "problem-type": Flags.string({
-      description: "문제 유형",
-      options: ["quiz", "sheet", "descriptive"],
-    }),
+    // AIDEV-NOTE: problem_type은 Rails에서 validates_immutable이므로 update 시 전송하면 422 에러.
+    // create 전용 필드이므로 update 커맨드에서 제거.
     content: Flags.string({
       description:
         "문제 본문 (markdown). sheet 타입은 directive 문법 지원 — codle docs sheet-directives 참조",
@@ -49,24 +43,26 @@ export default class ProblemUpdate extends BaseCommand {
     "sample-answer": Flags.string({
       description: "모범답안 (descriptive 타입)",
     }),
-    "descriptive-criterium": Flags.string({
+    criteria: Flags.string({
       description: "서술형 채점기준 JSON",
     }),
   };
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(ProblemUpdate);
-    const problemId = args.id ?? flags["problem-id"];
-    if (!problemId) {
-      this.error("문제 ID를 인자 또는 --problem-id로 지정하세요.", { exit: 1 });
-    }
+    const problemId = args.id;
 
-    const choices = flags.choices ? JSON.parse(flags.choices) : undefined;
-    const inputOptions = flags["input-options"]
-      ? JSON.parse(flags["input-options"])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const choices: any = flags.choices
+      ? this.parseJsonFlag("choices", flags.choices)
       : undefined;
-    const descriptiveCriterium = flags["descriptive-criterium"]
-      ? JSON.parse(flags["descriptive-criterium"])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inputOptions: any = flags["input-options"]
+      ? this.parseJsonFlag("input-options", flags["input-options"])
+      : undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const descriptiveCriterium: any = flags.criteria
+      ? this.parseJsonFlag("criteria", flags.criteria)
       : undefined;
 
     let blocks: unknown | undefined;
@@ -80,8 +76,6 @@ export default class ProblemUpdate extends BaseCommand {
 
     const attrs: Record<string, unknown> = {};
     if (flags.title !== undefined) attrs.title = flags.title;
-    if (flags["problem-type"] !== undefined)
-      attrs.problem_type = flags["problem-type"];
     if (flags.content !== undefined) attrs.content = flags.content;
     if (blocks !== undefined) attrs.blocks = blocks;
     if (flags["tag-ids"] !== undefined) {

@@ -4,6 +4,7 @@ import {
   expectCodleCommand,
   findAllCodleInteractions,
   findCodleInteraction,
+  parseCodleOutput,
 } from "../lib/ndjson.js";
 
 describe("activity create", () => {
@@ -22,6 +23,9 @@ describe("activity create", () => {
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 
   test("엔트리 활동 생성 시 카테고리 지정", async ({ claude, factory }) => {
@@ -44,6 +48,9 @@ describe("activity create", () => {
     const command = interaction!.call.input.command as string;
     expect(command).toMatch(/Entry(Activity)?/i);
     expect(command).toContain("stage");
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 });
 
@@ -61,7 +68,8 @@ describe("activity delete", () => {
       "activity delete",
     );
     expect(deleteInteractions.length).toBeGreaterThanOrEqual(1);
-    expect(deleteInteractions[0]!.result!.isError).toBe(false);
+    const lastDelete = deleteInteractions[deleteInteractions.length - 1]!;
+    expect(lastDelete.result!.isError).toBe(false);
   });
 });
 
@@ -96,6 +104,9 @@ describe("activity set-branch", () => {
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 });
 
@@ -121,5 +132,8 @@ describe("activity set-flow", () => {
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 });

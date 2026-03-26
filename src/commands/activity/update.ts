@@ -8,19 +8,15 @@ export default class ActivityUpdate extends BaseCommand {
 
   static examples = [
     "<%= config.bin %> <%= command.id %> 456 --name '수정된 활동명'",
-    "<%= config.bin %> <%= command.id %> --activity-id 456 --name '수정된 활동명'",
     "<%= config.bin %> <%= command.id %> 456 --depth 2",
     "<%= config.bin %> <%= command.id %> 456 --tag-ids ''  # 태그 전체 삭제",
   ];
 
   static args = {
-    id: Args.string({ description: "활동 ID" }),
+    id: Args.string({ description: "활동 ID", required: true }),
   };
 
   static flags = {
-    "activity-id": Flags.string({
-      description: "수정할 활동 ID (또는 첫 번째 인자로 전달)",
-    }),
     name: Flags.string({
       description: "활동 이름 (최대 64자)",
     }),
@@ -35,12 +31,7 @@ export default class ActivityUpdate extends BaseCommand {
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(ActivityUpdate);
-    const activityId = args.id ?? flags["activity-id"];
-    if (!activityId) {
-      this.error("활동 ID를 인자 또는 --activity-id로 지정하세요.", {
-        exit: 1,
-      });
-    }
+    const activityId = args.id;
 
     const attrs: Record<string, unknown> = {};
 
