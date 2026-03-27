@@ -74,3 +74,15 @@ export function snakeToPascal(name: string): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join("");
 }
+
+export function pascalToSnake(name: string): string {
+  let result = "";
+  for (let i = 0; i < name.length; i++) {
+    const c = name[i];
+    if (c >= "A" && c <= "Z" && i > 0) {
+      result += "_";
+    }
+    result += c.toLowerCase();
+  }
+  return result;
+}

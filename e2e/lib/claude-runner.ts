@@ -1,14 +1,17 @@
 import { spawn } from "node:child_process";
+import { dirname } from "node:path";
 import { parseNdjson, type ClaudeResult, type UsageStats } from "./ndjson.js";
 
 interface ClaudeRunnerOptions {
-  mcpConfigPath: string;
+  accessToken: string;
+  codleBin: string;
   projectDir: string;
   maxBudgetUsd: string;
 }
 
 export class ClaudeRunner {
-  private mcpConfigPath: string;
+  private accessToken: string;
+  private codleBin: string;
   private projectDir: string;
   private maxBudgetUsd: string;
   lastCostUsd = 0;
@@ -23,7 +26,8 @@ export class ClaudeRunner {
   };
 
   constructor(opts: ClaudeRunnerOptions) {
-    this.mcpConfigPath = opts.mcpConfigPath;
+    this.accessToken = opts.accessToken;
+    this.codleBin = opts.codleBin;
     this.projectDir = opts.projectDir;
     this.maxBudgetUsd = opts.maxBudgetUsd;
   }
@@ -33,21 +37,28 @@ export class ClaudeRunner {
     opts?: { timeout?: number },
   ): Promise<ClaudeResult> {
     const timeout = opts?.timeout ?? 120_000;
+    const codleBinDir = dirname(this.codleBin);
+
+    // AIDEV-NOTE: CLI의 존재만 알려준다. 플래그 등 상세는 AI가 --help로 탐색.
+    // MCP에서 tool schema가 자동 제공되듯, CLI에서는 --help가 그 역할을 한다.
+    const systemPrompt =
+      `You have the "codle" CLI. CODLE_TOKEN is already set. Output is JSON. ` +
+      `Do not explore the codebase.`;
+
+    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
 
     return new Promise<ClaudeResult>((resolve, reject) => {
       const child = spawn(
         "claude",
         [
           "-p",
-          prompt,
+          fullPrompt,
           "--output-format",
           "stream-json",
           "--verbose",
-          "--mcp-config",
-          this.mcpConfigPath,
           "--strict-mcp-config",
           "--allowed-tools",
-          "mcp__codle__*",
+          "Bash",
           "--max-budget-usd",
           this.maxBudgetUsd,
           "--no-session-persistence",
@@ -56,7 +67,12 @@ export class ClaudeRunner {
         ],
         {
           cwd: this.projectDir,
-          env: { ...process.env, CLAUDECODE: undefined },
+          env: {
+            ...process.env,
+            CLAUDECODE: undefined,
+            CODLE_TOKEN: this.accessToken,
+            PATH: `${codleBinDir}:${process.env.PATH ?? ""}`,
+          },
           stdio: ["ignore", "pipe", "pipe"],
         },
       );
@@ -81,6 +97,13 @@ export class ClaudeRunner {
         clearTimeout(timer);
         const stdout = Buffer.concat(stdoutChunks).toString("utf-8");
         const stderr = Buffer.concat(stderrChunks).toString("utf-8");
+        // DEBUG: raw ndjson dump
+        if (process.env.E2E_DEBUG) {
+          const fs = require("fs");
+          const debugPath = `/tmp/e2e-debug-${Date.now()}.ndjson`;
+          fs.writeFileSync(debugPath, stdout);
+          console.error(`[DEBUG] raw ndjson saved to ${debugPath}`);
+        }
         const result = parseNdjson(stdout, code ?? 1, stderr);
         this.lastCostUsd = result.costUsd;
         this.lastDurationMs = result.durationMs;

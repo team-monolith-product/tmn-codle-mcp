@@ -1,13 +1,14 @@
 {
-  "name": "codle-mcp",
+  "name": "codle-cli",
   "version": "1.0.0",
-  "description": "Codle MCP Server - MCP tools for managing Codle learning materials",
+  "description": "Codle CLI — 자료(Material), 활동(Activity), 문제(Problem), 태그(Tag) 관리",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "codle": "./bin/run.js"
+  },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "start:e2e": "DOTENV_CONFIG_PATH=.env.e2e node dist/index.js",
     "e2e": "vitest run --config e2e/vitest.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -21,16 +22,47 @@
     "@lexical/markdown": "^0.32.1",
     "@lexical/rich-text": "^0.32.1",
     "@lexical/table": "^0.32.1",
-    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@oclif/core": "^4",
     "dotenv": "^16.4.7",
-    "lexical": "^0.32.1",
-    "zod": "^3.24.2"
+    "lexical": "^0.32.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
     "prettier": "^3.0.1",
     "typescript": "^5.7.3",
     "vitest": "^3.0.9"
+  },
+  "oclif": {
+    "bin": "codle",
+    "dirname": "codle",
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    },
+    "topicSeparator": " ",
+    "topics": {
+      "material": {
+        "description": "자료(Material) 검색, 조회, 생성, 수정, 복제"
+      },
+      "activity": {
+        "description": "활동(Activity) CRUD, 코스 흐름, 갈림길 설정"
+      },
+      "activitiable": {
+        "description": "활동 유형별 속성 업데이트 (Board, Sheet, Embedded, Video)"
+      },
+      "problem": {
+        "description": "문제(Problem) CRUD"
+      },
+      "tag": {
+        "description": "태그(Tag) 검색"
+      },
+      "docs": {
+        "description": "문서 및 가이드 출력"
+      },
+      "html-activity-page": {
+        "description": "교안(HtmlActivity) 페이지 동기화"
+      }
+    }
   },
   "engines": {
     "node": ">=22.0.0"

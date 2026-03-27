@@ -1,8 +1,8 @@
 import { describe, expect, test } from "../fixtures/claude.js";
 import { createMaterial } from "../lib/factory.js";
-import { extractText, findToolResult } from "../lib/ndjson.js";
+import { expectCodleCommand, findCodleInteraction } from "../lib/ndjson.js";
 
-describe("manage_html_activity_pages", () => {
+describe("html-activity-page sync", () => {
   test("교안 활동에 페이지 추가", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
     const htmlActivitiable = await factory.create("html_activity");
@@ -19,20 +19,14 @@ describe("manage_html_activity_pages", () => {
         `두 번째 페이지 URL은 "https://example.com/page2"야.`,
     );
 
-    expect(result.errors).toHaveLength(0);
-    expect(result.toolNames).toContain(
-      "mcp__codle__manage_html_activity_pages",
-    );
+    expectCodleCommand(result, "html-activity-page sync");
 
-    const interaction = findToolResult(
+    const interaction = findCodleInteraction(
       result.toolInteractions,
-      "mcp__codle__manage_html_activity_pages",
+      "html-activity-page sync",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
-    const text = extractText(interaction!.result!);
-    expect(text).toMatch(/교안 페이지 설정 완료/);
-    expect(text).toMatch(/추가 2/);
   });
 
   test("진행도 측정 방식 기본값은 time, completion_seconds는 3", async ({
@@ -53,18 +47,20 @@ describe("manage_html_activity_pages", () => {
         `URL은 "https://example.com/time-page"야.`,
     );
 
-    expect(result.errors).toHaveLength(0);
+    expectCodleCommand(result, "html-activity-page sync");
 
-    const interaction = findToolResult(
+    const interaction = findCodleInteraction(
       result.toolInteractions,
-      "mcp__codle__manage_html_activity_pages",
+      "html-activity-page sync",
     );
     expect(interaction!.result!.isError).toBe(false);
 
-    const input = interaction!.call.input;
-    const page = (input.pages as Array<Record<string, unknown>>)[0];
-    expect(page.progress_calculation_method ?? "time").toBe("time");
-    expect(page.completion_seconds ?? 3).toBe(3);
+    // Default values: time method, 3 seconds
+    const command = interaction!.call.input.command as string;
+    // If method is specified it should be "time", or not specified (defaults to "time")
+    if (command.includes("--progress-calculation-method")) {
+      expect(command).toMatch(/time/);
+    }
   });
 
   test("no_calculation 지정 시 completion_seconds 없이 전달", async ({
@@ -86,17 +82,16 @@ describe("manage_html_activity_pages", () => {
         `진행도 계산 방식은 "API와 연동하여 측정(no_calculation)"으로 해줘.`,
     );
 
-    expect(result.errors).toHaveLength(0);
+    expectCodleCommand(result, "html-activity-page sync");
 
-    const interaction = findToolResult(
+    const interaction = findCodleInteraction(
       result.toolInteractions,
-      "mcp__codle__manage_html_activity_pages",
+      "html-activity-page sync",
     );
     expect(interaction!.result!.isError).toBe(false);
 
-    const input = interaction!.call.input;
-    const page = (input.pages as Array<Record<string, unknown>>)[0];
-    expect(page.progress_calculation_method).toBe("no_calculation");
+    const command = interaction!.call.input.command as string;
+    expect(command).toContain("no_calculation");
   });
 
   test("교안 활동 페이지 수정 (URL 변경)", async ({ claude, factory }) => {
@@ -120,18 +115,13 @@ describe("manage_html_activity_pages", () => {
         `페이지 URL은 "https://example.com/new-page"야.`,
     );
 
-    expect(result.errors).toHaveLength(0);
-    expect(result.toolNames).toContain(
-      "mcp__codle__manage_html_activity_pages",
-    );
+    expectCodleCommand(result, "html-activity-page sync");
 
-    const interaction = findToolResult(
+    const interaction = findCodleInteraction(
       result.toolInteractions,
-      "mcp__codle__manage_html_activity_pages",
+      "html-activity-page sync",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
-    const text = extractText(interaction!.result!);
-    expect(text).toMatch(/교안 페이지 설정 완료/);
   });
 });

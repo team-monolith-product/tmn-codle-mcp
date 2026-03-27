@@ -18,7 +18,7 @@ function timestamp(): string {
 
 function log(level: LogLevel, ...args: unknown[]): void {
   if (LEVELS[level] >= currentLevel) {
-    console.error(`${timestamp()} [${level}] codle_mcp:`, ...args);
+    console.error(`${timestamp()} [${level}] codle:`, ...args);
   }
 }
 

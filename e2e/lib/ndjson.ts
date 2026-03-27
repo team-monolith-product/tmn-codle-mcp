@@ -33,10 +33,108 @@ export interface ClaudeResult {
   durationMs: number;
   numTurns: number;
   usage: UsageStats;
-  mcpServers: Array<{ name: string; status: string }>;
   exitCode: number;
   stderr: string;
 }
+
+// ---------------------------------------------------------------------------
+// CLI (bash) helpers
+// ---------------------------------------------------------------------------
+
+/** Check whether a bash tool call's command invokes a codle subcommand. */
+function isCodleBashCall(call: ToolCall): boolean {
+  if (call.name !== "Bash") return false;
+  const cmd = call.input.command as string | undefined;
+  return !!cmd && /\bcodle\b/.test(cmd);
+}
+
+/** Check whether a bash command string matches a codle subcommand pattern. */
+function matchesCodleSubcommand(command: string, subcommand: string): boolean {
+  // "material search" -> matches "codle material search ..." or "codle material:search ..."
+  // AIDEV-NOTE: oclif는 하이픈을 스페이스로 대체해도 라우팅한다.
+  // AI가 "problem collection sync" (하이픈 없이)로 호출하는 경우도 매칭한다.
+  const spaced = `codle ${subcommand}`;
+  const coloned = `codle ${subcommand.replace(/ /g, ":")}`;
+  const dehyphenated = `codle ${subcommand.replace(/-/g, " ")}`;
+  return (
+    command.includes(spaced) ||
+    command.includes(coloned) ||
+    command.includes(dehyphenated)
+  );
+}
+
+/** Find last bash tool interaction where the command contains the given codle subcommand.
+ *  Excludes --help calls to avoid matching exploration commands.
+ *  AIDEV-NOTE: 마지막 호출을 반환한다. CLI는 자유 형식 bash 명령이므로
+ *  첫 시도에서 잘못된 플래그를 사용하고 재시도하는 패턴이 발생할 수 있다.
+ *  최종 시도의 결과를 검증해야 의미 있는 테스트가 된다. */
+export function findCodleInteraction(
+  interactions: ToolInteraction[],
+  subcommand: string,
+): ToolInteraction | undefined {
+  return interactions.findLast((i) => {
+    if (i.call.name !== "Bash") return false;
+    const cmd = (i.call.input.command as string) ?? "";
+    if (cmd.includes("--help")) return false;
+    return matchesCodleSubcommand(cmd, subcommand);
+  });
+}
+
+/** Find all bash tool interactions matching a codle subcommand.
+ *  Excludes --help calls to avoid matching exploration commands. */
+export function findAllCodleInteractions(
+  interactions: ToolInteraction[],
+  subcommand: string,
+): ToolInteraction[] {
+  return interactions.filter((i) => {
+    if (i.call.name !== "Bash") return false;
+    const cmd = (i.call.input.command as string) ?? "";
+    if (cmd.includes("--help")) return false;
+    return matchesCodleSubcommand(cmd, subcommand);
+  });
+}
+
+/** Parse JSON output from a codle CLI result. */
+export function parseCodleOutput<T = unknown>(result: ToolResult): T {
+  // AIDEV-NOTE: CLI stdout에 oclif warning 등 non-JSON 행이 섞일 수 있다.
+  // 마지막 유효한 JSON 행을 찾아서 파싱한다.
+  const lines = result.content.split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    try {
+      return JSON.parse(line) as T;
+    } catch {
+      continue;
+    }
+  }
+  return JSON.parse(result.content) as T;
+}
+
+/** Assert that at least one bash call invoked the given codle subcommand. */
+export function expectCodleCommand(
+  result: ClaudeResult,
+  subcommand: string,
+): void {
+  const found = result.toolInteractions.some(
+    (i) =>
+      i.call.name === "Bash" &&
+      matchesCodleSubcommand(
+        (i.call.input.command as string) ?? "",
+        subcommand,
+      ),
+  );
+  if (!found) {
+    throw new Error(
+      `Expected a bash call containing "codle ${subcommand}" but none was found. ` +
+        `Tool names seen: ${result.toolNames.join(", ")}`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Legacy helpers (kept for backward compat)
+// ---------------------------------------------------------------------------
 
 /** name으로 첫 번째 매칭되는 tool interaction을 찾는다. */
 export function findToolResult(
@@ -56,7 +154,7 @@ export function findAllToolResults(
 
 /**
  * tool result content에서 텍스트를 추출한다.
- * MCP tool result는 [{"type":"text","text":"..."}] 배열 형태로 올 수 있다.
+ * tool result가 [{"type":"text","text":"..."}] 배열 형태로 올 수 있다.
  */
 export function extractText(result: ToolResult): string {
   const content = result.content;
@@ -74,6 +172,10 @@ export function extractText(result: ToolResult): string {
   return content;
 }
 
+// ---------------------------------------------------------------------------
+// NDJSON parser
+// ---------------------------------------------------------------------------
+
 export function parseNdjson(
   raw: string,
   exitCode: number,
@@ -87,9 +189,6 @@ export function parseNdjson(
     .find((e: Record<string, unknown>) => e.type === "result") as
     | Record<string, unknown>
     | undefined;
-  const init = entries.find(
-    (e: Record<string, unknown>) => e.subtype === "init",
-  ) as Record<string, unknown> | undefined;
 
   // tool_use 블록 추출
   const toolCalls: ToolCall[] = entries
@@ -123,30 +222,20 @@ export function parseNdjson(
     };
   });
 
-  // AIDEV-NOTE: mcp__codle__* 도구 에러만 수집한다.
-  // ReadMcpResourceTool 등 Claude Code 플랫폼 도구의 에러(예: server 파라미터 누락)는
-  // 우리 코드와 무관하므로 제외한다.
+  // AIDEV-NOTE: codle CLI의 bash 호출 에러만 수집한다.
+  // 다른 bash 도구 호출이나 Claude Code 플랫폼 도구의 에러는 우리 코드와 무관하므로 제외한다.
   const codleToolUseIds = new Set(
-    toolCalls
-      .filter((tc) => tc.name.startsWith("mcp__codle__"))
-      .map((tc) => tc.id),
+    toolCalls.filter((tc) => isCodleBashCall(tc)).map((tc) => tc.id),
   );
   const errors = toolResults
     .filter((r) => r.isError && codleToolUseIds.has(r.toolUseId))
     .map((r) => r.content);
 
-  // call ↔ result 매칭
+  // call <-> result 매칭
   const resultMap = new Map(toolResults.map((r) => [r.toolUseId, r]));
   const toolInteractions: ToolInteraction[] = toolCalls.map((call) => ({
     call,
     result: resultMap.get(call.id),
-  }));
-
-  const mcpServers = (
-    (init?.mcp_servers as Array<Record<string, unknown>>) ?? []
-  ).map((s) => ({
-    name: s.name as string,
-    status: (s.status as string) ?? "unknown",
   }));
 
   const rawUsage = (resultEntry?.usage as Record<string, unknown>) ?? {};
@@ -168,7 +257,6 @@ export function parseNdjson(
       cacheCreationInputTokens:
         (rawUsage.cache_creation_input_tokens as number) ?? 0,
     },
-    mcpServers,
     exitCode,
     stderr,
   };

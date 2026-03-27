@@ -1,14 +1,19 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe as _describe, expect, test as base } from "vitest";
 import { ClaudeRunner } from "../lib/claude-runner.js";
 import { TestFactory } from "../lib/factory.js";
 
-const MCP_CONFIG_PATH = resolve(
-  import.meta.dirname,
-  "..",
-  ".mcp-config.tmp.json",
-);
+const CONFIG_PATH = resolve(import.meta.dirname, "..", ".e2e-config.tmp.json");
 const PROJECT_DIR = resolve(import.meta.dirname, "..", "..");
+
+interface E2EConfig {
+  e2e: { userId: string; accessToken: string; codleBin: string };
+}
+
+function readConfig(): E2EConfig {
+  return JSON.parse(readFileSync(CONFIG_PATH, "utf-8")) as E2EConfig;
+}
 
 const E2E_REPEATS = Math.max(0, parseInt(process.env.E2E_REPEATS || "1") - 1);
 
@@ -19,8 +24,10 @@ export const test = base.extend<{
   claude: async ({ task }, use) => {
     const errorsBefore = (task.result as any)?.errors?.length ?? 0;
 
+    const config = readConfig();
     const runner = new ClaudeRunner({
-      mcpConfigPath: MCP_CONFIG_PATH,
+      accessToken: config.e2e.accessToken,
+      codleBin: config.e2e.codleBin,
       projectDir: PROJECT_DIR,
       maxBudgetUsd: "0.30",
     });

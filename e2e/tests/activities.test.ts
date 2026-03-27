@@ -1,12 +1,13 @@
 import { describe, expect, test } from "../fixtures/claude.js";
 import { createActivity, createMaterial } from "../lib/factory.js";
 import {
-  extractText,
-  findAllToolResults,
-  findToolResult,
+  expectCodleCommand,
+  findAllCodleInteractions,
+  findCodleInteraction,
+  parseCodleOutput,
 } from "../lib/ndjson.js";
 
-describe("manage_activities", () => {
+describe("activity create", () => {
   test("활동 생성 성공", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
 
@@ -14,17 +15,17 @@ describe("manage_activities", () => {
       `자료 ID "${material.id}"에 "E2E Activity" 교안 활동을 추가해줘.`,
     );
 
-    expect(result.errors).toHaveLength(0);
-    expect(result.toolNames).toContain("mcp__codle__manage_activities");
+    expectCodleCommand(result, "activity create");
 
-    const interaction = findToolResult(
+    const interaction = findCodleInteraction(
       result.toolInteractions,
-      "mcp__codle__manage_activities",
+      "activity create",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
-    const text = extractText(interaction!.result!);
-    expect(text).toMatch(/활동 생성 완료/);
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 
   test("엔트리 활동 생성 시 카테고리 지정", async ({ claude, factory }) => {
@@ -34,39 +35,45 @@ describe("manage_activities", () => {
       `자료 ID "${material.id}"에 "E2E Stage Entry" 엔트리 활동을 stage 카테고리로 추가해줘.`,
     );
 
-    expect(result.errors).toHaveLength(0);
-    expect(result.toolNames).toContain("mcp__codle__manage_activities");
+    expectCodleCommand(result, "activity create");
 
-    const interaction = findToolResult(
+    const interaction = findCodleInteraction(
       result.toolInteractions,
-      "mcp__codle__manage_activities",
+      "activity create",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
-    expect(interaction!.call.input.activity_type).toMatch(/^Entry(Activity)?$/);
-    expect(interaction!.call.input.entry_category).toBe("stage");
-    const text = extractText(interaction!.result!);
-    expect(text).toMatch(/활동 생성 완료/);
-  });
 
+    // Verify the command includes entry-related flags
+    const command = interaction!.call.input.command as string;
+    expect(command).toMatch(/Entry(Activity)?/i);
+    expect(command).toContain("stage");
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
+  });
+});
+
+describe("activity delete", () => {
   test("활동 삭제 호출", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
     const activity = await createActivity(factory, material.id);
 
     const result = await claude.run(`활동 ID "${activity.id}"를 삭제해줘.`);
 
-    expect(result.toolNames).toContain("mcp__codle__manage_activities");
+    expectCodleCommand(result, "activity delete");
 
-    const deleteInteractions = findAllToolResults(
+    const deleteInteractions = findAllCodleInteractions(
       result.toolInteractions,
-      "mcp__codle__manage_activities",
-    ).filter((i) => i.call.input.action === "delete");
+      "activity delete",
+    );
     expect(deleteInteractions.length).toBeGreaterThanOrEqual(1);
-    expect(deleteInteractions[0]!.result!.isError).toBe(false);
+    const lastDelete = deleteInteractions[deleteInteractions.length - 1]!;
+    expect(lastDelete.result!.isError).toBe(false);
   });
 });
 
-describe("set_activity_branch", () => {
+describe("activity set-branch", () => {
   test("갈림길 설정 (기본 + 보완)", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
     // AIDEV-NOTE: enable_course_branch?는 QuizActivity/SheetActivity만 허용.
@@ -89,21 +96,21 @@ describe("set_activity_branch", () => {
         `기본 갈림길은 "${mid.id}", 보완 갈림길은 "${low.id}"야.`,
     );
 
-    expect(result.errors).toHaveLength(0);
-    expect(result.toolNames).toContain("mcp__codle__set_activity_branch");
+    expectCodleCommand(result, "activity set-branch");
 
-    const interaction = findToolResult(
+    const interaction = findCodleInteraction(
       result.toolInteractions,
-      "mcp__codle__set_activity_branch",
+      "activity set-branch",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
-    const text = extractText(interaction!.result!);
-    expect(text).toMatch(/갈림길 설정 완료/);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 });
 
-describe("set_activity_flow", () => {
+describe("activity set-flow", () => {
   test("seed된 활동으로 코스 흐름 설정", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
     const activity1 = await createActivity(factory, material.id, {
@@ -117,16 +124,16 @@ describe("set_activity_flow", () => {
       `자료 ID "${material.id}"의 활동 "${activity1.id}"와 "${activity2.id}"를 순서대로 연결하는 코스 흐름을 설정해줘.`,
     );
 
-    expect(result.errors).toHaveLength(0);
-    expect(result.toolNames).toContain("mcp__codle__set_activity_flow");
+    expectCodleCommand(result, "activity set-flow");
 
-    const interaction = findToolResult(
+    const interaction = findCodleInteraction(
       result.toolInteractions,
-      "mcp__codle__set_activity_flow",
+      "activity set-flow",
     );
     expect(interaction?.result).toBeDefined();
     expect(interaction!.result!.isError).toBe(false);
-    const text = extractText(interaction!.result!);
-    expect(text).toMatch(/코스 흐름/);
+
+    const output = parseCodleOutput<unknown>(interaction!.result!);
+    expect(output).toBeDefined();
   });
 });

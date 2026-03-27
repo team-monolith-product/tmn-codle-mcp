@@ -1,13 +1,12 @@
-import { spawn, type ChildProcess } from "node:child_process";
 import { unlinkSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = resolve(SCRIPT_DIR, "..");
-const MCP_PORT = 3000;
-const TMP_CONFIG = resolve(SCRIPT_DIR, ".mcp-config.tmp.json");
+const TMP_CONFIG = resolve(SCRIPT_DIR, ".e2e-config.tmp.json");
 
 dotenv.config({ path: resolve(PROJECT_DIR, ".env.e2e") });
 
@@ -19,33 +18,6 @@ function requireEnv(key: string): string {
   return value;
 }
 
-let mcpServer: ChildProcess | undefined;
-
-function startMcpServer(): ChildProcess {
-  const child = spawn("node", ["dist/index.js"], {
-    cwd: PROJECT_DIR,
-    env: { ...process.env, DOTENV_CONFIG_PATH: ".env.e2e" },
-    stdio: ["ignore", "inherit", "inherit"],
-  });
-  child.on("error", (err) => {
-    throw new Error(`MCP server failed to start: ${err.message}`);
-  });
-  return child;
-}
-
-async function waitForHealth(retries = 20): Promise<void> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(`http://localhost:${MCP_PORT}/health`);
-      if (res.ok) return;
-    } catch {
-      /* not ready */
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error("MCP server did not become ready in time.");
-}
-
 async function createUserAndGetToken(): Promise<{
   userId: string;
   accessToken: string;
@@ -55,7 +27,7 @@ async function createUserAndGetToken(): Promise<{
   const userRailsUrl = `https://user.${tenantNumber}.e2e.codle.io`;
 
   const timestamp = Date.now();
-  const email = `mcp-e2e-${timestamp}@codle.io`;
+  const email = `cli-e2e-${timestamp}@codle.io`;
   const password = "password";
 
   const createRes = await fetch(`${userRailsUrl}/e2e/factory/create`, {
@@ -67,7 +39,7 @@ async function createUserAndGetToken(): Promise<{
         email,
         password,
         user_type: "teacher",
-        name: "MCP E2E",
+        name: "CLI E2E",
         user_association: "E2E School",
       },
     }),
@@ -99,12 +71,7 @@ async function createUserAndGetToken(): Promise<{
 }
 
 export async function setup(): Promise<void> {
-  mcpServer = startMcpServer();
-
-  const [, { userId, accessToken }] = await Promise.all([
-    waitForHealth(),
-    createUserAndGetToken(),
-  ]);
+  const { userId, accessToken } = await createUserAndGetToken();
 
   // AIDEV-NOTE: Problems API 등 교사 전용 엔드포인트에 teacher_levels가 필요하다.
   // subscription_grant factory의 기본 trait(:active)이 start_at/end_at을 넓게 잡아 항상 active이다.
@@ -126,18 +93,13 @@ export async function setup(): Promise<void> {
     );
   }
 
+  const codleBin = resolve(PROJECT_DIR, "bin", "run.js");
+
   writeFileSync(
     TMP_CONFIG,
     JSON.stringify(
       {
-        mcpServers: {
-          codle: {
-            type: "http",
-            url: `http://localhost:${MCP_PORT}/mcp`,
-            headers: { Authorization: `Bearer ${accessToken}` },
-          },
-        },
-        e2e: { userId },
+        e2e: { userId, accessToken, codleBin },
       },
       null,
       2,
@@ -149,11 +111,6 @@ export async function setup(): Promise<void> {
 }
 
 export function teardown(): void {
-  try {
-    mcpServer?.kill();
-  } catch {
-    /* already exited */
-  }
   try {
     unlinkSync(TMP_CONFIG);
   } catch {

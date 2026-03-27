@@ -12,7 +12,7 @@ if (!tenantNumber) {
 
 const USER_RAILS_URL = `https://user.${tenantNumber}.e2e.codle.io`;
 const CLASS_RAILS_URL = `https://class.${tenantNumber}.e2e.codle.io`;
-const CONFIG_PATH = resolve(import.meta.dirname, "..", ".mcp-config.tmp.json");
+const CONFIG_PATH = resolve(import.meta.dirname, "..", ".e2e-config.tmp.json");
 
 const USER_RAILS_FACTORIES = ["user", "experience"];
 
@@ -29,8 +29,7 @@ function snakecaseKeys(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 interface TmpConfig {
-  mcpServers: { codle: { headers: { Authorization: string } } };
-  e2e: { userId: string };
+  e2e: { userId: string; accessToken: string; codleBin: string };
 }
 
 function readConfig(): TmpConfig {
@@ -97,7 +96,7 @@ export async function createMaterial(
   overrides: Record<string, unknown> = {},
 ): Promise<Material> {
   return factory.create<Material>("material", {
-    name: `e2e-mcp-material-${Date.now()}`,
+    name: `e2e-cli-material-${Date.now()}`,
     userId: factory.userId,
     ...overrides,
   });
@@ -110,7 +109,7 @@ export async function createActivity(
   overrides: Record<string, unknown> = {},
 ): Promise<Activity> {
   return factory.create<Activity>("activity", {
-    name: `e2e-mcp-activity-${Date.now()}`,
+    name: `e2e-cli-activity-${Date.now()}`,
     materialId,
     ...overrides,
   });

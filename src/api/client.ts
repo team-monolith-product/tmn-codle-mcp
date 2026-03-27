@@ -1,34 +1,22 @@
 import { config } from "../config.js";
-import { getAccessToken } from "../context.js";
 import { logger } from "../logger.js";
 import { CodleAPIError, extractErrorDetail } from "./errors.js";
 
 export class CodleClient {
   private baseUrl: string;
+  private accessToken: string;
 
-  constructor() {
-    this.baseUrl = config.apiUrl;
+  constructor(accessToken: string, apiUrl?: string) {
+    this.accessToken = accessToken;
+    this.baseUrl = apiUrl ?? config.apiUrl;
   }
 
-  private getToken(): string | undefined {
-    return getAccessToken();
+  private getToken(): string {
+    return this.accessToken;
   }
 
   private authHeaders(): Record<string, string> {
-    const token = this.getToken();
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-    return {};
-  }
-
-  async ensureAuth(): Promise<void> {
-    if (!this.getToken()) {
-      throw new CodleAPIError(
-        401,
-        "Authorization 헤더에 Bearer 토큰이 필요합니다.",
-      );
-    }
+    return { Authorization: `Bearer ${this.getToken()}` };
   }
 
   static extractErrorDetailStatic(
@@ -63,8 +51,6 @@ export class CodleClient {
       json?: unknown;
     },
   ): Promise<Record<string, unknown>> {
-    await this.ensureAuth();
-
     const { params, json } = options ?? {};
     this.logRequest(
       method,
@@ -289,5 +275,3 @@ export class CodleClient {
     });
   }
 }
-
-export const client = new CodleClient();

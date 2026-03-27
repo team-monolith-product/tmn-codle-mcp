@@ -50,26 +50,6 @@ describe("CodleClient", () => {
     vi.unstubAllGlobals();
   });
 
-  it("ensureAuth throws when no token in context", async () => {
-    // context에 토큰이 없으면 (AsyncLocalStorage 밖) 에러
-    const { CodleClient } = await import("../src/api/client.js");
-    const client = new CodleClient();
-
-    await expect(client.ensureAuth()).rejects.toThrow(
-      "Authorization 헤더에 Bearer 토큰이 필요합니다.",
-    );
-  });
-
-  it("ensureAuth succeeds with token in context", async () => {
-    const { requestContext } = await import("../src/context.js");
-    const { CodleClient } = await import("../src/api/client.js");
-    const client = new CodleClient();
-
-    await requestContext.run({ accessToken: "test-token" }, async () => {
-      await expect(client.ensureAuth()).resolves.toBeUndefined();
-    });
-  });
-
   it("request does not retry on 401", async () => {
     let callCount = 0;
     const mockFetch = vi.fn().mockImplementation(() => {
@@ -83,15 +63,10 @@ describe("CodleClient", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const { requestContext } = await import("../src/context.js");
     const { CodleClient } = await import("../src/api/client.js");
-    const client = new CodleClient();
+    const client = new CodleClient("expired-token");
 
-    await requestContext.run({ accessToken: "expired-token" }, async () => {
-      await expect(
-        client.request("GET", "/api/v1/materials"),
-      ).rejects.toThrow();
-    });
+    await expect(client.request("GET", "/api/v1/materials")).rejects.toThrow();
 
     // Should only call the materials endpoint once (no retry)
     expect(callCount).toBe(1);

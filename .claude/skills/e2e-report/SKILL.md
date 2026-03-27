@@ -1,12 +1,12 @@
 ---
 name: e2e-report
-description: Run MCP e2e tests and post stats to PR comment
+description: Run CLI e2e tests and post stats to PR comment
 allowed-tools: Bash(npm:*), Bash(gh:*), Bash(git:*), Read, Write
 ---
 
 # E2E Report Command
 
-MCP E2E 테스트를 실행하고, 결과 통계를 PR 코멘트로 포스팅한다.
+CLI E2E 테스트를 실행하고, 결과 통계를 PR 코멘트로 포스팅한다.
 
 ## 실행 단계
 
@@ -30,7 +30,7 @@ MCP E2E 테스트를 실행하고, 결과 통계를 PR 코멘트로 포스팅한
 
 ### 판별 기준
 
-- **PR 영향범위 TC**: PR에서 변경된 도구(tool)와 관련된 테스트 케이스. `git diff origin/main --name-only`로 변경 파일을 확인하고, 해당 도구의 e2e TC를 식별한다.
+- **PR 영향범위 TC**: PR에서 변경된 커맨드와 관련된 테스트 케이스. `git diff origin/main --name-only`로 변경 파일을 확인하고, 해당 도구의 e2e TC를 식별한다.
 - **기존 테스트 (실패)**: PR 영향범위 외의 TC 중 pass rate가 100%가 아닌 것만 표시.
 
 ### 출력 포맷
@@ -40,9 +40,9 @@ MCP E2E 테스트를 실행하고, 결과 통계를 PR 코멘트로 포스팅한
 
 ### PR 영향범위: {tool_name}
 
-| Test                                  | Pass       | Cost | Time | Turns | Tools | Tokens (In/Out) |
-| ------------------------------------- | ---------- | ---- | ---- | ----- | ----- | --------------- |
-| {PR 영향범위 TC — 도구명 접두사 제거} | {pass}/{n} | ...  | ...  | ...   | ...   | ...             |
+| Test                                    | Pass       | Cost | Time | Turns | Tools | Tokens (In/Out) |
+| --------------------------------------- | ---------- | ---- | ---- | ----- | ----- | --------------- |
+| {PR 영향범위 TC — 커맨드명 접두사 제거} | {pass}/{n} | ...  | ...  | ...   | ...   | ...             |
 
 ### 기존 테스트 (실패, {실패 TC 수}/{기존 TC 수})
 
