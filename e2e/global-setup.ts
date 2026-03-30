@@ -1,12 +1,14 @@
-import { unlinkSync, writeFileSync } from "node:fs";
+import { rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
+import { save, clear } from "../src/auth/token-manager.js";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = resolve(SCRIPT_DIR, "..");
 const TMP_CONFIG = resolve(SCRIPT_DIR, ".e2e-config.tmp.json");
+const E2E_CONFIG_DIR = resolve(SCRIPT_DIR, ".e2e-credentials.tmp");
 
 dotenv.config({ path: resolve(PROJECT_DIR, ".env.e2e") });
 
@@ -95,6 +97,20 @@ export async function setup(): Promise<void> {
 
   const codleBin = resolve(PROJECT_DIR, "bin", "run.js");
 
+  // AIDEV-NOTE: --token 플래그 제거 이후, E2E에서는 credential 파일에 직접 저장하여 CLI가 인식하도록 한다.
+  // CODLE_CONFIG_DIR로 e2e/ 하위 임시 경로를 지정하여 사용자의 실제 credential을 보호한다.
+  process.env.CODLE_CONFIG_DIR = E2E_CONFIG_DIR;
+  const clientId = requireEnv("E2E_USER_CLIENT_ID");
+  save({
+    auth_server_url: `https://user.${tenantNumber}.e2e.codle.io`,
+    client_id: clientId,
+    access_token: accessToken,
+    refresh_token: "",
+    scope: "public",
+    created_at: Math.floor(Date.now() / 1000),
+    expires_in: 3600,
+  });
+
   writeFileSync(
     TMP_CONFIG,
     JSON.stringify(
@@ -113,6 +129,11 @@ export async function setup(): Promise<void> {
 export function teardown(): void {
   try {
     unlinkSync(TMP_CONFIG);
+  } catch {
+    /* already removed */
+  }
+  try {
+    rmSync(E2E_CONFIG_DIR, { recursive: true });
   } catch {
     /* already removed */
   }

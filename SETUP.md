@@ -8,20 +8,20 @@ curl -fsSL "https://raw.githubusercontent.com/team-monolith-product/tmn-codle-mc
 
 `~/.codle-cli/`에 설치되고, `~/.local/bin/codle`에 symlink가 생성된다.
 
-## 설정
+## 인증
 
 ```bash
-export CODLE_TOKEN="your-token"
+codle auth login
 ```
 
-토큰 발급은 인프라팀에 문의. `~/.bashrc` 또는 `~/.zshrc`에 추가하면 영구 설정.
+브라우저가 열리고 로그인하면 인증 완료. 토큰은 `~/.config/codle/credentials.json`에 암호화 저장되며, 만료 시 자동 갱신된다.
 
 ### API URL (선택)
 
 기본값은 `https://class.codle.io`. 다른 환경을 사용하려면:
 
 ```bash
-export CODLE_API_URL="https://class.dev.codle.io"
+CODLE_API_URL="https://class.dev.codle.io" CODLE_AUTH_SERVER_URL="https://user.dev.codle.io" codle auth login
 ```
 
 ## 사용 예시
@@ -35,11 +35,12 @@ codle activity create --material-id 1 --name "퀴즈" --type Quiz
 
 ## 문제 해결
 
-| 증상                       | 원인           | 해결                                   |
-| -------------------------- | -------------- | -------------------------------------- |
-| `command not found: codle` | PATH 미설정    | `export PATH="$HOME/.local/bin:$PATH"` |
-| `API 에러 (401)`           | 토큰 누락/만료 | `CODLE_TOKEN` 확인                     |
-| `API 에러 (404)`           | URL 오류       | `CODLE_API_URL` 확인                   |
+| 증상                       | 원인        | 해결                                   |
+| -------------------------- | ----------- | -------------------------------------- |
+| `command not found: codle` | PATH 미설정 | `export PATH="$HOME/.local/bin:$PATH"` |
+| `인증 정보가 없습니다`     | 미로그인    | `codle auth login` 실행                |
+| `API 에러 (401)`           | 세션 만료   | `codle auth login`으로 재로그인        |
+| `API 에러 (404)`           | URL 오류    | `CODLE_API_URL` 확인                   |
 
 ## 업데이트
 

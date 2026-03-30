@@ -5,7 +5,7 @@ oclif 기반 CLI. AI 에이전트(Claude Code)가 bash로 `codle <command>` 를 
 ## 설계 원칙
 
 - **API 계약 준수**: `/api/v1/*` 엔드포인트만 사용. `/admin/v1/*`은 절대 사용 불가.
-- **인증**: `--token` 플래그 또는 `CODLE_TOKEN` 환경변수로 Bearer 토큰 전달.
+- **인증**: `codle auth login`으로 OAuth 로그인. 토큰은 `~/.config/codle/`에 암호화 저장, 401 시 자동 갱신.
 - **컨텍스트 절약**: command description에 중복·내부 구현 정보를 넣지 않는다.
 
 ## 수정 원칙
