@@ -68,7 +68,10 @@ export function decrypt(data: EncryptedData): string {
     authTagLength: TAG_LENGTH,
   });
   decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+  return Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final(),
+  ]).toString("utf8");
 }
 
 export function generateCodeVerifier(): string {

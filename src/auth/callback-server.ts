@@ -74,7 +74,9 @@ export function startCallbackServer(): Promise<CallbackServer> {
         res.end(ERROR_HTML);
         clearTimeout(timeout);
         server.close();
-        callbackReject(new Error("OAuth 콜백에 code 또는 state가 누락되었습니다."));
+        callbackReject(
+          new Error("OAuth 콜백에 code 또는 state가 누락되었습니다."),
+        );
         return;
       }
 
