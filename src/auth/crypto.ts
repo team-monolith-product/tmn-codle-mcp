@@ -71,7 +71,6 @@ export function decrypt(data: EncryptedData): string {
   return decipher.update(ciphertext) + decipher.final("utf8");
 }
 
-// AIDEV-NOTE: PKCE S256 유틸리티. OAuth 플로우에서 code_verifier/code_challenge 생성에 사용.
 export function generateCodeVerifier(): string {
   const unreserved =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
