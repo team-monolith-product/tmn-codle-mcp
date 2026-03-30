@@ -20,25 +20,36 @@ export interface StoredCredentials {
   expires_in: number;
 }
 
-const CONFIG_DIR = join(homedir(), ".config", "codle");
-const CREDENTIALS_FILE = join(CONFIG_DIR, "credentials.json");
+// AIDEV-NOTE: 함수로 평가해야 한다. 모듈 레벨 상수로 만들면
+// E2E global-setup에서 import 후 CODLE_CONFIG_DIR을 설정해도 반영되지 않는다.
+function getConfigDir(): string {
+  return process.env.CODLE_CONFIG_DIR ?? join(homedir(), ".config", "codle");
+}
+
+function getCredentialsFile(): string {
+  return join(getConfigDir(), "credentials.json");
+}
 
 function ensureConfigDir(): void {
-  if (!existsSync(CONFIG_DIR)) {
-    mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+  const dir = getConfigDir();
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
 }
 
 export function save(credentials: StoredCredentials): void {
   ensureConfigDir();
   const encrypted = encrypt(JSON.stringify(credentials));
-  writeFileSync(CREDENTIALS_FILE, JSON.stringify(encrypted), { mode: 0o600 });
+  writeFileSync(getCredentialsFile(), JSON.stringify(encrypted), {
+    mode: 0o600,
+  });
 }
 
 export function load(): StoredCredentials | null {
-  if (!existsSync(CREDENTIALS_FILE)) return null;
+  const file = getCredentialsFile();
+  if (!existsSync(file)) return null;
   try {
-    const raw = readFileSync(CREDENTIALS_FILE, "utf8");
+    const raw = readFileSync(file, "utf8");
     const encrypted: EncryptedData = JSON.parse(raw);
     const decrypted = decrypt(encrypted);
     return JSON.parse(decrypted) as StoredCredentials;
@@ -49,8 +60,9 @@ export function load(): StoredCredentials | null {
 }
 
 export function clear(): void {
-  if (existsSync(CREDENTIALS_FILE)) {
-    unlinkSync(CREDENTIALS_FILE);
+  const file = getCredentialsFile();
+  if (existsSync(file)) {
+    unlinkSync(file);
   }
 }
 
