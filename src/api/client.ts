@@ -5,10 +5,16 @@ import { CodleAPIError, extractErrorDetail } from "./errors.js";
 export class CodleClient {
   private baseUrl: string;
   private accessToken: string;
+  private onUnauthorized?: () => Promise<string>;
 
-  constructor(accessToken: string, apiUrl?: string) {
+  constructor(
+    accessToken: string,
+    apiUrl?: string,
+    onUnauthorized?: () => Promise<string>,
+  ) {
     this.accessToken = accessToken;
     this.baseUrl = apiUrl ?? config.apiUrl;
+    this.onUnauthorized = onUnauthorized;
   }
 
   private getToken(): string {
@@ -51,6 +57,18 @@ export class CodleClient {
       json?: unknown;
     },
   ): Promise<Record<string, unknown>> {
+    return this.requestInternal(method, path, options, false);
+  }
+
+  private async requestInternal(
+    method: string,
+    path: string,
+    options?: {
+      params?: Record<string, string | number | boolean>;
+      json?: unknown;
+    },
+    isRetry?: boolean,
+  ): Promise<Record<string, unknown>> {
     const { params, json } = options ?? {};
     this.logRequest(
       method,
@@ -81,6 +99,15 @@ export class CodleClient {
     const response = await fetch(url, fetchOptions);
 
     if (!response.ok) {
+      // AIDEV-NOTE: 401 시 onUnauthorized 콜백으로 토큰 갱신 후 1회 재시도.
+      // BaseCommand가 credential 로드 시 콜백을 주입한다.
+      if (response.status === 401 && this.onUnauthorized && !isRetry) {
+        logger.debug("401 수신, 토큰 갱신 시도...");
+        const newToken = await this.onUnauthorized();
+        this.accessToken = newToken;
+        return this.requestInternal(method, path, options, true);
+      }
+
       const text = await response.text();
       const contentType = response.headers.get("content-type") || "";
       const detail = extractErrorDetail(response.status, contentType, text);

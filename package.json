@@ -24,6 +24,7 @@
     "@lexical/table": "^0.32.1",
     "@oclif/core": "^4",
     "dotenv": "^16.4.7",
+    "open": "^10",
     "lexical": "^0.32.1"
   },
   "devDependencies": {
@@ -41,6 +42,9 @@
     },
     "topicSeparator": " ",
     "topics": {
+      "auth": {
+        "description": "인증 관리 (로그인, 로그아웃, 상태 확인)"
+      },
       "material": {
         "description": "자료(Material) 검색, 조회, 생성, 수정, 복제"
       },
