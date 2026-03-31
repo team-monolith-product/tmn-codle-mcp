@@ -5,8 +5,8 @@
 ## 개발 환경 설정
 
 ```bash
-git clone https://github.com/team-monolith-product/tmn-codle-mcp.git
-cd tmn-codle-mcp
+git clone https://github.com/team-monolith-product/tmn-codle-cli.git
+cd tmn-codle-cli
 npm ci
 npm run build
 ```

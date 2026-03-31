@@ -3,7 +3,7 @@
 ## 설치
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/team-monolith-product/tmn-codle-mcp/main/install.sh" | bash
+curl -fsSL "https://raw.githubusercontent.com/team-monolith-product/tmn-codle-cli/main/install.sh" | bash
 ```
 
 `~/.codle-cli/`에 설치되고, `~/.local/bin/codle`에 symlink가 생성된다.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="team-monolith-product/tmn-codle-mcp"
+REPO="team-monolith-product/tmn-codle-cli"
 BRANCH="${1:-main}"
 INSTALL_DIR="${HOME}/.codle-cli"
 

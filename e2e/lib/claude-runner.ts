@@ -40,7 +40,6 @@ export class ClaudeRunner {
     const codleBinDir = dirname(this.codleBin);
 
     // AIDEV-NOTE: CLI의 존재만 알려준다. 플래그 등 상세는 AI가 --help로 탐색.
-    // MCP에서 tool schema가 자동 제공되듯, CLI에서는 --help가 그 역할을 한다.
     const systemPrompt =
       `You have the "codle" CLI. CODLE_TOKEN is already set. Output is JSON. ` +
       `Do not explore the codebase.`;
