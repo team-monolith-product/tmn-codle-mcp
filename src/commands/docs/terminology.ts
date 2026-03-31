@@ -1,8 +1,7 @@
 import { Command } from "@oclif/core";
 
-// AIDEV-NOTE: MCP SERVER_OPTIONS.instructions에 있던 용어 매핑을 CLI 커맨드로 제공한다.
-// MCP에서는 세션 시작 시 자동 주입되었으나, CLI에는 그런 메커니즘이 없으므로
-// 별도 커맨드로 제공하여 AI 에이전트가 필요할 때 참조하도록 한다.
+// AIDEV-NOTE: 용어 매핑을 CLI 커맨드로 제공한다.
+// AI 에이전트가 필요할 때 `codle docs terminology`로 참조한다.
 const TERMINOLOGY_DOC = `# Codle 용어 매핑
 
 Codle는 인터랙티브 학습 플랫폼입니다.
