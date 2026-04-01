@@ -9,6 +9,7 @@ export default class ActivitySetFlow extends BaseCommand {
   static examples = [
     "<%= config.bin %> <%= command.id %> --material-id 1 --ids 10 --ids 20",
     "<%= config.bin %> <%= command.id %> --material-id 1 --ids 10 --ids 20 --ids 30",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --ids 30 --ids 40 --append",
   ];
 
   static flags = {
@@ -20,6 +21,10 @@ export default class ActivitySetFlow extends BaseCommand {
       required: true,
       multiple: true,
       description: "순서대로 연결할 활동 ID 목록 (최소 2개)",
+    }),
+    append: Flags.boolean({
+      description: "기존 선형 흐름을 유지하고 새 연결만 추가",
+      default: false,
     }),
   };
 
@@ -43,12 +48,14 @@ export default class ActivitySetFlow extends BaseCommand {
       (i) => i.type === "activity_transition",
     );
 
-    // Step 2: level 없는 transition -> linear -> destroy
+    // Step 2: level 없는 transition -> linear -> destroy (--append 시 skip)
     const dataToDestroy: { id: string }[] = [];
-    for (const t of existingTransitions) {
-      const attrs = (t.attributes as Record<string, unknown>) || {};
-      if (!attrs.level) {
-        dataToDestroy.push({ id: String(t.id) });
+    if (!flags.append) {
+      for (const t of existingTransitions) {
+        const attrs = (t.attributes as Record<string, unknown>) || {};
+        if (!attrs.level) {
+          dataToDestroy.push({ id: String(t.id) });
+        }
       }
     }
 
