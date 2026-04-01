@@ -729,6 +729,36 @@ describe("activity set-flow", () => {
     });
   });
 
+  it("--append skips API call when all pairs already exist", async () => {
+    mockClient.getMaterial.mockResolvedValue({
+      data: { id: "1", type: "material", attributes: {} },
+      included: [
+        {
+          id: "existing-t",
+          type: "activity_transition",
+          attributes: {
+            before_activity_id: "10",
+            after_activity_id: "20",
+          },
+        },
+      ],
+    });
+
+    const output = await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--ids",
+      "10",
+      "--ids",
+      "20",
+      "--append",
+    ]);
+    const parsed = JSON.parse(output);
+    expect(parsed.created).toBe(0);
+    expect(parsed.destroyed).toBe(0);
+    expect(mockClient.doManyActivityTransitions).not.toHaveBeenCalled();
+  });
+
   it("--append preserves branch transitions too", async () => {
     mockClient.getMaterial.mockResolvedValue({
       data: { id: "1", type: "material", attributes: {} },

@@ -4,7 +4,7 @@ import { BaseCommand } from "../../base-command.js";
 
 export default class ActivitySetFlow extends BaseCommand {
   static description =
-    "코스 흐름(선형 연결)을 설정합니다. 기존 흐름을 교체하며 갈림길은 유지.";
+    "코스 흐름(선형 연결)을 설정합니다. 기본: 기존 흐름 교체. --append: 기존 흐름 유지하고 추가.";
 
   static examples = [
     "<%= config.bin %> <%= command.id %> --material-id 1 --ids 10 --ids 20",
@@ -78,7 +78,16 @@ export default class ActivitySetFlow extends BaseCommand {
       });
     }
 
-    // Step 4: atomic replace
+    // Step 4: atomic replace (변경 없으면 API 호출 skip)
+    if (dataToCreate.length === 0 && dataToDestroy.length === 0) {
+      this.output({
+        activity_ids: activityIds,
+        created: 0,
+        destroyed: 0,
+      });
+      return;
+    }
+
     const payload: Record<string, unknown> = { data_to_create: dataToCreate };
     if (dataToDestroy.length) {
       payload.data_to_destroy = dataToDestroy;
