@@ -136,4 +136,39 @@ describe("activity set-flow", () => {
     const output = parseCodleOutput<unknown>(interaction!.result!);
     expect(output).toBeDefined();
   });
+
+  test("--append 플래그로 기존 흐름 유지하며 추가", async ({
+    claude,
+    factory,
+  }) => {
+    const material = await createMaterial(factory);
+    const act1 = await createActivity(factory, material.id, {
+      name: "Append Act 1",
+    });
+    const act2 = await createActivity(factory, material.id, {
+      name: "Append Act 2",
+    });
+
+    const result = await claude.run(
+      `자료 ID "${material.id}"의 활동 "${act1.id}"와 "${act2.id}"를 코스 흐름에 연결해줘. --append 플래그를 사용해서 기존 흐름은 유지해.`,
+    );
+
+    expectCodleCommand(result, "activity set-flow");
+
+    const interaction = findCodleInteraction(
+      result.toolInteractions,
+      "activity set-flow",
+    );
+    expect(interaction?.result).toBeDefined();
+    expect(interaction!.result!.isError).toBe(false);
+
+    const command = interaction!.call.input.command as string;
+    expect(command).toContain("--append");
+
+    const output = parseCodleOutput<{ created: number; destroyed: number }>(
+      interaction!.result!,
+    );
+    expect(output.created).toBe(1);
+    expect(output.destroyed).toBe(0);
+  });
 });

@@ -4,11 +4,12 @@ import { BaseCommand } from "../../base-command.js";
 
 export default class ActivitySetFlow extends BaseCommand {
   static description =
-    "코스 흐름(선형 연결)을 설정합니다. 기존 흐름을 교체하며 갈림길은 유지.";
+    "코스 흐름(선형 연결)을 설정합니다. 기본: 기존 흐름 교체. --append: 기존 흐름 유지하고 추가.";
 
   static examples = [
     "<%= config.bin %> <%= command.id %> --material-id 1 --ids 10 --ids 20",
     "<%= config.bin %> <%= command.id %> --material-id 1 --ids 10 --ids 20 --ids 30",
+    "<%= config.bin %> <%= command.id %> --material-id 1 --ids 30 --ids 40 --append",
   ];
 
   static flags = {
@@ -20,6 +21,10 @@ export default class ActivitySetFlow extends BaseCommand {
       required: true,
       multiple: true,
       description: "순서대로 연결할 활동 ID 목록 (최소 2개)",
+    }),
+    append: Flags.boolean({
+      description: "기존 선형 흐름을 유지하고 새 연결만 추가",
+      default: false,
     }),
   };
 
@@ -43,18 +48,28 @@ export default class ActivitySetFlow extends BaseCommand {
       (i) => i.type === "activity_transition",
     );
 
-    // Step 2: level 없는 transition -> linear -> destroy
+    // Step 2: level 없는 transition -> linear -> destroy (--append 시 skip)
     const dataToDestroy: { id: string }[] = [];
-    for (const t of existingTransitions) {
-      const attrs = (t.attributes as Record<string, unknown>) || {};
-      if (!attrs.level) {
-        dataToDestroy.push({ id: String(t.id) });
+    if (!flags.append) {
+      for (const t of existingTransitions) {
+        const attrs = (t.attributes as Record<string, unknown>) || {};
+        if (!attrs.level) {
+          dataToDestroy.push({ id: String(t.id) });
+        }
       }
     }
 
-    // Step 3: create pairs
+    // Step 3: create pairs (--append 시 기존 transition과 중복되는 pair 제외)
+    const existingPairs = new Set(
+      existingTransitions.map((t) => {
+        const attrs = (t.attributes as Record<string, unknown>) || {};
+        return `${attrs.before_activity_id}:${attrs.after_activity_id}`;
+      }),
+    );
     const dataToCreate: Record<string, unknown>[] = [];
     for (let i = 0; i < activityIds.length - 1; i++) {
+      const key = `${activityIds[i]}:${activityIds[i + 1]}`;
+      if (flags.append && existingPairs.has(key)) continue;
       dataToCreate.push({
         attributes: {
           before_activity_id: activityIds[i],
@@ -63,7 +78,16 @@ export default class ActivitySetFlow extends BaseCommand {
       });
     }
 
-    // Step 4: atomic replace
+    // Step 4: atomic replace (변경 없으면 API 호출 skip)
+    if (dataToCreate.length === 0 && dataToDestroy.length === 0) {
+      this.output({
+        activity_ids: activityIds,
+        created: 0,
+        destroyed: 0,
+      });
+      return;
+    }
+
     const payload: Record<string, unknown> = { data_to_create: dataToCreate };
     if (dataToDestroy.length) {
       payload.data_to_destroy = dataToDestroy;

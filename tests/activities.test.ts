@@ -652,6 +652,155 @@ describe("activity set-flow", () => {
     expect(callArgs.data_to_destroy).toEqual([{ id: "linear-t" }]);
   });
 
+  it("--append skips deletion of existing linear transitions", async () => {
+    mockClient.getMaterial.mockResolvedValue({
+      data: { id: "1", type: "material", attributes: {} },
+      included: [
+        {
+          id: "old-t-1",
+          type: "activity_transition",
+          attributes: {
+            before_activity_id: "10",
+            after_activity_id: "20",
+          },
+        },
+      ],
+    });
+    mockClient.doManyActivityTransitions.mockResolvedValue({});
+
+    const output = await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--ids",
+      "20",
+      "--ids",
+      "30",
+      "--append",
+    ]);
+    const parsed = JSON.parse(output);
+    expect(parsed.created).toBe(1);
+    expect(parsed.destroyed).toBe(0);
+
+    const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
+    expect(callArgs.data_to_create).toHaveLength(1);
+    expect(callArgs.data_to_create[0].attributes).toEqual({
+      before_activity_id: "20",
+      after_activity_id: "30",
+    });
+    expect(callArgs.data_to_destroy).toBeUndefined();
+  });
+
+  it("--append deduplicates existing pairs", async () => {
+    mockClient.getMaterial.mockResolvedValue({
+      data: { id: "1", type: "material", attributes: {} },
+      included: [
+        {
+          id: "existing-t",
+          type: "activity_transition",
+          attributes: {
+            before_activity_id: "10",
+            after_activity_id: "20",
+          },
+        },
+      ],
+    });
+    mockClient.doManyActivityTransitions.mockResolvedValue({});
+
+    const output = await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--ids",
+      "10",
+      "--ids",
+      "20",
+      "--ids",
+      "30",
+      "--append",
+    ]);
+    const parsed = JSON.parse(output);
+    expect(parsed.created).toBe(1);
+
+    const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
+    // 10→20 is already existing, only 20→30 should be created
+    expect(callArgs.data_to_create).toHaveLength(1);
+    expect(callArgs.data_to_create[0].attributes).toEqual({
+      before_activity_id: "20",
+      after_activity_id: "30",
+    });
+  });
+
+  it("--append skips API call when all pairs already exist", async () => {
+    mockClient.getMaterial.mockResolvedValue({
+      data: { id: "1", type: "material", attributes: {} },
+      included: [
+        {
+          id: "existing-t",
+          type: "activity_transition",
+          attributes: {
+            before_activity_id: "10",
+            after_activity_id: "20",
+          },
+        },
+      ],
+    });
+
+    const output = await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--ids",
+      "10",
+      "--ids",
+      "20",
+      "--append",
+    ]);
+    const parsed = JSON.parse(output);
+    expect(parsed.created).toBe(0);
+    expect(parsed.destroyed).toBe(0);
+    expect(mockClient.doManyActivityTransitions).not.toHaveBeenCalled();
+  });
+
+  it("--append preserves branch transitions too", async () => {
+    mockClient.getMaterial.mockResolvedValue({
+      data: { id: "1", type: "material", attributes: {} },
+      included: [
+        {
+          id: "linear-t",
+          type: "activity_transition",
+          attributes: {
+            before_activity_id: "10",
+            after_activity_id: "20",
+          },
+        },
+        {
+          id: "branch-t",
+          type: "activity_transition",
+          attributes: {
+            before_activity_id: "10",
+            after_activity_id: "50",
+            level: "mid",
+          },
+        },
+      ],
+    });
+    mockClient.doManyActivityTransitions.mockResolvedValue({});
+
+    const output = await runCommand(ActivitySetFlow, [
+      "--material-id",
+      "1",
+      "--ids",
+      "20",
+      "--ids",
+      "30",
+      "--append",
+    ]);
+    const parsed = JSON.parse(output);
+    expect(parsed.destroyed).toBe(0);
+
+    const callArgs = mockClient.doManyActivityTransitions.mock.calls[0][0];
+    // Neither linear nor branch transitions should be destroyed
+    expect(callArgs.data_to_destroy).toBeUndefined();
+  });
+
   it("API error", async () => {
     mockClient.getMaterial.mockResolvedValue({
       data: { id: "1", type: "material", attributes: {} },

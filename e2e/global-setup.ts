@@ -1,4 +1,4 @@
-import { rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +9,10 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = resolve(SCRIPT_DIR, "..");
 const TMP_CONFIG = resolve(SCRIPT_DIR, ".e2e-config.tmp.json");
 const E2E_CONFIG_DIR = resolve(SCRIPT_DIR, ".e2e-credentials.tmp");
+// AIDEV-NOTE: 글로벌 codle 대신 로컬 빌드를 사용하기 위해 임시 디렉토리에 codle 심링크를 만든다.
+// claude-runner가 이 디렉토리를 PATH 앞에 추가하므로 AI가 `codle`을 호출하면 로컬 빌드가 실행된다.
+const E2E_BIN_DIR = resolve(SCRIPT_DIR, ".e2e-bin.tmp");
+const E2E_CODLE_SYMLINK = resolve(E2E_BIN_DIR, "codle");
 
 dotenv.config({ path: resolve(PROJECT_DIR, ".env.e2e") });
 
@@ -97,6 +101,16 @@ export async function setup(): Promise<void> {
 
   const codleBin = resolve(PROJECT_DIR, "bin", "run.js");
 
+  // codle 심링크 생성: 로컬 빌드를 codle로 사용
+  const { mkdirSync } = await import("node:fs");
+  mkdirSync(E2E_BIN_DIR, { recursive: true });
+  try {
+    unlinkSync(E2E_CODLE_SYMLINK);
+  } catch {
+    /* not exists */
+  }
+  symlinkSync(codleBin, E2E_CODLE_SYMLINK);
+
   // AIDEV-NOTE: --token 플래그 제거 이후, E2E에서는 credential 파일에 직접 저장하여 CLI가 인식하도록 한다.
   // CODLE_CONFIG_DIR로 e2e/ 하위 임시 경로를 지정하여 사용자의 실제 credential을 보호한다.
   process.env.CODLE_CONFIG_DIR = E2E_CONFIG_DIR;
@@ -115,7 +129,7 @@ export async function setup(): Promise<void> {
     TMP_CONFIG,
     JSON.stringify(
       {
-        e2e: { userId, accessToken, codleBin },
+        e2e: { userId, accessToken, codleBin: E2E_CODLE_SYMLINK },
       },
       null,
       2,
@@ -134,6 +148,11 @@ export function teardown(): void {
   }
   try {
     rmSync(E2E_CONFIG_DIR, { recursive: true });
+  } catch {
+    /* already removed */
+  }
+  try {
+    rmSync(E2E_BIN_DIR, { recursive: true });
   } catch {
     /* already removed */
   }

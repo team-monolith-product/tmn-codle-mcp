@@ -41,11 +41,15 @@ export interface ClaudeResult {
 // CLI (bash) helpers
 // ---------------------------------------------------------------------------
 
+// AIDEV-NOTE: AI가 `codle`, `./bin/run.js`, `node bin/run.js` 등 다양한 경로로
+// CLI를 호출할 수 있다. 모두 같은 oclif 엔트리포인트이므로 동일하게 매칭한다.
+const CODLE_BIN_PATTERNS = ["codle", "bin/run.js"];
+
 /** Check whether a bash tool call's command invokes a codle subcommand. */
 function isCodleBashCall(call: ToolCall): boolean {
   if (call.name !== "Bash") return false;
   const cmd = call.input.command as string | undefined;
-  return !!cmd && /\bcodle\b/.test(cmd);
+  return !!cmd && CODLE_BIN_PATTERNS.some((p) => cmd.includes(p));
 }
 
 /** Check whether a bash command string matches a codle subcommand pattern. */
@@ -53,13 +57,13 @@ function matchesCodleSubcommand(command: string, subcommand: string): boolean {
   // "material search" -> matches "codle material search ..." or "codle material:search ..."
   // AIDEV-NOTE: oclif는 하이픈을 스페이스로 대체해도 라우팅한다.
   // AI가 "problem collection sync" (하이픈 없이)로 호출하는 경우도 매칭한다.
-  const spaced = `codle ${subcommand}`;
-  const coloned = `codle ${subcommand.replace(/ /g, ":")}`;
-  const dehyphenated = `codle ${subcommand.replace(/-/g, " ")}`;
-  return (
-    command.includes(spaced) ||
-    command.includes(coloned) ||
-    command.includes(dehyphenated)
+  const subcmdVariants = [
+    subcommand,
+    subcommand.replace(/ /g, ":"),
+    subcommand.replace(/-/g, " "),
+  ];
+  return CODLE_BIN_PATTERNS.some((bin) =>
+    subcmdVariants.some((v) => command.includes(`${bin} ${v}`)),
   );
 }
 
