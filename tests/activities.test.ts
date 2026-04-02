@@ -244,6 +244,109 @@ describe("activity create", () => {
     );
   });
 
+  it("passes is_exam to activitiable attributes for QuizActivity", async () => {
+    mockClient.request.mockResolvedValue(
+      makeJsonApiResponse("quiz_activity", "99", { is_exam: true }),
+    );
+    mockClient.createActivity.mockResolvedValue(
+      makeJsonApiResponse("activity", "100", {
+        name: "평가퀴즈",
+        depth: 0,
+        material_id: "1",
+      }),
+    );
+
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "평가퀴즈",
+      "--type",
+      "QuizActivity",
+      "--is-exam",
+    ]);
+
+    expect(mockClient.request).toHaveBeenCalledWith(
+      "POST",
+      "/api/v1/quiz_activities",
+      {
+        json: {
+          data: {
+            type: "quiz_activity",
+            attributes: { is_exam: true },
+          },
+        },
+      },
+    );
+  });
+
+  it("passes --no-is-exam to activitiable attributes for QuizActivity", async () => {
+    mockClient.request.mockResolvedValue(
+      makeJsonApiResponse("quiz_activity", "99", { is_exam: false }),
+    );
+    mockClient.createActivity.mockResolvedValue(
+      makeJsonApiResponse("activity", "100", {
+        name: "연습퀴즈",
+        depth: 0,
+        material_id: "1",
+      }),
+    );
+
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "연습퀴즈",
+      "--type",
+      "QuizActivity",
+      "--no-is-exam",
+    ]);
+
+    expect(mockClient.request).toHaveBeenCalledWith(
+      "POST",
+      "/api/v1/quiz_activities",
+      {
+        json: {
+          data: {
+            type: "quiz_activity",
+            attributes: { is_exam: false },
+          },
+        },
+      },
+    );
+  });
+
+  it("ignores is-exam for non-QuizActivity types", async () => {
+    mockClient.request.mockResolvedValue(
+      makeJsonApiResponse("html_activity", "99", {}),
+    );
+    mockClient.createActivity.mockResolvedValue(
+      makeJsonApiResponse("activity", "100", {
+        name: "교안",
+        depth: 0,
+        material_id: "1",
+      }),
+    );
+
+    await runCommand(ActivityCreate, [
+      "--material-id",
+      "1",
+      "--name",
+      "교안",
+      "--type",
+      "HtmlActivity",
+      "--is-exam",
+    ]);
+
+    expect(mockClient.request).toHaveBeenCalledWith(
+      "POST",
+      "/api/v1/html_activities",
+      {
+        json: { data: { type: "html_activity", attributes: {} } },
+      },
+    );
+  });
+
   it("ignores entry_category for non-EntryActivity types", async () => {
     mockClient.request.mockResolvedValue(
       makeJsonApiResponse("quiz_activity", "99", {}),

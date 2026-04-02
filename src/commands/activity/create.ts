@@ -69,6 +69,10 @@ export default class ActivityCreate extends BaseCommand {
       description: "엔트리 활동 카테고리 (EntryActivity일 때 필수)",
       options: ["project", "stage"],
     }),
+    "is-exam": Flags.boolean({
+      description: "평가용 퀴즈 여부 (QuizActivity일 때 사용)",
+      allowNo: true,
+    }),
   };
 
   async run(): Promise<void> {
@@ -100,6 +104,10 @@ export default class ActivityCreate extends BaseCommand {
     // 생성 후 변경 불가. 따라서 create 시에만 설정하며, activitiable update로 이관하지 않는다.
     if (resolvedType === "EntryActivity" && flags["entry-category"]) {
       activitiableAttrs.category = flags["entry-category"];
+    }
+
+    if (resolvedType === "QuizActivity" && flags["is-exam"] !== undefined) {
+      activitiableAttrs.is_exam = flags["is-exam"];
     }
 
     const activitiablePayload = {
