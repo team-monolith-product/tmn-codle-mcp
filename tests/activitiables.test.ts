@@ -368,9 +368,107 @@ describe("update_activitiable — VideoActivity", () => {
   });
 });
 
-describe("update_activitiable — 지원하지 않는 유형", () => {
-  it("QuizActivity 등 미지원 유형은 에러", async () => {
+describe("update_activitiable — QuizActivity", () => {
+  it("is-exam 없으면 에러", async () => {
     mockResolveActivitiable("quiz_activity", "q1");
+
+    await runCommand(ActivitiableUpdate, ["--activity-id", "act-1"]);
+    // Only the resolve request should have been called, no PUT
+    expect(mockClient.request).toHaveBeenCalledTimes(1);
+  });
+
+  it("--is-exam으로 평가 퀴즈 설정 성공", async () => {
+    mockClient.request
+      .mockResolvedValueOnce({
+        data: {
+          id: "act-1",
+          type: "activity",
+          attributes: {},
+          relationships: {
+            activitiable: {
+              data: { type: "quiz_activity", id: "q1" },
+            },
+          },
+        },
+      })
+      .mockResolvedValueOnce(
+        makeJsonApiResponse("quiz_activity", "q1", { is_exam: true }),
+      );
+
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--is-exam",
+    ]);
+    const parsed = JSON.parse(output);
+    expect(parsed.id).toBe("q1");
+    expect(parsed.is_exam).toBe(true);
+
+    const putCall = mockClient.request.mock.calls[1];
+    expect(putCall[0]).toBe("PUT");
+    expect(putCall[1]).toBe("/api/v1/quiz_activities/q1");
+    expect(putCall[2].json.data.attributes.is_exam).toBe(true);
+  });
+
+  it("--no-is-exam으로 연습 퀴즈 설정 성공", async () => {
+    mockClient.request
+      .mockResolvedValueOnce({
+        data: {
+          id: "act-1",
+          type: "activity",
+          attributes: {},
+          relationships: {
+            activitiable: {
+              data: { type: "quiz_activity", id: "q1" },
+            },
+          },
+        },
+      })
+      .mockResolvedValueOnce(
+        makeJsonApiResponse("quiz_activity", "q1", { is_exam: false }),
+      );
+
+    const output = await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--no-is-exam",
+    ]);
+    const parsed = JSON.parse(output);
+    expect(parsed.id).toBe("q1");
+    expect(parsed.is_exam).toBe(false);
+
+    const putCall = mockClient.request.mock.calls[1];
+    expect(putCall[2].json.data.attributes.is_exam).toBe(false);
+  });
+
+  it("API 에러 처리", async () => {
+    mockClient.request
+      .mockResolvedValueOnce({
+        data: {
+          id: "act-1",
+          type: "activity",
+          attributes: {},
+          relationships: {
+            activitiable: {
+              data: { type: "quiz_activity", id: "q1" },
+            },
+          },
+        },
+      })
+      .mockRejectedValueOnce(new CodleAPIError(422, "Validation failed"));
+
+    await runCommand(ActivitiableUpdate, [
+      "--activity-id",
+      "act-1",
+      "--is-exam",
+    ]);
+    expect(mockClient.request).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("update_activitiable — 지원하지 않는 유형", () => {
+  it("ScratchActivity 등 미지원 유형은 에러", async () => {
+    mockResolveActivitiable("scratch_activity", "sc1");
 
     await runCommand(ActivitiableUpdate, [
       "--activity-id",
