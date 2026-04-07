@@ -65,6 +65,10 @@ export default class ActivitiableUpdate extends BaseCommand {
       description: "학습목표 (markdown)",
       multiple: true,
     }),
+    "is-exam": Flags.boolean({
+      description: "평가용 퀴즈 여부 (QuizActivity)",
+      allowNo: true,
+    }),
   };
 
   async run(): Promise<void> {
@@ -172,6 +176,25 @@ export default class ActivitiableUpdate extends BaseCommand {
         json: payload,
       });
       this.output({ id: info.id, activity_id: flags["activity-id"] });
+      return;
+    }
+
+    if (info.type === "QuizActivity") {
+      if (flags["is-exam"] === undefined) {
+        this.error("QuizActivity: is-exam은 필수입니다.", { exit: 1 });
+      }
+      const payload = buildJsonApiPayload(
+        "quiz_activities",
+        { is_exam: flags["is-exam"] },
+        info.id,
+      );
+      const response = await this.client.request(
+        "PUT",
+        `/api/v1/quiz_activities/${info.id}`,
+        { json: payload },
+      );
+      const quiz = extractSingle(response);
+      this.output(quiz);
       return;
     }
 

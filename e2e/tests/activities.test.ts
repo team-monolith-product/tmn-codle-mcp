@@ -54,6 +54,32 @@ describe("activity create", () => {
   });
 });
 
+describe("activity create --is-exam", () => {
+  test("퀴즈 활동 생성 시 평가 여부 설정", async ({ claude, factory }) => {
+    const material = await createMaterial(factory);
+
+    const result = await claude.run(
+      `자료 ID "${material.id}"에 "E2E Exam Quiz" 퀴즈 활동을 평가용(is_exam)으로 생성해줘.`,
+    );
+
+    expectCodleCommand(result, "activity create");
+
+    const interaction = findCodleInteraction(
+      result.toolInteractions,
+      "activity create",
+    );
+    expect(interaction?.result).toBeDefined();
+    expect(interaction!.result!.isError).toBe(false);
+
+    const command = interaction!.call.input.command as string;
+    expect(command).toMatch(/Quiz(Activity)?/i);
+    expect(command).toContain("--is-exam");
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
+  });
+});
+
 describe("activity delete", () => {
   test("활동 삭제 호출", async ({ claude, factory }) => {
     const material = await createMaterial(factory);
