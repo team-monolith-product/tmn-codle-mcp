@@ -29,7 +29,7 @@ export default class ProblemCreate extends BaseCommand {
     }),
     content: Flags.string({
       description:
-        "문제 본문 (markdown). sheet 타입은 directive 문법 지원 — codle docs sheet-directives 참조",
+        "문제 본문 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식. sheet 타입은 directive 문법 지원 — codle docs sheet-directives 참조",
     }),
     choices: Flags.string({
       description:
@@ -41,7 +41,9 @@ export default class ProblemCreate extends BaseCommand {
     }),
     "tag-ids": Flags.string({ description: "태그 ID", multiple: true }),
     "is-public": Flags.boolean({ description: "공개 여부", allowNo: true }),
-    commentary: Flags.string({ description: "해설" }),
+    commentary: Flags.string({
+      description: "해설 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식",
+    }),
     "sample-answer": Flags.string({
       description: "모범답안 (descriptive 타입)",
     }),

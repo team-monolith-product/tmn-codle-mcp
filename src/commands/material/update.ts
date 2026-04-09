@@ -30,7 +30,10 @@ export default class MaterialUpdate extends BaseCommand {
       description: "태그 ID 목록 (쉼표 구분)",
       multiple: true,
     }),
-    body: Flags.string({ description: "자료 본문 (마크다운)" }),
+    body: Flags.string({
+      description:
+        "자료 본문 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식",
+    }),
   };
 
   async run(): Promise<void> {
