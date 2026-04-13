@@ -2,6 +2,15 @@ import { config } from "../config.js";
 import { logger } from "../logger.js";
 import { CodleAPIError, extractErrorDetail } from "./errors.js";
 
+export interface DirectUploadResponse {
+  signed_id: string;
+  filename: string;
+  direct_upload: {
+    url: string;
+    headers: Record<string, string>;
+  };
+}
+
 export class CodleClient {
   private baseUrl: string;
   private accessToken: string;
@@ -15,6 +24,10 @@ export class CodleClient {
     this.accessToken = accessToken;
     this.baseUrl = apiUrl ?? config.apiUrl;
     this.onUnauthorized = onUnauthorized;
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   private getToken(): string {
@@ -129,6 +142,60 @@ export class CodleClient {
     const text = await response.text();
     if (!text) return {};
     return JSON.parse(text) as Record<string, unknown>;
+  }
+
+  // --- Direct Uploads (ActiveStorage) ---
+  // AIDEV-NOTE: ActiveStorage::DirectUploadsController는 vnd.api+json이 아닌 일반 application/json을
+  // 기대하며 JSON:API 엔벨로프도 쓰지 않는다. request() 헬퍼와 계약이 달라서 생 fetch를 사용한다.
+  async createDirectUpload(blob: {
+    filename: string;
+    content_type: string;
+    byte_size: number;
+    checksum: string;
+  }): Promise<DirectUploadResponse> {
+    return this.createDirectUploadInternal(blob, false);
+  }
+
+  private async createDirectUploadInternal(
+    blob: {
+      filename: string;
+      content_type: string;
+      byte_size: number;
+      checksum: string;
+    },
+    isRetry: boolean,
+  ): Promise<DirectUploadResponse> {
+    const url = `${this.baseUrl}/api/v1/direct_uploads`;
+    logger.debug(
+      "POST /api/v1/direct_uploads filename=%s size=%d",
+      blob.filename,
+      blob.byte_size,
+    );
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...this.authHeaders(),
+      },
+      body: JSON.stringify({ blob }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 && this.onUnauthorized && !isRetry) {
+        logger.debug("direct_uploads 401 수신, 토큰 갱신 시도...");
+        const newToken = await this.onUnauthorized();
+        this.accessToken = newToken;
+        return this.createDirectUploadInternal(blob, true);
+      }
+      const text = await response.text();
+      const contentType = response.headers.get("content-type") || "";
+      const detail = extractErrorDetail(response.status, contentType, text);
+      throw new CodleAPIError(response.status, detail);
+    }
+
+    const data = (await response.json()) as DirectUploadResponse;
+    return data;
   }
 
   // --- Me ---
