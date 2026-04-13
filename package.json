@@ -1,6 +1,6 @@
 {
   "name": "codle-cli",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Codle CLI — 자료(Material), 활동(Activity), 문제(Problem), 태그(Tag) 관리",
   "type": "module",
   "main": "dist/index.js",
