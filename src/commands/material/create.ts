@@ -27,7 +27,7 @@ export default class MaterialCreate extends BaseCommand {
     }),
     body: Flags.string({
       description:
-        "자료 본문 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식",
+        "자료 본문 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식. 크기 지정: `![alt](src =WIDTHxHEIGHT)`",
     }),
   };
 

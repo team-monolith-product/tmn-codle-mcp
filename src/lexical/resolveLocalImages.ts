@@ -5,7 +5,8 @@ import { directUploadFile } from "../api/directUpload.js";
 
 // AIDEV-NOTE: markdown 이미지 매칭 regex. transformers.ts IMAGE와 동일한 문법 범위를 커버.
 // src에는 공백이 없다고 가정한다 (markdown 표준).
-const IMAGE_REGEX = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+// 그룹3: 선택적 크기 접미사 (e.g. " =400x300", " =400"). URL 치환 시 보존한다.
+const IMAGE_REGEX = /!\[([^\]]*)\]\(([^)\s]+)(\s+=\d+(?:x\d+)?)?\)/g;
 
 // AIDEV-NOTE: 호출자(Claude Code 등)는 로컬 파일을 file:// URL로 넘겨야 한다.
 // 모든 src를 "URL form"으로 통일하기 위한 설계:
@@ -65,9 +66,12 @@ export async function resolveLocalImages(
   const srcToUrl = new Map<string, string>();
   for (const u of uploads) srcToUrl.set(u.originalSrc, u.newUrl);
 
-  return markdown.replace(IMAGE_REGEX, (full, alt: string, src: string) => {
-    const newUrl = srcToUrl.get(src);
-    if (!newUrl) return full;
-    return `![${alt}](${newUrl})`;
-  });
+  return markdown.replace(
+    IMAGE_REGEX,
+    (full, alt: string, src: string, sizeSuffix?: string) => {
+      const newUrl = srcToUrl.get(src);
+      if (!newUrl) return full;
+      return `![${alt}](${newUrl}${sizeSuffix ?? ""})`;
+    },
+  );
 }

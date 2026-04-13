@@ -180,6 +180,32 @@ describe("resolveLocalImages", () => {
     expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
   });
 
+  it("preserves =WIDTHxHEIGHT suffix after URL substitution", async () => {
+    const absPath = makeFile(tmpDir, "sized.png");
+    const client = makeMockClient();
+    const md = `![photo](${fileUrl(absPath)} =400x300)`;
+    const result = await resolveLocalImages(md, client);
+    expect(result).toMatch(/redirect\/sid-sized\.png\/sized\.png =400x300\)/);
+    expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves =WIDTH suffix (no height) after URL substitution", async () => {
+    const absPath = makeFile(tmpDir, "wide.png");
+    const client = makeMockClient();
+    const md = `![photo](${fileUrl(absPath)} =600)`;
+    const result = await resolveLocalImages(md, client);
+    expect(result).toMatch(/redirect\/sid-wide\.png\/wide\.png =600\)/);
+    expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves remote URLs with size suffix untouched", async () => {
+    const md = "![a](https://example.com/a.png =400x300)";
+    const client = makeMockClient();
+    const result = await resolveLocalImages(md, client);
+    expect(result).toBe(md);
+    expect(client.createDirectUpload).not.toHaveBeenCalled();
+  });
+
   it("fails fast on mixed valid file:// + invalid raw path without uploading anything", async () => {
     const absPath = makeFile(tmpDir, "a.png");
     const client = makeMockClient();

@@ -61,13 +61,13 @@ export default class ActivitiableUpdate extends BaseCommand {
     }),
     content: Flags.string({
       description:
-        "Board 안내문 또는 Sheet 지시문 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식",
+        "Board 안내문 또는 Sheet 지시문 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식. 크기 지정: `![alt](src =WIDTHxHEIGHT)`",
     }),
     name: Flags.string({ description: "Board 이름" }),
     url: Flags.string({ description: "외부 URL (Embedded/Video)" }),
     goals: Flags.string({
       description:
-        "학습목표 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식",
+        "학습목표 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식. 크기 지정: `![alt](src =WIDTHxHEIGHT)`",
       multiple: true,
     }),
     "is-exam": Flags.boolean({
