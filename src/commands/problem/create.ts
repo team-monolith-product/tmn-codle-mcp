@@ -7,6 +7,7 @@ import {
   buildInputBlock,
   buildSelectBlock,
   convertFromMarkdown,
+  resolveLocalImages,
 } from "../../lexical/index.js";
 
 export default class ProblemCreate extends BaseCommand {
@@ -28,7 +29,7 @@ export default class ProblemCreate extends BaseCommand {
     }),
     content: Flags.string({
       description:
-        "문제 본문 (markdown). sheet 타입은 directive 문법 지원 — codle docs sheet-directives 참조",
+        "문제 본문 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식. sheet 타입은 directive 문법 지원 — codle docs sheet-directives 참조",
     }),
     choices: Flags.string({
       description:
@@ -40,7 +41,10 @@ export default class ProblemCreate extends BaseCommand {
     }),
     "tag-ids": Flags.string({ description: "태그 ID", multiple: true }),
     "is-public": Flags.boolean({ description: "공개 여부", allowNo: true }),
-    commentary: Flags.string({ description: "해설" }),
+    commentary: Flags.string({
+      description:
+        "해설 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식",
+    }),
     "sample-answer": Flags.string({
       description: "모범답안 (descriptive 타입)",
     }),
@@ -65,22 +69,34 @@ export default class ProblemCreate extends BaseCommand {
       ? this.parseJsonFlag("criteria", flags.criteria)
       : undefined;
 
+    // AIDEV-NOTE: markdown 본문의 로컬 이미지(`![](file:///abs/path.png)`)를 업로드한 뒤 blob URL로 치환.
+    // attrs.content(원본 markdown)와 blocks(Lexical JSON) 모두 같은 URL이 박히도록 변환 전에 수행한다.
+    // 로컬 파일은 file:// URL로만 전달 가능하며, raw 경로·상대 경로는 resolveLocalImages가 거절한다.
+    const content =
+      flags.content !== undefined
+        ? await resolveLocalImages(flags.content, this.client)
+        : undefined;
+    const commentary =
+      flags.commentary !== undefined
+        ? await resolveLocalImages(flags.commentary, this.client)
+        : undefined;
+
     let blocks: unknown | undefined;
     if (choices?.length) {
-      blocks = buildSelectBlock(choices, flags.content);
+      blocks = buildSelectBlock(choices, content);
     } else if (flags.solutions?.length) {
-      blocks = buildInputBlock(flags.solutions, inputOptions, flags.content);
-    } else if (flags.content !== undefined) {
+      blocks = buildInputBlock(flags.solutions, inputOptions, content);
+    } else if (content !== undefined) {
       // AIDEV-NOTE: Rails Problem 모델은 모든 타입에서 blocks presence를 요구한다.
       // sheet/descriptive 타입은 choices/solutions가 없으므로 content를 Lexical로 변환하여 blocks에 넣는다.
-      blocks = convertFromMarkdown(flags.content);
+      blocks = convertFromMarkdown(content);
     }
 
     const attrs: Record<string, unknown> = {
       title: flags.title,
       problem_type: flags.type,
     };
-    if (flags.content !== undefined) attrs.content = flags.content;
+    if (content !== undefined) attrs.content = content;
     if (blocks !== undefined) attrs.blocks = blocks;
     if (flags["tag-ids"] !== undefined) {
       // AIDEV-NOTE: --tag-ids "" (빈 문자열)은 태그 전체 삭제를 의미.
@@ -89,8 +105,8 @@ export default class ProblemCreate extends BaseCommand {
     }
     if (flags["is-public"] !== undefined) attrs.is_public = flags["is-public"];
     // AIDEV-NOTE: commentary는 프론트엔드에서 Lexical JSON으로 렌더링하므로 문자열을 변환해야 한다.
-    if (flags.commentary !== undefined)
-      attrs.commentary = convertFromMarkdown(flags.commentary);
+    if (commentary !== undefined)
+      attrs.commentary = convertFromMarkdown(commentary);
 
     const payload = buildJsonApiPayload("problems", attrs);
     const response = await this.client.createProblem(

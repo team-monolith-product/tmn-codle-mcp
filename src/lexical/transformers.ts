@@ -28,7 +28,12 @@ import {
   TableNode,
   TableRowNode,
 } from "@lexical/table";
-import { $isParagraphNode, $isTextNode, type LexicalNode } from "lexical";
+import {
+  $createParagraphNode,
+  $isParagraphNode,
+  $isTextNode,
+  type LexicalNode,
+} from "lexical";
 import {
   $createHorizontalRuleNode,
   $isHorizontalRuleNode,
@@ -56,6 +61,10 @@ export const HR: ElementTransformer = {
   type: "element",
 };
 
+// AIDEV-NOTE: CDS ImageNode는 isInline()=false (block decorator)이며 root.children 직속이어야 한다.
+// CDS 본가의 IMAGE transformer는 textNode.replace(imageNode)로 paragraph 안에 넣는 버그가 있다.
+// CLI에서는 replace 콜백에서 image를 parent paragraph 밖으로 꺼내 root level에 삽입하고,
+// 뒤쪽 형제 노드가 있으면 새 paragraph로 분리한다. CDS 본가도 동일 수정이 필요하나 별도 PR.
 export const IMAGE: TextMatchTransformer = {
   dependencies: [ImageNode],
   export: (node) => {
@@ -73,7 +82,30 @@ export const IMAGE: TextMatchTransformer = {
       maxWidth: 800,
       src,
     });
-    textNode.replace(imageNode);
+    const parent = textNode.getParentOrThrow();
+
+    if (!$isParagraphNode(parent)) {
+      textNode.replace(imageNode);
+      return;
+    }
+
+    // 뒤쪽 형제들을 새 paragraph로 분리
+    const nextSiblings: LexicalNode[] = [];
+    let sibling = textNode.getNextSibling();
+    while (sibling) {
+      nextSiblings.push(sibling);
+      sibling = sibling.getNextSibling();
+    }
+
+    parent.insertAfter(imageNode);
+    if (nextSiblings.length > 0) {
+      const tail = $createParagraphNode();
+      imageNode.insertAfter(tail);
+      tail.append(...nextSiblings);
+    }
+
+    textNode.remove();
+    if (parent.isEmpty()) parent.remove();
   },
   trigger: ")",
   type: "text-match",

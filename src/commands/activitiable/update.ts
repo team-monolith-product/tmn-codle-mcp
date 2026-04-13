@@ -8,7 +8,10 @@ import {
   extractSingle,
 } from "../../api/models.js";
 import { BaseCommand } from "../../base-command.js";
-import { convertFromMarkdown } from "../../lexical/index.js";
+import {
+  convertFromMarkdown,
+  resolveLocalImages,
+} from "../../lexical/index.js";
 
 interface ActivitiableInfo {
   type: string;
@@ -57,12 +60,14 @@ export default class ActivitiableUpdate extends BaseCommand {
       description: "활동 ID",
     }),
     content: Flags.string({
-      description: "Board 안내문 또는 Sheet 지시문 (markdown)",
+      description:
+        "Board 안내문 또는 Sheet 지시문 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식",
     }),
     name: Flags.string({ description: "Board 이름" }),
     url: Flags.string({ description: "외부 URL (Embedded/Video)" }),
     goals: Flags.string({
-      description: "학습목표 (markdown)",
+      description:
+        "학습목표 (markdown). 로컬 이미지는 `![alt](file:///abs/path.png)` 형식",
       multiple: true,
     }),
     "is-exam": Flags.boolean({
@@ -105,8 +110,10 @@ export default class ActivitiableUpdate extends BaseCommand {
       }
       const boardId = String(boards[0].id);
       const attrs: Record<string, unknown> = {};
-      if (flags.content !== undefined)
-        attrs.lexical = convertFromMarkdown(flags.content);
+      if (flags.content !== undefined) {
+        const content = await resolveLocalImages(flags.content, this.client);
+        attrs.lexical = convertFromMarkdown(content);
+      }
       if (flags.name !== undefined) attrs.name = flags.name;
       const payload = buildJsonApiPayload("boards", attrs, boardId);
       const response = await this.client.updateBoard(
@@ -122,7 +129,8 @@ export default class ActivitiableUpdate extends BaseCommand {
       if (flags.content === undefined) {
         this.error("SheetActivity: content는 필수입니다.", { exit: 1 });
       }
-      const lexical = convertFromMarkdown(flags.content!);
+      const content = await resolveLocalImages(flags.content!, this.client);
+      const lexical = convertFromMarkdown(content);
       const payload = buildJsonApiPayload(
         "sheet_activities",
         { description: lexical },
@@ -147,7 +155,10 @@ export default class ActivitiableUpdate extends BaseCommand {
       const attrs: Record<string, unknown> = {};
       if (flags.url !== undefined) attrs.url = flags.url;
       if (flags.goals !== undefined) {
-        attrs.goals = flags.goals.map((g) => convertFromMarkdown(g));
+        const resolvedGoals = await Promise.all(
+          flags.goals.map((g) => resolveLocalImages(g, this.client)),
+        );
+        attrs.goals = resolvedGoals.map((g) => convertFromMarkdown(g));
       }
       const payload = buildJsonApiPayload(
         "embedded_activities",

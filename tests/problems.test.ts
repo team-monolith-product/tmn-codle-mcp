@@ -48,6 +48,7 @@ vi.mock("../src/lexical/index.js", () => ({
   convertFromMarkdown: vi.fn((md: string) => ({
     root: { type: "root", children: [{ type: "paragraph", text: md }] },
   })),
+  resolveLocalImages: vi.fn(async (md: string) => md),
 }));
 
 import ProblemCreate from "../src/commands/problem/create.js";

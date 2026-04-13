@@ -40,16 +40,27 @@ describe("convertFromMarkdown", () => {
     expect(children[0].type).toBe("horizontalrule");
   });
 
-  it("converts an image", () => {
-    const result = convertFromMarkdown("![alt text](https://example.com/img.png)");
+  it("converts an image to a root-level block (CDS ImageNode is block-level)", () => {
+    const result = convertFromMarkdown(
+      "![alt text](https://example.com/img.png)",
+    );
     const children = result.root.children as Array<Record<string, unknown>>;
+    // image는 paragraph 안이 아니라 root.children 직속이어야 한다.
     expect(children).toHaveLength(1);
-    const paragraph = children[0] as Record<string, unknown>;
-    const inlineChildren = paragraph.children as Array<Record<string, unknown>>;
-    const imageNode = inlineChildren.find((c) => c.type === "image");
-    expect(imageNode).toBeDefined();
-    expect(imageNode!.src).toBe("https://example.com/img.png");
-    expect(imageNode!.altText).toBe("alt text");
+    expect(children[0].type).toBe("image");
+    expect(children[0].src).toBe("https://example.com/img.png");
+    expect(children[0].altText).toBe("alt text");
+  });
+
+  it("splits a paragraph with inline image into text/image/text blocks", () => {
+    const result = convertFromMarkdown(
+      "hello ![alt](https://example.com/img.png) world",
+    );
+    const children = result.root.children as Array<Record<string, unknown>>;
+    expect(children).toHaveLength(3);
+    expect(children[0].type).toBe("paragraph");
+    expect(children[1].type).toBe("image");
+    expect(children[2].type).toBe("paragraph");
   });
 
   it("converts a table", () => {
