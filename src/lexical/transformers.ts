@@ -79,7 +79,7 @@ export const IMAGE: TextMatchTransformer = {
     }
     const w = node.getWidth();
     const h = node.getHeight();
-    const sizeSuffix = w || h ? ` =${w}x${h}` : "";
+    const sizeSuffix = w ? (h ? ` =${w}x${h}` : ` =${w}`) : h ? ` =0x${h}` : "";
     return `![${node.getAltText()}](${node.getSrc()}${sizeSuffix})`;
   },
   // AIDEV-NOTE: \\? — AI 에이전트가 !를 \!로 이스케이프하는 경우를 허용한다.

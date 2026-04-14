@@ -4,7 +4,7 @@ import type { CodleClient } from "../api/client.js";
 import { directUploadFile } from "../api/directUpload.js";
 
 // AIDEV-NOTE: markdown 이미지 매칭 regex. transformers.ts IMAGE와 동일한 문법 범위를 커버.
-// src에는 공백이 없다고 가정한다 (markdown 표준).
+// 그룹2 ([^)\s]+) は src를 캡처한다. src 자체에는 공백이 없으므로 공백이 나오면 그룹3(크기 접미사)의 시작으로 판별된다.
 // 그룹3: 선택적 크기 접미사 (e.g. " =400x300", " =400"). URL 치환 시 보존한다.
 // \\? — AI 에이전트가 !를 \!로 이스케이프하는 경우를 허용한다.
 const IMAGE_REGEX = /\\?!\[([^\]]*)\]\(([^)\s]+)(\s+=\d+(?:x\d+)?)?\)/g;

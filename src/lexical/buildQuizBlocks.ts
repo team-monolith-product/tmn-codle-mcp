@@ -31,7 +31,8 @@ function wrapRoot(children: Record<string, unknown>[]): SerializedEditorState {
 // The JSON structure is derived from Rails factory specs and CDS node implementations.
 
 // AIDEV-NOTE: Lexical 에디터 편집 모드에서 역직렬화하려면 root.children에
-// paragraph + quiz노드 순서가 필요하다. 질문텍스트가 있으면 paragraph(질문) + paragraph(빈줄) + quiz노드,
+// content노드들 + paragraph(빈줄) + quiz노드 순서가 필요하다.
+// questionText가 있으면 convertFromMarkdown으로 파싱한 children + paragraph(빈줄) + quiz노드,
 // 없으면 paragraph(빈) + quiz노드. paragraph에는 textStyle, textFormat 필수.
 
 function buildParagraph(text?: string): Record<string, unknown> {
