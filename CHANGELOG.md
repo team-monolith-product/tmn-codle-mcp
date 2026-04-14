@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI 에이전트가 `!`를 `\!`로 이스케이프하여 전달할 때 이미지 regex 매칭이 실패하던 문제 수정 (`resolveLocalImages`, IMAGE transformer)
 - `buildSelectBlock`/`buildInputBlock`에서 퀴즈·주관식 문제 본문(`questionText`)을 plain text로 처리하여 이미지 등 block-level 마크다운이 렌더링되지 않던 문제 수정 — `convertFromMarkdown`으로 파싱하도록 변경
 
+## [1.3.1] - 2026-04-14
+
+### Fixed
+
+- `problem create` — descriptive 문제 생성 시 `criteria` 미지정이어도 `descriptive_criterium` 레코드를 기본값(`input_size: 200`, `high_ratio: 1.0`, `mid_ratio: 0.7`, `low_ratio: 0.3`)으로 항상 생성하도록 수정. FE 에디터에서 null 참조 버그 방지.
+
 ## [1.3.0] - 2026-04-09
 
 ### Added
