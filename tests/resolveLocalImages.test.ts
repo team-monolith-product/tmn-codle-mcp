@@ -222,7 +222,9 @@ describe("resolveLocalImages", () => {
     const client = makeMockClient();
     const md = `\\![photo](${fileUrl(absPath)} =400x300)`;
     const result = await resolveLocalImages(md, client);
-    expect(result).toMatch(/!\[photo\]\(.*redirect\/sid-esc2\.png\/esc2\.png =400x300\)/);
+    expect(result).toMatch(
+      /!\[photo\]\(.*redirect\/sid-esc2\.png\/esc2\.png =400x300\)/,
+    );
     expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
   });
 

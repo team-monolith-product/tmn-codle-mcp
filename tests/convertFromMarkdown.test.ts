@@ -84,9 +84,7 @@ describe("convertFromMarkdown", () => {
   });
 
   it("parses escaped \\! image syntax", () => {
-    const result = convertFromMarkdown(
-      "\\![alt](https://example.com/img.png)",
-    );
+    const result = convertFromMarkdown("\\![alt](https://example.com/img.png)");
     const children = result.root.children as Array<Record<string, unknown>>;
     expect(children).toHaveLength(1);
     expect(children[0].type).toBe("image");
