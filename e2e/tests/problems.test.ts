@@ -103,6 +103,32 @@ describe("problem create", () => {
     expect(output).toHaveProperty("id");
   });
 
+  test("서술형 문제 생성 (채점기준 없이)", async ({ claude }) => {
+    const result = await claude.run(
+      `"E2E 서술형 기본" 제목으로 서술형 문제를 만들어줘.\n` +
+        `질문: "인공지능의 활용 사례를 서술하세요."\n` +
+        `채점기준은 넣지 마.`,
+    );
+
+    expectCodleCommand(result, "problem create");
+
+    const interaction = findCodleInteraction(
+      result.toolInteractions,
+      "problem create",
+    );
+    expect(interaction!.result!.isError).toBe(false);
+
+    const command = interaction!.call.input.command as string;
+    expect(command).toContain("descriptive");
+    expect(command).not.toMatch(/--criteria/);
+
+    const output = parseCodleOutput<{ id: string; warnings?: string[] }>(
+      interaction!.result!,
+    );
+    expect(output).toHaveProperty("id");
+    expect(output.warnings).toBeUndefined();
+  });
+
   test("활동지(sheet) 문제 생성", async ({ claude }) => {
     const result = await claude.run(
       `"E2E 활동지" 제목으로 활동지(sheet) 문제를 만들어줘. 내용은 "다음을 설명하시오"야.`,

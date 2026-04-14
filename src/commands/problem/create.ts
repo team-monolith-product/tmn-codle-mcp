@@ -138,30 +138,35 @@ export default class ProblemCreate extends BaseCommand {
         );
       }
     }
-    if (descriptiveCriterium) {
+    // AIDEV-NOTE: FE(codle-react)는 descriptive 문제 생성 시 항상 descriptive_criterium 레코드를 생성한다.
+    // criteria 없이 생성된 문제는 FE 에디터에서 null 참조 버그를 일으키므로,
+    // CLI에서도 descriptive 타입이면 기본값으로 반드시 레코드를 생성한다.
+    if (flags.type === "descriptive") {
       try {
         const dcAttrs: Record<string, unknown> = {
           problem_id: problemId,
+          input_size: descriptiveCriterium?.input_size ?? 200,
+          high_ratio: 1.0,
+          mid_ratio: 0.7,
+          low_ratio: 0.3,
         };
-        if (descriptiveCriterium.input_size !== undefined)
-          dcAttrs.input_size = descriptiveCriterium.input_size;
-        if (descriptiveCriterium.placeholder !== undefined)
+        if (descriptiveCriterium?.placeholder !== undefined)
           dcAttrs.placeholder = descriptiveCriterium.placeholder;
-        if (descriptiveCriterium.scoring_element !== undefined)
+        if (descriptiveCriterium?.scoring_element !== undefined)
           dcAttrs.scoring_element = descriptiveCriterium.scoring_element;
         // AIDEV-NOTE: criteria 배열은 상/중/하 순서. API는 high/mid/low_content, high/mid/low_ratio 개별 필드.
-        const [high, mid, low] = descriptiveCriterium.criteria ?? [];
+        const [high, mid, low] = descriptiveCriterium?.criteria ?? [];
         if (high) {
           dcAttrs.high_content = high.content;
-          dcAttrs.high_ratio = high.ratio;
+          if (high.ratio !== undefined) dcAttrs.high_ratio = high.ratio;
         }
         if (mid) {
           dcAttrs.mid_content = mid.content;
-          dcAttrs.mid_ratio = mid.ratio;
+          if (mid.ratio !== undefined) dcAttrs.mid_ratio = mid.ratio;
         }
         if (low) {
           dcAttrs.low_content = low.content;
-          dcAttrs.low_ratio = low.ratio;
+          if (low.ratio !== undefined) dcAttrs.low_ratio = low.ratio;
         }
         await this.client.doManyDescriptiveCriteria({
           data_to_create: [{ attributes: dcAttrs }],
