@@ -43,7 +43,7 @@ export interface ClaudeResult {
 
 // AIDEV-NOTE: AI가 `codle`, `./bin/run.js`, `node bin/run.js` 등 다양한 경로로
 // CLI를 호출할 수 있다. 모두 같은 oclif 엔트리포인트이므로 동일하게 매칭한다.
-const CODLE_BIN_PATTERNS = ["codle", "bin/run.js"];
+const CODLE_BIN_PATTERNS = ["codle", "bin/run.js", "bin/dev.js"];
 
 /** Check whether a bash tool call's command invokes a codle subcommand. */
 function isCodleBashCall(call: ToolCall): boolean {

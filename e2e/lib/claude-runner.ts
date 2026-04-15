@@ -41,9 +41,11 @@ export class ClaudeRunner {
     const codleBinDir = dirname(this.codleBin);
 
     // AIDEV-NOTE: CLI의 존재만 알려준다. 플래그 등 상세는 AI가 --help로 탐색.
+    // "codle" 명령어를 명시적으로 사용하도록 강제한다. bin/dev.js 등 우회 방지.
     const systemPrompt =
-      `You have the "codle" CLI. Authentication is already configured. Output is JSON. ` +
-      `Do not explore the codebase.`;
+      `You have the "codle" CLI installed globally. Always invoke it as \`codle <subcommand>\`. ` +
+      `Authentication is already configured. Output is JSON. ` +
+      `Do not explore the codebase or look for alternative entry points.`;
 
     const fullPrompt = `${systemPrompt}\n\n${prompt}`;
 
