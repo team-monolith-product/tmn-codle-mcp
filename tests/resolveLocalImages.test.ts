@@ -152,7 +152,9 @@ describe("resolveLocalImages", () => {
     const aPath = makeFile(tmpDir, "a.png");
     const bPath = makeFile(tmpDir, "b.png");
     const client = makeMockClient();
-    const md = `![local a](${fileUrl(aPath)}) ![remote](https://example.com/r.png) ![local b](${fileUrl(bPath)})`;
+    const md = `![local a](${fileUrl(
+      aPath,
+    )}) ![remote](https://example.com/r.png) ![local b](${fileUrl(bPath)})`;
     const result = await resolveLocalImages(md, client);
 
     expect(result).toContain("redirect/sid-a.png/a.png");
@@ -177,6 +179,52 @@ describe("resolveLocalImages", () => {
     const result = await resolveLocalImages(md, client);
     expect(result).toContain("[doc link](./doc.md)");
     expect(result).toContain("redirect/sid-img.png/img.png");
+    expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves =WIDTHxHEIGHT suffix after URL substitution", async () => {
+    const absPath = makeFile(tmpDir, "sized.png");
+    const client = makeMockClient();
+    const md = `![photo](${fileUrl(absPath)} =400x300)`;
+    const result = await resolveLocalImages(md, client);
+    expect(result).toMatch(/redirect\/sid-sized\.png\/sized\.png =400x300\)/);
+    expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves =WIDTH suffix (no height) after URL substitution", async () => {
+    const absPath = makeFile(tmpDir, "wide.png");
+    const client = makeMockClient();
+    const md = `![photo](${fileUrl(absPath)} =600)`;
+    const result = await resolveLocalImages(md, client);
+    expect(result).toMatch(/redirect\/sid-wide\.png\/wide\.png =600\)/);
+    expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves remote URLs with size suffix untouched", async () => {
+    const md = "![a](https://example.com/a.png =400x300)";
+    const client = makeMockClient();
+    const result = await resolveLocalImages(md, client);
+    expect(result).toBe(md);
+    expect(client.createDirectUpload).not.toHaveBeenCalled();
+  });
+
+  it("handles escaped \\! prefix (AI agent escape)", async () => {
+    const absPath = makeFile(tmpDir, "esc.png");
+    const client = makeMockClient();
+    const md = `\\![photo](${fileUrl(absPath)})`;
+    const result = await resolveLocalImages(md, client);
+    expect(result).toMatch(/!\[photo\]\(.*redirect\/sid-esc\.png\/esc\.png\)/);
+    expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles escaped \\! with size suffix", async () => {
+    const absPath = makeFile(tmpDir, "esc2.png");
+    const client = makeMockClient();
+    const md = `\\![photo](${fileUrl(absPath)} =400x300)`;
+    const result = await resolveLocalImages(md, client);
+    expect(result).toMatch(
+      /!\[photo\]\(.*redirect\/sid-esc2\.png\/esc2\.png =400x300\)/,
+    );
     expect(client.createDirectUpload).toHaveBeenCalledTimes(1);
   });
 

@@ -1,4 +1,5 @@
 import type { SerializedEditorState } from "lexical";
+import { convertFromMarkdown } from "./convertFromMarkdown.js";
 
 interface SelectChoice {
   text: string;
@@ -30,7 +31,8 @@ function wrapRoot(children: Record<string, unknown>[]): SerializedEditorState {
 // The JSON structure is derived from Rails factory specs and CDS node implementations.
 
 // AIDEV-NOTE: Lexical 에디터 편집 모드에서 역직렬화하려면 root.children에
-// paragraph + quiz노드 순서가 필요하다. 질문텍스트가 있으면 paragraph(질문) + paragraph(빈줄) + quiz노드,
+// content노드들 + paragraph(빈줄) + quiz노드 순서가 필요하다.
+// questionText가 있으면 convertFromMarkdown으로 파싱한 children + paragraph(빈줄) + quiz노드,
 // 없으면 paragraph(빈) + quiz노드. paragraph에는 textStyle, textFormat 필수.
 
 function buildParagraph(text?: string): Record<string, unknown> {
@@ -58,6 +60,18 @@ function buildParagraph(text?: string): Record<string, unknown> {
   };
 }
 
+// AIDEV-NOTE: questionText를 markdown으로 파싱하여 Lexical children을 반환한다.
+// 이미지(`![alt](url =WxH)`) 등 block-level 요소를 포함할 수 있으므로
+// plain text paragraph가 아닌 convertFromMarkdown을 거쳐야 한다.
+function parseQuestionContent(
+  questionText?: string,
+): Record<string, unknown>[] {
+  if (!questionText) return [buildParagraph()];
+  const state = convertFromMarkdown(questionText);
+  const root = state.root as unknown as { children: Record<string, unknown>[] };
+  return [...root.children, buildParagraph()];
+}
+
 export function buildSelectBlock(
   choices: SelectChoice[],
   questionText?: string,
@@ -71,9 +85,8 @@ export function buildSelectBlock(
     },
     value: String(i),
   }));
-  const children: Record<string, unknown>[] = questionText
-    ? [buildParagraph(questionText), buildParagraph()]
-    : [buildParagraph()];
+  const children: Record<string, unknown>[] =
+    parseQuestionContent(questionText);
   children.push({
     type: "problem-select",
     version: 1,
@@ -100,9 +113,8 @@ export function buildInputBlock(
     caseSensitive: options?.caseSensitive ?? false,
     ignoreWhitespace: true,
   };
-  const children: Record<string, unknown>[] = questionText
-    ? [buildParagraph(questionText), buildParagraph()]
-    : [buildParagraph()];
+  const children: Record<string, unknown>[] =
+    parseQuestionContent(questionText);
   children.push(node);
   return wrapRoot(children);
 }

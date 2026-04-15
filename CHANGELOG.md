@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-14
+
+### Added
+
+- 마크다운 이미지 크기 지정 문법 `![alt](src =WIDTHxHEIGHT)` 지원. `=400x300` (width+height) 또는 `=600` (width만, height는 자동) 형식으로 CDS ImageNode의 크기를 설정할 수 있다. 크기 미지정 시 기존 동작(0=inherit) 유지.
+
+### Fixed
+
+- AI 에이전트가 `!`를 `\!`로 이스케이프하여 전달할 때 이미지 regex 매칭이 실패하던 문제 수정 (`resolveLocalImages`, IMAGE transformer)
+- `buildSelectBlock`/`buildInputBlock`에서 퀴즈·주관식 문제 본문(`questionText`)을 plain text로 처리하여 이미지 등 block-level 마크다운이 렌더링되지 않던 문제 수정 — `convertFromMarkdown`으로 파싱하도록 변경
+
 ## [1.3.1] - 2026-04-14
 
 ### Fixed

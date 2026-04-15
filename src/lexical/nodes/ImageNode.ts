@@ -129,6 +129,14 @@ export class ImageNode extends DecoratorNode<null> {
   getAltText(): string {
     return this.__altText;
   }
+
+  getWidth(): number {
+    return this.__width;
+  }
+
+  getHeight(): number {
+    return this.__height;
+  }
 }
 
 export function $createImageNode({

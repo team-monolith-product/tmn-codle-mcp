@@ -65,22 +65,45 @@ export const HR: ElementTransformer = {
 // CDS 본가의 IMAGE transformer는 textNode.replace(imageNode)로 paragraph 안에 넣는 버그가 있다.
 // CLI에서는 replace 콜백에서 image를 parent paragraph 밖으로 꺼내 root level에 삽입하고,
 // 뒤쪽 형제 노드가 있으면 새 paragraph로 분리한다. CDS 본가도 동일 수정이 필요하나 별도 PR.
+
+// AIDEV-NOTE: 이미지 크기 지정 문법 — ![alt](src =WIDTHxHEIGHT) 또는 ![alt](src =WIDTH).
+// "=WxH" 접미사를 파싱하여 ImageNode에 width/height를 전달한다.
+// 0은 CDS에서 "inherit"(자연 크기)로 해석된다.
+const SIZE_SUFFIX_RE = /^(.+?)\s+=(\d+)(?:x(\d+))?$/;
+
 export const IMAGE: TextMatchTransformer = {
   dependencies: [ImageNode],
   export: (node) => {
     if (!$isImageNode(node)) {
       return null;
     }
-    return `![${node.getAltText()}](${node.getSrc()})`;
+    const w = node.getWidth();
+    const h = node.getHeight();
+    const sizeSuffix = w ? (h ? ` =${w}x${h}` : ` =${w}`) : h ? ` =0x${h}` : "";
+    return `![${node.getAltText()}](${node.getSrc()}${sizeSuffix})`;
   },
-  importRegExp: /!(?:\[([^[]*)\])(?:\(([^(]+)\))/,
-  regExp: /!(?:\[([^[]*)\])(?:\(([^(]+)\))$/,
+  // AIDEV-NOTE: \\? — AI 에이전트가 !를 \!로 이스케이프하는 경우를 허용한다.
+  importRegExp: /\\?!(?:\[([^[]*)\])(?:\(([^(]+)\))/,
+  regExp: /\\?!(?:\[([^[]*)\])(?:\(([^(]+)\))$/,
   replace: (textNode, match) => {
-    const [, altText, src] = match;
+    const [, altText, rawSrc] = match;
+    const sizeMatch = rawSrc.match(SIZE_SUFFIX_RE);
+    let src: string;
+    let width = 0;
+    let height = 0;
+    if (sizeMatch) {
+      src = sizeMatch[1];
+      width = parseInt(sizeMatch[2], 10);
+      height = sizeMatch[3] ? parseInt(sizeMatch[3], 10) : 0;
+    } else {
+      src = rawSrc;
+    }
     const imageNode = $createImageNode({
       altText,
       maxWidth: 800,
       src,
+      width,
+      height,
     });
     const parent = textNode.getParentOrThrow();
 
