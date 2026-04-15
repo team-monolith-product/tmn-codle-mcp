@@ -310,7 +310,9 @@ describe("material get", () => {
           type: "problem_collection",
           attributes: {},
           relationships: {
-            pcps: { data: [{ type: "problem_collections_problem", id: "pcp1" }] },
+            pcps: {
+              data: [{ type: "problem_collections_problem", id: "pcp1" }],
+            },
           },
         },
         {
@@ -349,7 +351,9 @@ describe("material get", () => {
     const quiz = parsed.activities[0];
     expect(quiz.problem_collections).toHaveLength(1);
     expect(quiz.problem_collections[0].pcps[0].problem.title).toBe("문제1");
-    expect(quiz.problem_collections[0].pcps[0].problem.problem_answers[0].content).toBe("정답");
+    expect(
+      quiz.problem_collections[0].pcps[0].problem.problem_answers[0].content,
+    ).toBe("정답");
   });
 
   it("--detail fetches html_activity_pages", async () => {
@@ -391,7 +395,11 @@ describe("material get", () => {
         {
           id: "hp1",
           type: "html_activity_page",
-          attributes: { url: "https://example.com/page1", width: 800, height: 600 },
+          attributes: {
+            url: "https://example.com/page1",
+            width: 800,
+            height: 600,
+          },
         },
       ],
     });
@@ -405,7 +413,9 @@ describe("material get", () => {
 
     const html = parsed.activities[0];
     expect(html.activitiable.html_activity_pages).toHaveLength(1);
-    expect(html.activitiable.html_activity_pages[0].url).toBe("https://example.com/page1");
+    expect(html.activitiable.html_activity_pages[0].url).toBe(
+      "https://example.com/page1",
+    );
   });
 
   it("--detail fetches board data", async () => {

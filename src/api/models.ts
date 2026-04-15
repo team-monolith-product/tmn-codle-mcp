@@ -52,8 +52,8 @@ export function resolveJsonApi(
   const dataArr = Array.isArray(response.data)
     ? response.data
     : response.data
-      ? [response.data]
-      : [];
+    ? [response.data]
+    : [];
   const allResources = [...dataArr, ...(response.included ?? [])];
 
   const rawMap = new Map<string, JsonApiResource>();
@@ -97,9 +97,7 @@ export function resolveJsonApi(
   }
 
   if (Array.isArray(response.data)) {
-    return dataArr.map(
-      (d) => resolve(`${d.type}:${d.id}`) ?? { id: d.id },
-    );
+    return dataArr.map((d) => resolve(`${d.type}:${d.id}`) ?? { id: d.id });
   }
   if (response.data) {
     return (

@@ -369,9 +369,13 @@ export class CodleClient {
     socroomActivityId: string,
     params?: Record<string, string | number | boolean>,
   ): Promise<Record<string, unknown>> {
-    return this.request("GET", `/api/v1/socroom_activities/${socroomActivityId}`, {
-      params,
-    });
+    return this.request(
+      "GET",
+      `/api/v1/socroom_activities/${socroomActivityId}`,
+      {
+        params,
+      },
+    );
   }
 
   // --- Embedded Activities ---

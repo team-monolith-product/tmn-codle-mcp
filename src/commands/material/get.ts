@@ -24,7 +24,8 @@ export default class MaterialGet extends BaseCommand {
 
   static flags = {
     detail: Flags.boolean({
-      description: "활동별 세부 데이터(문제, 페이지 등)를 EF 수준으로 포함합니다",
+      description:
+        "활동별 세부 데이터(문제, 페이지 등)를 EF 수준으로 포함합니다",
       default: false,
     }),
   };
@@ -71,9 +72,8 @@ export default class MaterialGet extends BaseCommand {
         a.activitiable_type ??= snakeToPascal(activitiableRef.type);
         a.activitiable_id ??= activitiableRef.id;
         a.activitiable =
-          resourceMap.get(
-            `${activitiableRef.type}:${activitiableRef.id}`,
-          ) ?? null;
+          resourceMap.get(`${activitiableRef.type}:${activitiableRef.id}`) ??
+          null;
       }
 
       activities.push(a);
@@ -129,17 +129,15 @@ export default class MaterialGet extends BaseCommand {
               const resolved = resolveJsonApi(
                 resp as JsonApiResponse,
               ) as Record<string, unknown>;
-              activity.problem_collections =
-                resolved.problem_collections ?? [];
+              activity.problem_collections = resolved.problem_collections ?? [];
               break;
             }
 
             case "HtmlActivity": {
               if (!activitiableId) break;
-              const resp = await this.client.getHtmlActivity(
-                activitiableId,
-                { include: "html_activity_pages" },
-              );
+              const resp = await this.client.getHtmlActivity(activitiableId, {
+                include: "html_activity_pages",
+              });
               activity.activitiable = resolveJsonApi(
                 resp as JsonApiResponse,
               ) as Record<string, unknown>;
