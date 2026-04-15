@@ -3,7 +3,7 @@ name: Release
 on:
   pull_request:
     types: [closed]
-    branches: [main, release-test-feat, release-test-fix]
+    branches: [main, release-test-feat2, release-test-fix2]
 
 jobs:
   release:
