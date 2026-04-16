@@ -68,6 +68,7 @@ export class CodleClient {
     options?: {
       params?: Record<string, string | number | boolean>;
       json?: unknown;
+      formData?: FormData;
     },
   ): Promise<Record<string, unknown>> {
     return this.requestInternal(method, path, options, false);
@@ -79,15 +80,16 @@ export class CodleClient {
     options?: {
       params?: Record<string, string | number | boolean>;
       json?: unknown;
+      formData?: FormData;
     },
     isRetry?: boolean,
   ): Promise<Record<string, unknown>> {
-    const { params, json } = options ?? {};
+    const { params, json, formData } = options ?? {};
     this.logRequest(
       method,
       path,
       params as Record<string, string | number>,
-      json,
+      formData ? { __multipart: true } : json,
     );
 
     let url = `${this.baseUrl}${path}`;
@@ -99,15 +101,22 @@ export class CodleClient {
       url += `?${qs.toString()}`;
     }
 
-    const fetchOptions: RequestInit = {
-      method,
-      headers: {
-        "Content-Type": "application/vnd.api+json",
-        Accept: "application/vnd.api+json",
-        ...this.authHeaders(),
-      },
+    // AIDEV-NOTE: multipart 요청은 fetch 가 boundary 포함 Content-Type 을 자동 설정하므로
+    // 우리가 Content-Type 을 지정하면 안 된다. Accept 와 인증 헤더만 지정.
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.api+json",
+      ...this.authHeaders(),
     };
-    if (json) fetchOptions.body = JSON.stringify(json);
+    if (!formData) {
+      headers["Content-Type"] = "application/vnd.api+json";
+    }
+
+    const fetchOptions: RequestInit = { method, headers };
+    if (formData) {
+      fetchOptions.body = formData;
+    } else if (json) {
+      fetchOptions.body = JSON.stringify(json);
+    }
 
     const response = await fetch(url, fetchOptions);
 
