@@ -47,3 +47,5 @@ codle activity create --material-id 1 --name "퀴즈" --type Quiz
 ```bash
 ~/.codle-cli/install.sh
 ```
+
+버전별 변경 내역은 [GitHub Releases](https://github.com/team-monolith-product/tmn-codle-cli/releases)에서 확인한다.
