@@ -8,6 +8,7 @@ interface ExistingPcp {
   problemId: string;
   position: number;
   point: number;
+  isRequired: boolean;
 }
 
 interface ActivityPcpState {
@@ -50,14 +51,33 @@ async function getActivityPcpState(
         problemId: String(attrs.problem_id),
         position: Number(attrs.position ?? 0),
         point: Number(attrs.point ?? 1),
+        isRequired: Boolean(attrs.is_required ?? false),
       };
     });
   return { pcId, existingPcps };
 }
 
+// AIDEV-NOTE: 신규 pcp의 isRequired 기본값은 codle-react FormPcp 템플릿과 맞춘다.
+// - descriptive/sheet → true (getDescriptiveFormPcp, getDefaultFormPcp(sheet))
+// - quiz/judge → false (QuizActivityEditAddDialog의 객관식/주관식 템플릿)
+function defaultIsRequiredForProblemType(problemType: string): boolean {
+  return problemType === "descriptive" || problemType === "sheet";
+}
+
+async function fetchProblemType(
+  client: CodleClient,
+  problemId: string,
+): Promise<string> {
+  const resp = await client.request("GET", `/api/v1/problems/${problemId}`);
+  const data = (resp.data as Record<string, unknown>) || {};
+  const attrs = (data.attributes as Record<string, unknown>) || {};
+  return String(attrs.problem_type ?? "");
+}
+
 interface DesiredProblem {
   id: string;
   point?: number;
+  isRequired?: boolean;
 }
 
 export default class ActivitySetProblems extends BaseCommand {
@@ -65,7 +85,7 @@ export default class ActivitySetProblems extends BaseCommand {
     "활동에 문제 목록을 설정합니다. problems 배열이 최종 상태.";
 
   static examples = [
-    '<%= config.bin %> <%= command.id %> --activity-id 456 --problems \'[{"id":"p1"},{"id":"p2","point":2}]\'',
+    '<%= config.bin %> <%= command.id %> --activity-id 456 --problems \'[{"id":"p1"},{"id":"p2","point":2,"isRequired":true}]\'',
     "<%= config.bin %> <%= command.id %> --activity-id 456 --problems '[]'  # 문제 전체 제거",
   ];
 
@@ -76,7 +96,8 @@ export default class ActivitySetProblems extends BaseCommand {
     }),
     problems: Flags.string({
       required: true,
-      description: '문제 목록 JSON [{id, point?}] (예: [{"id":"1","point":2}])',
+      description:
+        "문제 목록 JSON [{id, point?, isRequired?}]. isRequired 생략 시 신규 pcp는 문제 유형에 따라 기본값(서술형/활동지→true, 퀴즈/파이썬→false), 기존 pcp는 현재 값 유지.",
     }),
   };
 
@@ -110,19 +131,36 @@ export default class ActivitySetProblems extends BaseCommand {
 
       const existing = existingByProblemId.get(desired.id);
       if (existing) {
-        if (existing.position !== position || existing.point !== point) {
-          dataToUpdate.push({
-            id: existing.id,
-            attributes: { position, point },
-          });
+        // AIDEV-NOTE: isRequired 생략 시 기존 값을 보존한다. 실제 변경이 있을 때만 update에 포함.
+        const isRequiredChanged =
+          desired.isRequired !== undefined &&
+          desired.isRequired !== existing.isRequired;
+        if (
+          existing.position !== position ||
+          existing.point !== point ||
+          isRequiredChanged
+        ) {
+          const attributes: Record<string, unknown> = { position, point };
+          if (isRequiredChanged) attributes.is_required = desired.isRequired;
+          dataToUpdate.push({ id: existing.id, attributes });
         }
       } else {
+        // AIDEV-NOTE: 신규 pcp의 isRequired 기본값은 문제를 조회해 problem_type으로 결정한다.
+        // codle-react FormPcp 템플릿과 동일한 규칙 (descriptive/sheet→true, quiz/judge→false).
+        let isRequired: boolean;
+        if (desired.isRequired !== undefined) {
+          isRequired = desired.isRequired;
+        } else {
+          const problemType = await fetchProblemType(this.client, desired.id);
+          isRequired = defaultIsRequiredForProblemType(problemType);
+        }
         dataToCreate.push({
           attributes: {
             problem_collection_id: pcId,
             problem_id: desired.id,
             position,
             point,
+            is_required: isRequired,
           },
         });
       }

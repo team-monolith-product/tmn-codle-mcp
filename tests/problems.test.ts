@@ -236,7 +236,7 @@ describe("problem delete", () => {
 
 // ===== problem collection sync =====
 
-/** Activity 응답을 PC relationship + PCP included で生成 */
+/** Activity 응답을 PC relationship + PCP included로 생성 */
 function makeActivityWithPcps(
   pcId: string | null,
   pcps: Array<{
@@ -244,6 +244,7 @@ function makeActivityWithPcps(
     problem_id: string;
     position: number;
     point?: number;
+    is_required?: boolean;
   }>,
 ) {
   const pcRelData = pcId ? [{ id: pcId, type: "problem_collection" }] : [];
@@ -263,6 +264,7 @@ function makeActivityWithPcps(
         problem_id: pcp.problem_id,
         position: pcp.position,
         point: pcp.point ?? 1,
+        is_required: pcp.is_required ?? false,
         problem_collection_id: pcId,
       },
     });
@@ -278,6 +280,29 @@ function makeActivityWithPcps(
     },
     included: includedItems,
   };
+}
+
+/** activity/problem URL을 구분해서 응답하는 mockClient.request 구현을 설치한다. */
+function mockActivityAndProblems(
+  activityResp: ReturnType<typeof makeActivityWithPcps>,
+  problemTypes: Record<string, string> = {},
+) {
+  mockClient.request.mockImplementation(((method: string, path: string) => {
+    if (method === "GET" && path.startsWith("/api/v1/activities/")) {
+      return Promise.resolve(activityResp);
+    }
+    if (method === "GET" && path.startsWith("/api/v1/problems/")) {
+      const id = path.split("/").pop() ?? "";
+      return Promise.resolve({
+        data: {
+          id,
+          type: "problem",
+          attributes: { problem_type: problemTypes[id] ?? "quiz" },
+        },
+      });
+    }
+    return Promise.resolve({});
+  }) as unknown as typeof mockClient.request);
 }
 
 describe("problem collection sync", () => {
@@ -466,6 +491,160 @@ describe("problem collection sync", () => {
 
     const payload = mockClient.doManyPCP.mock.calls[0][0];
     expect(payload.data_to_update[0].attributes.point).toBe(3);
+  });
+
+  // ===== isRequired =====
+
+  it("신규 pcp: isRequired 명시 시 그대로 사용", async () => {
+    mockActivityAndProblems(makeActivityWithPcps("pc1", []));
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    await runCommand(ActivitySetProblems, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([
+        { id: "p1", isRequired: true },
+        { id: "p2", isRequired: false },
+      ]),
+    ]);
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_create[0].attributes.is_required).toBe(true);
+    expect(payload.data_to_create[1].attributes.is_required).toBe(false);
+  });
+
+  it("신규 pcp: isRequired 생략 시 descriptive/sheet는 true, quiz/judge는 false", async () => {
+    mockActivityAndProblems(makeActivityWithPcps("pc1", []), {
+      p_desc: "descriptive",
+      p_sheet: "sheet",
+      p_quiz: "quiz",
+      p_judge: "judge",
+    });
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    await runCommand(ActivitySetProblems, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([
+        { id: "p_desc" },
+        { id: "p_sheet" },
+        { id: "p_quiz" },
+        { id: "p_judge" },
+      ]),
+    ]);
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    const byProblem = new Map(
+      payload.data_to_create.map((d: Record<string, unknown>) => [
+        (d.attributes as Record<string, unknown>).problem_id,
+        (d.attributes as Record<string, unknown>).is_required,
+      ]),
+    );
+    expect(byProblem.get("p_desc")).toBe(true);
+    expect(byProblem.get("p_sheet")).toBe(true);
+    expect(byProblem.get("p_quiz")).toBe(false);
+    expect(byProblem.get("p_judge")).toBe(false);
+  });
+
+  it("기존 pcp: isRequired 생략 시 기존 값 유지 + update 대상 아님", async () => {
+    mockActivityAndProblems(
+      makeActivityWithPcps("pc1", [
+        {
+          id: "pcp1",
+          problem_id: "p1",
+          position: 0,
+          point: 1,
+          is_required: true,
+        },
+      ]),
+    );
+
+    const output = await runCommand(ActivitySetProblems, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1" }]),
+    ]);
+    expect(output).toContain("변경 사항");
+    expect(mockClient.doManyPCP).not.toHaveBeenCalled();
+  });
+
+  it("기존 pcp: isRequired 변경 시 update 페이로드에 is_required 포함", async () => {
+    mockActivityAndProblems(
+      makeActivityWithPcps("pc1", [
+        {
+          id: "pcp1",
+          problem_id: "p1",
+          position: 0,
+          point: 1,
+          is_required: false,
+        },
+      ]),
+    );
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    await runCommand(ActivitySetProblems, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1", isRequired: true }]),
+    ]);
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_update).toHaveLength(1);
+    expect(payload.data_to_update[0].attributes.is_required).toBe(true);
+  });
+
+  it("기존 pcp: point만 변경하고 isRequired 생략 → update에 is_required 포함 안 됨", async () => {
+    mockActivityAndProblems(
+      makeActivityWithPcps("pc1", [
+        {
+          id: "pcp1",
+          problem_id: "p1",
+          position: 0,
+          point: 1,
+          is_required: true,
+        },
+      ]),
+    );
+    mockClient.doManyPCP.mockResolvedValue({});
+
+    await runCommand(ActivitySetProblems, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1", point: 5 }]),
+    ]);
+
+    const payload = mockClient.doManyPCP.mock.calls[0][0];
+    expect(payload.data_to_update).toHaveLength(1);
+    expect(payload.data_to_update[0].attributes.point).toBe(5);
+    expect(payload.data_to_update[0].attributes.is_required).toBeUndefined();
+  });
+
+  it("기존 pcp: isRequired 동일 값 지정 + 다른 변경 없음 → API 호출 없음", async () => {
+    mockActivityAndProblems(
+      makeActivityWithPcps("pc1", [
+        {
+          id: "pcp1",
+          problem_id: "p1",
+          position: 0,
+          point: 1,
+          is_required: true,
+        },
+      ]),
+    );
+
+    const output = await runCommand(ActivitySetProblems, [
+      "--activity-id",
+      "1",
+      "--problems",
+      JSON.stringify([{ id: "p1", isRequired: true }]),
+    ]);
+    expect(output).toContain("변경 사항");
+    expect(mockClient.doManyPCP).not.toHaveBeenCalled();
   });
 });
 
