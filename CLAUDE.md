@@ -16,6 +16,14 @@ oclif 기반 CLI. AI 에이전트(Claude Code)가 bash로 `codle <command>` 를 
 - **trial-and-error 금지**: 추측으로 코드를 수정하고 API를 찔러보는 식의 반복을 하지 않는다.
   소스를 읽고 정확한 원인을 파악한 뒤 한 번에 수정한다.
 
+## 버전 관리
+
+- `package.json`의 `version`을 직접 수정하지 않는다.
+- PR이 main에 머지되면 release workflow가 PR 제목의 type에 따라 자동으로 버전을 올린다.
+  - `feat:` → minor bump
+  - `fix:`, `perf:` → patch bump
+  - 그 외 (`chore:`, `docs:`, `ci:` 등) → 버전 변경 없음
+
 ## Anchor Comments
 
 비직관적인 코드에 `AIDEV-NOTE:` 앵커 코멘트를 남긴다.
