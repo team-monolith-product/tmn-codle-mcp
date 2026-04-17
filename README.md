@@ -28,4 +28,3 @@ npm run e2e
 ```bash
 CODLE_LOG_LEVEL=DEBUG codle tag search 파이썬 2>debug.log
 ```
-
