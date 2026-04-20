@@ -65,6 +65,9 @@
       },
       "html-activity-page": {
         "description": "교안(HtmlActivity) 페이지 동기화"
+      },
+      "entry-activity-goal": {
+        "description": "엔트리 활동 목표 생성 및 조회"
       }
     }
   },
