@@ -34,11 +34,9 @@ async function resolveStudioActivityId(
   client: CodleClient,
   activityId: string,
 ): Promise<string> {
-  const resp = await client.request(
-    "GET",
-    `/api/v1/activities/${activityId}`,
-    { params: { include: "activitiable" } },
-  );
+  const resp = await client.request("GET", `/api/v1/activities/${activityId}`, {
+    params: { include: "activitiable" },
+  });
   const actData = (resp.data as Record<string, unknown>) || {};
   const relationships =
     (actData.relationships as Record<string, unknown>) || {};
@@ -48,9 +46,7 @@ async function resolveStudioActivityId(
   const id = String(rel.id || "");
   const rawType = String(rel.type || "");
   if (!id || !rawType) {
-    throw new Error(
-      `활동 ${activityId}에서 activitiable을 찾을 수 없습니다.`,
-    );
+    throw new Error(`활동 ${activityId}에서 activitiable을 찾을 수 없습니다.`);
   }
   const type = rawType
     .split("_")
