@@ -1,9 +1,9 @@
-import { describe, expect, test } from "../fixtures/claude.js";
+import { describe, expect, test } from "../../fixtures/claude.js";
 import {
   expectCodleCommand,
   findCodleInteraction,
   parseCodleOutput,
-} from "../lib/ndjson.js";
+} from "../../lib/ndjson.js";
 
 describe("tag search", () => {
   test("도메인별 태그 조회", async ({ claude }) => {

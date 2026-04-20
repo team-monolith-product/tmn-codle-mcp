@@ -1,6 +1,6 @@
-import { describe, expect, test } from "../fixtures/claude.js";
-import { createMaterial } from "../lib/factory.js";
-import { expectCodleCommand, findCodleInteraction } from "../lib/ndjson.js";
+import { describe, expect, test } from "../../fixtures/claude.js";
+import { createMaterial } from "../../lib/factory.js";
+import { expectCodleCommand, findCodleInteraction } from "../../lib/ndjson.js";
 
 describe("html-activity-page sync", () => {
   test("교안 활동에 페이지 추가", async ({ claude, factory }) => {
