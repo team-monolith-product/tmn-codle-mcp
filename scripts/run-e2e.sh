@@ -43,13 +43,12 @@ else
       break
     fi
 
-    # src/commands/{cmd}/ → e2e/tests/{cmd}/ 디렉토리 내 모든 테스트
-    if [[ "$file" =~ ^src/commands/([^/]+)/ ]]; then
+    # src/commands/{cmd}/{subcmd}.ts → e2e/tests/{cmd}/{subcmd}.test.ts (1:1)
+    if [[ "$file" =~ ^src/commands/([^/]+)/([^.]+)\.ts$ ]]; then
       cmd="${BASH_REMATCH[1]}"
-      if [ -d "e2e/tests/${cmd}" ]; then
-        for tf in e2e/tests/${cmd}/*.test.ts; do
-          [ -f "$tf" ] && AFFECTED_TESTS+=("$tf")
-        done
+      subcmd="${BASH_REMATCH[2]}"
+      if [ -f "e2e/tests/${cmd}/${subcmd}.test.ts" ]; then
+        AFFECTED_TESTS+=("e2e/tests/${cmd}/${subcmd}.test.ts")
       fi
     fi
 
