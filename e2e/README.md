@@ -37,8 +37,6 @@ src/commands/material/create.ts      → e2e/tests/material/create.test.ts
 src/commands/activity/set-flow.ts    → e2e/tests/activity/set-flow.test.ts
 ```
 
-`scripts/run-e2e.sh`의 영향 TC 자동 선별이 이 컨벤션에 의존한다.
-
 ## 테스트 작성 원칙
 
 ### 1. Single Command Contract
