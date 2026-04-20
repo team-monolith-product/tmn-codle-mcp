@@ -13,13 +13,13 @@ Codle CLI는 oclif 기반 CLI로, AI 에이전트(Claude Code)가 bash에서 `co
 
 ## 1. 타협 불가능한 규칙
 
-| #   | AI _may_ do                                                                                                           | AI _must NOT_ do                                                                                                                |
-| --- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| #   | AI _may_ do                                                                                                               | AI _must NOT_ do                                                                                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | G-0 | Whenever unsure about something that's related to the project, ask the developer for clarification before making changes. | ❌ Write changes or use tools when you are not sure about something project specific, or if you don't have context for a particular feature/decision. |
-| G-1 | Add/update **`AIDEV-NOTE:` anchor comments** when the _why_ is non-obvious from code alone.                           | ❌ Delete or mangle existing `AIDEV-` comments. ❌ Restate what code already expresses.                                         |
-| G-2 | Follow lint/style configs. Use the project's configured linter/formatter.                                             | ❌ Re-format code to any other style.                                                                                           |
-| G-3 | For changes >300 LOC or >3 files, **ask for confirmation**.                                                           | ❌ Refactor large modules without human guidance.                                                                               |
-| G-4 | Stay within the current task context. Inform the dev if it'd be better to start afresh.                               | ❌ Continue work from a prior prompt after "new task" – start a fresh session.                                                  |
+| G-1 | Add/update **`AIDEV-NOTE:` anchor comments** when the _why_ is non-obvious from code alone.                               | ❌ Delete or mangle existing `AIDEV-` comments. ❌ Restate what code already expresses.                                                               |
+| G-2 | Follow lint/style configs. Use the project's configured linter/formatter.                                                 | ❌ Re-format code to any other style.                                                                                                                 |
+| G-3 | For changes >300 LOC or >3 files, **ask for confirmation**.                                                               | ❌ Refactor large modules without human guidance.                                                                                                     |
+| G-4 | Stay within the current task context. Inform the dev if it'd be better to start afresh.                                   | ❌ Continue work from a prior prompt after "new task" – start a fresh session.                                                                        |
 
 ---
 
