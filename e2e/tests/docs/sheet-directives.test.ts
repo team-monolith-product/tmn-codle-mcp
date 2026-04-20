@@ -1,5 +1,5 @@
-import { describe, expect, test } from "../fixtures/claude.js";
-import { expectCodleCommand, findCodleInteraction } from "../lib/ndjson.js";
+import { describe, expect, test } from "../../fixtures/claude.js";
+import { expectCodleCommand, findCodleInteraction } from "../../lib/ndjson.js";
 
 // AIDEV-NOTE: 프롬프트에서 directive나 resource를 직접 언급하지 않는다.
 // AI가 tool description 힌트 → docs 읽기 → directive 문법 사용의 전체 흐름을 자연스럽게 수행하는지 검증한다.

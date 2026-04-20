@@ -65,7 +65,7 @@ bash scripts/run-e2e.sh --report
 
 ### E2E 테스트
 
-E2E 테스트는 Claude Code를 통해 CLI를 실행하고 결과를 검증하는 방식이다. 작성 원칙과 파일명 컨벤션은 `e2e/README.md`를 참고한다.
+E2E 테스트는 Claude Code를 통해 CLI를 실행하고 결과를 검증하는 방식이다. 테스트는 `e2e/tests/{command}/{subcommand}.test.ts` 구조로 구성된다. 작성 원칙과 컨벤션은 `e2e/README.md`를 참고한다.
 
 ```bash
 # 단일 실행

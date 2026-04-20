@@ -28,13 +28,15 @@ npm run e2e
 | **비즈니스 로직(API 응답 등) 변경**                       | X         | unit test 범위                        |
 | **개발 중 반복 실행**                                     | X         | 느리고 비결정적, 피드백 루프에 부적합 |
 
-## 파일명 컨벤션
+## 디렉토리 컨벤션
 
-e2e 테스트 파일명은 **반드시** `src/commands/` 디렉토리명과 동일해야 한다.
+e2e 테스트는 `e2e/tests/{command}/{subcommand}.test.ts` 구조를 따른다. 디렉토리명은 **반드시** `src/commands/` 디렉토리명과 동일해야 한다.
 
 ```
-src/commands/material/          → e2e/tests/material.test.ts
-src/commands/html-activity-page/ → e2e/tests/html-activity-page.test.ts
+src/commands/material/         → e2e/tests/material/create.test.ts
+                                              search.test.ts
+                                              get.test.ts
+src/commands/html-activity-page/ → e2e/tests/html-activity-page/sync.test.ts
 ```
 
 `scripts/run-e2e.sh`의 영향 TC 자동 선별이 이 컨벤션에 의존한다.
