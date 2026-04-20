@@ -22,17 +22,20 @@ cd "$PROJECT_DIR"
 npm run build
 
 # --- 영향 TC 선별 ---
-# src/commands/{key}/ → e2e/tests/{value}.test.ts
-declare -A CMD_TO_TEST=(
-  [activitiable]=activitiables
-  [activity]=activities
-  [docs]=docs
-  [entry-activity-goal]=entryActivityGoals
-  [html-activity-page]=htmlActivityPages
-  [material]=materials
-  [problem]=problems
-  [tag]=tags
-)
+# src/commands/{cmd}/ → e2e/tests/{test}.test.ts 매핑
+cmd_to_test() {
+  case "$1" in
+    activitiable) echo "activitiables" ;;
+    activity) echo "activities" ;;
+    docs) echo "docs" ;;
+    entry-activity-goal) echo "entryActivityGoals" ;;
+    html-activity-page) echo "htmlActivityPages" ;;
+    material) echo "materials" ;;
+    problem) echo "problems" ;;
+    tag) echo "tags" ;;
+    *) echo "" ;;
+  esac
+}
 
 CHANGED_FILES=$(git diff origin/main --name-only 2>/dev/null || true)
 
@@ -55,7 +58,7 @@ else
     # src/commands/{cmd}/ → e2e test 매핑
     if [[ "$file" =~ ^src/commands/([^/]+)/ ]]; then
       cmd="${BASH_REMATCH[1]}"
-      mapped="${CMD_TO_TEST[$cmd]:-}"
+      mapped=$(cmd_to_test "$cmd")
       if [ -n "$mapped" ] && [ -f "e2e/tests/${mapped}.test.ts" ]; then
         AFFECTED_TESTS+=("e2e/tests/${mapped}.test.ts")
       fi
