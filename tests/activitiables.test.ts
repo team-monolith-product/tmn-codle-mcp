@@ -331,7 +331,6 @@ describe("update_activitiable — VideoActivity", () => {
     ]);
     const parsed = JSON.parse(output);
     expect(parsed.id).toBe("v1");
-    expect(parsed.activity_id).toBe("act-1");
 
     const putCall = mockClient.request.mock.calls[1];
     expect(putCall[0]).toBe("PUT");

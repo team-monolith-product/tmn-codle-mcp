@@ -8,8 +8,7 @@ import {
 } from "../../lexical/index.js";
 
 export default class EntryActivityGoalCreate extends BaseCommand {
-  static description =
-    "엔트리 활동 목표를 생성합니다. content는 markdown으로 입력하면 Lexical로 변환됩니다.";
+  static description = "엔트리 활동 목표를 생성합니다.";
 
   static examples = [
     "<%= config.bin %> <%= command.id %> --entry-activity-id 123 --content '목표 설명' --position 0",

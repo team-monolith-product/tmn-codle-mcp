@@ -200,10 +200,13 @@ export default class ActivitiableUpdate extends BaseCommand {
         attrs.screen_narration_script = convertFromMarkdown(script);
       }
       const payload = buildJsonApiPayload("video_activities", attrs, info.id);
-      await this.client.request("PUT", `/api/v1/video_activities/${info.id}`, {
-        json: payload,
-      });
-      this.output({ id: info.id, activity_id: flags["activity-id"] });
+      const response = await this.client.request(
+        "PUT",
+        `/api/v1/video_activities/${info.id}`,
+        { json: payload },
+      );
+      const video = extractSingle(response);
+      this.output(video);
       return;
     }
 
