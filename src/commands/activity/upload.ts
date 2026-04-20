@@ -130,14 +130,17 @@ export default class ActivityUpload extends BaseCommand {
     const buffer = await readFile(filePath);
     const fullName = basename(filePath);
     const extension = ext.startsWith(".") ? ext.slice(1) : ext;
-    const filename = extension
+    const stem = extension
       ? fullName.slice(0, -(extension.length + 1))
       : fullName;
 
+    // path = 디렉터리 + 파일명 stem 결합. 서버가 마지막 컴포넌트를 stem 으로 사용.
+    const dirPath = flags.path === "." ? "" : flags.path;
+    const fullPath = dirPath ? `${dirPath}/${stem}` : stem;
+
     const formData = new FormData();
     formData.append("file", new Blob([new Uint8Array(buffer)]), fullName);
-    formData.append("path", flags.path === "." ? "" : flags.path);
-    formData.append("filename", filename);
+    formData.append("path", fullPath);
     formData.append("extension", extension);
 
     const resp = await this.client.request(

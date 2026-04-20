@@ -53,7 +53,7 @@ describe("activity upload", () => {
     vi.unstubAllGlobals();
   });
 
-  it("sends filename and extension as separate form fields", async () => {
+  it("sends path with stem as last component and extension separately", async () => {
     const filePath = join(tmpDir, "main.py");
     writeFileSync(filePath, "print('hello')\n");
 
@@ -62,7 +62,6 @@ describe("activity upload", () => {
       filename: "main.py",
       relative_path: "main.py",
       byte_size: 15,
-      content_type: "text/x-python",
     });
 
     await runCommand(ActivityUpload, ["456", "--file-path", filePath]);
@@ -74,13 +73,11 @@ describe("activity upload", () => {
     expect(u2).toBe("/api/v1/studio_activities/99/upload");
 
     const formData = opts.formData as FormData;
-    expect(formData.get("filename")).toBe("main");
+    expect(formData.get("path")).toBe("main");
     expect(formData.get("extension")).toBe("py");
-    expect(formData.get("path")).toBe("");
-    expect((formData.get("file") as File).name).toBe("main.py");
   });
 
-  it("forwards --path as path field", async () => {
+  it("combines --path dir with filename stem", async () => {
     const filePath = join(tmpDir, "data.csv");
     writeFileSync(filePath, "a,b\n1,2\n");
 
@@ -97,8 +94,7 @@ describe("activity upload", () => {
 
     const [, , opts] = mockClient.request.mock.calls[1];
     const formData = opts.formData as FormData;
-    expect(formData.get("path")).toBe("data/problem1");
-    expect(formData.get("filename")).toBe("data");
+    expect(formData.get("path")).toBe("data/problem1/data");
     expect(formData.get("extension")).toBe("csv");
   });
 
