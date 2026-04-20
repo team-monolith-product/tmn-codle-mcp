@@ -52,7 +52,7 @@
         "description": "활동(Activity) CRUD, 코스 흐름, 갈림길 설정"
       },
       "activitiable": {
-        "description": "활동 유형별 속성 업데이트 (Board, Sheet, Embedded, Video)"
+        "description": "활동 유형별 속성 업데이트 (Board, Sheet, Embedded, Video, Codap, Makecode, Scratch, Quiz)"
       },
       "problem": {
         "description": "문제(Problem) CRUD"

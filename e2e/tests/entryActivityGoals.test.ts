@@ -15,7 +15,9 @@ describe("entry-activity-goal create + list", () => {
     const entryActivitiable = await factory.create("entry_activity", {
       category: "project",
     });
-    const activity = await createActivity(factory, material.id, {
+    // AIDEV-NOTE: activity 생성은 entry_activity → material 간 소유자 연결에 필요.
+    // 컨트롤러의 check_owner!가 entry_activity.activity.material.user_id를 확인한다.
+    await createActivity(factory, material.id, {
       name: "E2E Entry Goal Test",
       activitiableType: "EntryActivity",
       activitiableId: entryActivitiable.id,
@@ -51,5 +53,10 @@ describe("entry-activity-goal create + list", () => {
     );
     expect(listInteraction?.result).toBeDefined();
     expect(listInteraction!.result!.isError).toBe(false);
+
+    const listOutput = JSON.stringify(
+      parseCodleOutput(listInteraction!.result!),
+    );
+    expect(listOutput).toContain(createOutput.id);
   });
 });

@@ -33,6 +33,9 @@ describe("activitiable update (VideoActivity — screen_narration_script)", () =
 
     const command = interaction!.call.input.command as string;
     expect(command).toContain("--screen-narration-script");
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 });
 
@@ -61,6 +64,9 @@ describe("activitiable update (CodapActivity — goals)", () => {
 
     const command = interaction!.call.input.command as string;
     expect(command).toContain("--goals");
+
+    const output = parseCodleOutput<{ id: string }>(interaction!.result!);
+    expect(output).toHaveProperty("id");
   });
 });
 
