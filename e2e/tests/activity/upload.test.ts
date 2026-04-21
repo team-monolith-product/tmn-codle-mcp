@@ -10,7 +10,10 @@ import {
 } from "../../lib/ndjson.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FIXTURE_FILE_PATH = resolve(__dirname, "../../fixtures/upload-solution.py");
+const FIXTURE_FILE_PATH = resolve(
+  __dirname,
+  "../../fixtures/upload-solution.py",
+);
 
 describe("activity upload", () => {
   test("StudioActivity 마운트에 로컬 파이썬 파일 업로드", async ({
