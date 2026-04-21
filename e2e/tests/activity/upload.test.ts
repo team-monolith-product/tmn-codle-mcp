@@ -1,16 +1,19 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, test } from "../fixtures/claude.js";
-import { createActivity, createMaterial } from "../lib/factory.js";
+import { describe, expect, test } from "../../fixtures/claude.js";
+import { createActivity, createMaterial } from "../../lib/factory.js";
 import {
   expectCodleCommand,
   findCodleInteraction,
   parseCodleOutput,
-} from "../lib/ndjson.js";
+} from "../../lib/ndjson.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FIXTURE_FILE_PATH = resolve(__dirname, "../fixtures/upload-solution.py");
+const FIXTURE_FILE_PATH = resolve(
+  __dirname,
+  "../../fixtures/upload-solution.py",
+);
 
 describe("activity upload", () => {
   test("StudioActivity 마운트에 로컬 파이썬 파일 업로드", async ({
