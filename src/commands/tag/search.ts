@@ -20,6 +20,19 @@ export default class TagSearch extends BaseCommand {
   static flags = {
     domain: Flags.string({
       description: "태그 도메인",
+      options: [
+        "problem",
+        "material",
+        "standard_concept",
+        "difficulty",
+        "school_level",
+        "metadata",
+        "major_chapter",
+        "category",
+        "material_bundle_topic",
+        "material_bundle_category",
+        "material_bundle_language",
+      ],
     }),
     query: Flags.string({ description: "태그 이름 검색어" }),
     "page-size": Flags.integer({
